@@ -110,7 +110,7 @@ function renderPlan() {
 
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
-    : `<div class="empty-state">No byproducts in this sample chain.</div>`;
+    : `<div class="empty-state">No byproducts in this chain.</div>`;
 }
 
 function recipeRow(repository, row) {
@@ -298,8 +298,9 @@ async function main() {
     state.repository = await loadRepository(state.dataUrl);
     state.products = chooseInitialProducts(state.repository);
     const meta = state.repository.metadata;
+    const packCounts = `${formatAmount(state.repository.goods.size)} goods / ${formatAmount(state.repository.recipes.length)} recipes`;
     elements.packName.textContent = meta.packName;
-    elements.packMeta.textContent = `${meta.packVersion} / Minecraft ${meta.minecraftVersion} / ${meta.loader} / ${state.dataUrl}`;
+    elements.packMeta.textContent = `${meta.packVersion} / Minecraft ${meta.minecraftVersion} / ${meta.loader} / ${packCounts} / ${state.dataUrl}`;
     setupEvents();
     renderAll();
   } catch (error) {
