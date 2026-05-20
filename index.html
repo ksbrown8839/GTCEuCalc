@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GTCEu Modern Planner</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <h1>GTCEu Modern Planner</h1>
+          <p data-role="pack-name">Loading pack data</p>
+          <p data-role="pack-meta"></p>
+        </div>
+
+        <section class="panel">
+          <h2>Targets</h2>
+          <div data-role="product-list"></div>
+          <div class="add-target">
+            <select data-role="product-select" aria-label="Product"></select>
+            <button class="primary-button" data-action="add-product" aria-label="Add product">+</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Data Source</h2>
+          <p class="muted-text">
+            This is sample data for the pack target. The real exporter will replace it with the final post-KubeJS recipe graph.
+          </p>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <div class="status-band">
+          <div>
+            <h2>Production Plan</h2>
+            <div data-role="status">Loading...</div>
+          </div>
+          <div class="power-readout">
+            <span>Power</span>
+            <strong data-role="total-power">0 EU/t average</strong>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <section class="section-band">
+            <h2>Recipe Steps</h2>
+            <div data-role="recipe-plan"></div>
+          </section>
+
+          <aside>
+            <section class="section-band">
+              <h2>External Inputs</h2>
+              <div class="stacked-list" data-role="external-inputs"></div>
+            </section>
+            <section class="section-band">
+              <h2>Byproducts</h2>
+              <div class="stacked-list" data-role="byproducts"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <aside class="browser">
+        <div class="browser-search">
+          <h2>Recipe Browser</h2>
+          <input data-role="search" type="search" placeholder="Search items, fluids, recipes">
+        </div>
+
+        <h2>Goods</h2>
+        <div class="browser-list" data-role="goods-browser"></div>
+
+        <h2>Recipes</h2>
+        <div class="browser-list" data-role="recipe-browser"></div>
+      </aside>
+    </main>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

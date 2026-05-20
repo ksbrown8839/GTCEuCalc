@@ -1,0 +1,157 @@
+{
+  "schema": "gtceu-planner-pack-v1",
+  "metadata": {
+    "packId": "gregtech-modern-community-pack",
+    "packName": "GregTech Community Pack Modern",
+    "packVersion": "1.14.5",
+    "minecraftVersion": "1.20.1",
+    "loader": "Forge",
+    "exportedAt": "sample-data"
+  },
+  "voltageTiers": [
+    { "id": "ulv", "name": "ULV", "voltage": 8 },
+    { "id": "lv", "name": "LV", "voltage": 32 },
+    { "id": "mv", "name": "MV", "voltage": 128 },
+    { "id": "hv", "name": "HV", "voltage": 512 },
+    { "id": "ev", "name": "EV", "voltage": 2048 },
+    { "id": "iv", "name": "IV", "voltage": 8192 }
+  ],
+  "goods": [
+    { "id": "gtceu:greenhouse", "kind": "item", "name": "Greenhouse", "mod": "gtceu", "color": "#6fa857", "tags": [] },
+    { "id": "gtceu:tempered_glass", "kind": "item", "name": "Tempered Glass", "mod": "gtceu", "color": "#9ad6d5", "tags": [] },
+    { "id": "minecraft:glass", "kind": "item", "name": "Glass", "mod": "minecraft", "color": "#d7eef2", "tags": [] },
+    { "id": "gtceu:polyethylene", "kind": "fluid", "name": "Polyethylene", "mod": "gtceu", "color": "#e8f0f8", "tags": [] },
+    { "id": "gtceu:mv_machine_hull", "kind": "item", "name": "MV Machine Hull", "mod": "gtceu", "color": "#d59a45", "tags": [] },
+    { "id": "gtceu:mv_electric_piston", "kind": "item", "name": "MV Electric Piston", "mod": "gtceu", "color": "#b78350", "tags": [] },
+    { "id": "gtceu:mv_electric_pump", "kind": "item", "name": "MV Electric Pump", "mod": "gtceu", "color": "#527da8", "tags": [] },
+    { "id": "gtceu:good_electronic_circuit", "kind": "item", "name": "Good Electronic Circuit", "mod": "gtceu", "color": "#4fa36c", "tags": ["gtceu:circuits/mv"] },
+    { "id": "gtceu:basic_electronic_circuit", "kind": "item", "name": "Basic Electronic Circuit", "mod": "gtceu", "color": "#6fa0c8", "tags": ["gtceu:circuits/lv"] },
+    { "id": "gtceu:resistor", "kind": "item", "name": "Resistor", "mod": "gtceu", "color": "#b78962", "tags": [] },
+    { "id": "gtceu:diode", "kind": "item", "name": "Diode", "mod": "gtceu", "color": "#b65f76", "tags": [] },
+    { "id": "gtceu:fine_copper_wire", "kind": "item", "name": "Fine Copper Wire", "mod": "gtceu", "color": "#ca7b3a", "tags": [] },
+    { "id": "gtceu:copper_single_cable", "kind": "item", "name": "Copper Cable", "mod": "gtceu", "color": "#bd6f38", "tags": [] },
+    { "id": "gtceu:annealed_copper_single_cable", "kind": "item", "name": "Annealed Copper Cable", "mod": "gtceu", "color": "#d89154", "tags": [] },
+    { "id": "gtceu:steel_plate", "kind": "item", "name": "Steel Plate", "mod": "gtceu", "color": "#8f979b", "tags": [] },
+    { "id": "gtceu:aluminium_plate", "kind": "item", "name": "Aluminium Plate", "mod": "gtceu", "color": "#c9d1d4", "tags": [] },
+    { "id": "gtceu:steel_rod", "kind": "item", "name": "Steel Rod", "mod": "gtceu", "color": "#a1a8ab", "tags": [] },
+    { "id": "gtceu:magnetic_steel_rod", "kind": "item", "name": "Magnetic Steel Rod", "mod": "gtceu", "color": "#6c808e", "tags": [] },
+    { "id": "gtceu:small_steel_gear", "kind": "item", "name": "Small Steel Gear", "mod": "gtceu", "color": "#8e9397", "tags": [] },
+    { "id": "gtceu:rubber_ring", "kind": "item", "name": "Rubber Ring", "mod": "gtceu", "color": "#313638", "tags": [] },
+    { "id": "gtceu:bronze_normal_fluid_pipe", "kind": "item", "name": "Bronze Fluid Pipe", "mod": "gtceu", "color": "#af7b3f", "tags": [] },
+    { "id": "gtceu:mv_electric_motor", "kind": "item", "name": "MV Electric Motor", "mod": "gtceu", "color": "#c48742", "tags": [] }
+  ],
+  "tags": [
+    { "id": "gtceu:circuits/lv", "name": "LV Circuits", "entries": ["gtceu:basic_electronic_circuit"], "preferred": "gtceu:basic_electronic_circuit" },
+    { "id": "gtceu:circuits/mv", "name": "MV Circuits", "entries": ["gtceu:good_electronic_circuit"], "preferred": "gtceu:good_electronic_circuit" }
+  ],
+  "recipeTypes": [
+    { "id": "minecraft:crafting_shaped", "name": "Shaped Crafting", "category": "minecraft", "itemInputs": 9, "fluidInputs": 0, "itemOutputs": 1, "fluidOutputs": 0 },
+    { "id": "gtceu:assembler", "name": "Assembler", "category": "gtceu", "itemInputs": 6, "fluidInputs": 1, "itemOutputs": 1, "fluidOutputs": 0 },
+    { "id": "gtceu:bender", "name": "Bender", "category": "gtceu", "itemInputs": 2, "fluidInputs": 0, "itemOutputs": 1, "fluidOutputs": 0 },
+    { "id": "gtceu:wiremill", "name": "Wiremill", "category": "gtceu", "itemInputs": 1, "fluidInputs": 0, "itemOutputs": 1, "fluidOutputs": 0 }
+  ],
+  "machines": [
+    { "id": "gtceu:mv_assembler", "name": "MV Assembler", "recipeType": "gtceu:assembler", "voltageTier": "mv", "parallel": 1 },
+    { "id": "gtceu:lv_bender", "name": "LV Bender", "recipeType": "gtceu:bender", "voltageTier": "lv", "parallel": 1 },
+    { "id": "gtceu:lv_wiremill", "name": "LV Wiremill", "recipeType": "gtceu:wiremill", "voltageTier": "lv", "parallel": 1 }
+  ],
+  "recipes": [
+    {
+      "id": "pack:crafting/greenhouse",
+      "type": "minecraft:crafting_shaped",
+      "durationTicks": 0,
+      "eut": 0,
+      "inputs": [
+        { "kind": "item", "id": "gtceu:tempered_glass", "amount": 3 },
+        { "kind": "tag", "id": "gtceu:circuits/mv", "amount": 2 },
+        { "kind": "item", "id": "gtceu:mv_machine_hull", "amount": 1 },
+        { "kind": "item", "id": "gtceu:mv_electric_piston", "amount": 2 },
+        { "kind": "item", "id": "gtceu:mv_electric_pump", "amount": 1 }
+      ],
+      "outputs": [{ "kind": "item", "id": "gtceu:greenhouse", "amount": 1 }]
+    },
+    {
+      "id": "gtceu:assembler/tempered_glass",
+      "type": "gtceu:assembler",
+      "durationTicks": 100,
+      "eut": 30,
+      "inputs": [
+        { "kind": "item", "id": "minecraft:glass", "amount": 1 },
+        { "kind": "fluid", "id": "gtceu:polyethylene", "amount": 144 }
+      ],
+      "outputs": [{ "kind": "item", "id": "gtceu:tempered_glass", "amount": 1 }]
+    },
+    {
+      "id": "gtceu:assembler/mv_machine_hull",
+      "type": "gtceu:assembler",
+      "durationTicks": 100,
+      "eut": 16,
+      "inputs": [
+        { "kind": "item", "id": "gtceu:aluminium_plate", "amount": 8 },
+        { "kind": "item", "id": "gtceu:copper_single_cable", "amount": 2 }
+      ],
+      "outputs": [{ "kind": "item", "id": "gtceu:mv_machine_hull", "amount": 1 }]
+    },
+    {
+      "id": "gtceu:assembler/good_electronic_circuit",
+      "type": "gtceu:assembler",
+      "durationTicks": 200,
+      "eut": 120,
+      "inputs": [
+        { "kind": "item", "id": "gtceu:basic_electronic_circuit", "amount": 1 },
+        { "kind": "item", "id": "gtceu:diode", "amount": 2 },
+        { "kind": "item", "id": "gtceu:resistor", "amount": 2 },
+        { "kind": "item", "id": "gtceu:fine_copper_wire", "amount": 4 }
+      ],
+      "outputs": [{ "kind": "item", "id": "gtceu:good_electronic_circuit", "amount": 1 }]
+    },
+    {
+      "id": "gtceu:assembler/mv_electric_piston",
+      "type": "gtceu:assembler",
+      "durationTicks": 100,
+      "eut": 120,
+      "inputs": [
+        { "kind": "item", "id": "gtceu:mv_electric_motor", "amount": 1 },
+        { "kind": "item", "id": "gtceu:steel_plate", "amount": 2 },
+        { "kind": "item", "id": "gtceu:steel_rod", "amount": 2 },
+        { "kind": "item", "id": "gtceu:small_steel_gear", "amount": 1 },
+        { "kind": "item", "id": "gtceu:annealed_copper_single_cable", "amount": 2 }
+      ],
+      "outputs": [{ "kind": "item", "id": "gtceu:mv_electric_piston", "amount": 1 }]
+    },
+    {
+      "id": "gtceu:assembler/mv_electric_pump",
+      "type": "gtceu:assembler",
+      "durationTicks": 100,
+      "eut": 120,
+      "inputs": [
+        { "kind": "item", "id": "gtceu:mv_electric_motor", "amount": 1 },
+        { "kind": "item", "id": "gtceu:bronze_normal_fluid_pipe", "amount": 1 },
+        { "kind": "item", "id": "gtceu:rubber_ring", "amount": 2 },
+        { "kind": "item", "id": "gtceu:annealed_copper_single_cable", "amount": 1 }
+      ],
+      "outputs": [{ "kind": "item", "id": "gtceu:mv_electric_pump", "amount": 1 }]
+    },
+    {
+      "id": "gtceu:assembler/mv_electric_motor",
+      "type": "gtceu:assembler",
+      "durationTicks": 100,
+      "eut": 120,
+      "inputs": [
+        { "kind": "item", "id": "gtceu:magnetic_steel_rod", "amount": 1 },
+        { "kind": "item", "id": "gtceu:steel_rod", "amount": 2 },
+        { "kind": "item", "id": "gtceu:fine_copper_wire", "amount": 4 },
+        { "kind": "item", "id": "gtceu:annealed_copper_single_cable", "amount": 2 }
+      ],
+      "outputs": [{ "kind": "item", "id": "gtceu:mv_electric_motor", "amount": 1 }]
+    },
+    {
+      "id": "gtceu:wiremill/fine_copper_wire",
+      "type": "gtceu:wiremill",
+      "durationTicks": 80,
+      "eut": 16,
+      "inputs": [{ "kind": "item", "id": "gtceu:copper_single_cable", "amount": 1 }],
+      "outputs": [{ "kind": "item", "id": "gtceu:fine_copper_wire", "amount": 4 }]
+    }
+  ]
+}
