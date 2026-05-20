@@ -25,12 +25,15 @@ export function createPlan(repository, products, options = {}) {
     }
   }
 
-  function recordRecipe(recipe, runsPerMinute) {
+  function recordRecipe(recipe, runsPerMinute, goodsId, amountPerMinute) {
     const current = recipeRates.get(recipe.id);
     if (current) {
       current.runsPerMinute += runsPerMinute;
+      add(current.plannedOutputs, goodsId, amountPerMinute);
     } else {
-      recipeRates.set(recipe.id, { recipe, runsPerMinute });
+      const plannedOutputs = new Map();
+      add(plannedOutputs, goodsId, amountPerMinute);
+      recipeRates.set(recipe.id, { recipe, runsPerMinute, plannedOutputs });
     }
   }
 
@@ -64,7 +67,7 @@ export function createPlan(repository, products, options = {}) {
     }
 
     const runsPerMinute = amountPerMinute / matchingOutputAmount;
-    recordRecipe(recipe, runsPerMinute);
+    recordRecipe(recipe, runsPerMinute, goodsId, amountPerMinute);
 
     for (const output of recipe.outputs) {
       if (output.id !== goodsId) {
