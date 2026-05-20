@@ -1,0 +1,13 @@
+{
+  "name": "gtceu-modern-planner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A clean-room calculator and production-chain planner for GregTech Community Pack Modern.",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "smoke": "node tools/smoke-test.mjs",
+    "normalize": "node tools/normalize-export.mjs data/gtceu-modern-pack-1.14.5.json",
+    "validate": "node tools/validate-export.mjs data/sample-pack.json"
+  }
+}
