@@ -278,6 +278,42 @@ select {
   white-space: nowrap;
 }
 
+.recipe-choice-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf8;
+}
+
+.recipe-choice {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(240px, 1.2fr);
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.recipe-choice.compact {
+  grid-template-columns: 1fr;
+}
+
+.recipe-choice > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.recipe-choice select {
+  min-height: 32px;
+  font-size: 12px;
+}
+
 .io-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -432,7 +468,8 @@ select {
   .app-shell,
   .content-grid,
   .status-band,
-  .io-grid {
+  .io-grid,
+  .recipe-choice {
     grid-template-columns: 1fr;
   }
 
