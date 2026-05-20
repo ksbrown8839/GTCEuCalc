@@ -5,6 +5,7 @@ import { createPlan } from "./planner.js";
 const state = {
   repository: null,
   products: [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }],
+  preferredRecipeByOutput: {},
   search: "",
   dataUrl: "data/sample-pack.json"
 };
@@ -78,7 +79,9 @@ function renderProductControls() {
 
 function renderPlan() {
   const repository = state.repository;
-  const plan = createPlan(repository, state.products);
+  const plan = createPlan(repository, state.products, {
+    preferredRecipeByOutput: state.preferredRecipeByOutput
+  });
 
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
 
@@ -96,7 +99,7 @@ function renderPlan() {
   `;
 
   elements.recipePlan.innerHTML = plan.recipeRows.length
-    ? plan.recipeRows.map(({ recipe, runsPerMinute }) => recipeRow(repository, recipe, runsPerMinute)).join("")
+    ? plan.recipeRows.map((row) => recipeRow(repository, row)).join("")
     : `<div class="empty-state">Choose a product to build a plan.</div>`;
 
   elements.externalInputs.innerHTML = plan.externalRows.length
@@ -108,10 +111,16 @@ function renderPlan() {
     : `<div class="empty-state">No byproducts in this sample chain.</div>`;
 }
 
-function recipeRow(repository, recipe, runsPerMinute) {
+function recipeRow(repository, row) {
+  const { recipe, runsPerMinute } = row;
   const type = repository.getRecipeType(recipe.type);
   const outputs = recipe.outputs.map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
   const inputs = recipe.inputs.map((input) => ingredientChip(repository, input)).join("");
+  const plannedOutputs = [...row.plannedOutputs.entries()].sort((a, b) => b[1] - a[1]);
+  const recipeChoices = plannedOutputs
+    .map(([goodsId, amountPerMinute]) => recipeChoiceControl(repository, goodsId, recipe.id, amountPerMinute))
+    .join("");
+
   return `
     <article class="recipe-row">
       <div class="recipe-main">
@@ -121,6 +130,7 @@ function recipeRow(repository, recipe, runsPerMinute) {
         </div>
         <div class="rate-pill">${formatRate(runsPerMinute)} runs</div>
       </div>
+      ${recipeChoices ? `<div class="recipe-choice-list">${recipeChoices}</div>` : ""}
       <div class="io-grid">
         <div>
           <span class="section-label">Inputs</span>
@@ -137,6 +147,38 @@ function recipeRow(repository, recipe, runsPerMinute) {
         <span>${formatAverageEut(recipe, runsPerMinute)}</span>
       </div>
     </article>
+  `;
+}
+
+function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinute) {
+  const recipes = repository.findRecipesProducing(goodsId);
+  const goodName = repository.getGoodName(goodsId);
+  const selectedRecipeId = state.preferredRecipeByOutput[goodsId] ?? currentRecipeId;
+
+  if (recipes.length <= 1) {
+    return `
+      <div class="recipe-choice compact">
+        <span>Making ${goodChip(repository, goodsId, formatRate(amountPerMinute))}</span>
+      </div>
+    `;
+  }
+
+  const options = recipes
+    .map((candidate) => {
+      const type = repository.getRecipeType(candidate.type);
+      const label = `${type.name} · ${candidate.id}`;
+      const selected = candidate.id === selectedRecipeId ? " selected" : "";
+      return `<option value="${escapeHtml(candidate.id)}"${selected}>${escapeHtml(label)}</option>`;
+    })
+    .join("");
+
+  return `
+    <label class="recipe-choice">
+      <span>Recipe for ${goodChip(repository, goodsId, formatRate(amountPerMinute))}</span>
+      <select data-action="choose-recipe" data-output-id="${escapeHtml(goodsId)}" aria-label="Choose recipe for ${escapeHtml(goodName)}">
+        ${options}
+      </select>
+    </label>
   `;
 }
 
@@ -221,6 +263,16 @@ function setupEvents() {
     const index = Number(target.dataset.index);
     state.products.splice(index, 1);
     renderAll();
+  });
+
+  elements.recipePlan.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement) || target.dataset.action !== "choose-recipe") return;
+    const outputId = target.dataset.outputId;
+    if (!outputId) return;
+
+    state.preferredRecipeByOutput[outputId] = target.value;
+    renderPlan();
   });
 
   elements.searchInput.addEventListener("input", () => {
