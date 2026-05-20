@@ -2,12 +2,14 @@ import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml 
 import { loadRepository } from "./repository.js";
 import { createPlan } from "./planner.js";
 
+const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
+
 const state = {
   repository: null,
   products: [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }],
   preferredRecipeByOutput: {},
   search: "",
-  dataUrl: "data/sample-pack.json"
+  dataUrl: DEFAULT_DATA_URL
 };
 
 const elements = {
@@ -220,7 +222,7 @@ function renderAll() {
 
 function dataUrlFromLocation() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("data") || "data/sample-pack.json";
+  return params.get("data") || DEFAULT_DATA_URL;
 }
 
 function chooseInitialProducts(repository) {
