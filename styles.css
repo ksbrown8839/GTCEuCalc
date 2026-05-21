@@ -103,6 +103,33 @@ button:disabled {
   margin-top: 24px;
 }
 
+.help-panel {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf8;
+}
+
+.help-panel summary {
+  padding: 10px 12px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.help-panel ol {
+  margin: 0;
+  padding: 0 14px 12px 30px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.help-panel li + li {
+  margin-top: 6px;
+}
+
 .panel h2,
 .browser h2 {
   font-size: 15px;
