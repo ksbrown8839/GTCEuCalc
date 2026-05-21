@@ -20,7 +20,7 @@ export function formatAmount(value, unit = "") {
   return `${text}${suffix}${unit}`;
 }
 
-export function formatRate(value, unit = "/m") {
+export function formatRate(value, unit = "/min") {
   return `${formatAmount(value)}${unit}`;
 }
 

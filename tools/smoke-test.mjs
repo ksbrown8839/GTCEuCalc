@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { Repository } from "../src/repository.js";
 import { createPlan } from "../src/planner.js";
 import { getBoundaryPresetForGood, getBoundaryPresetGoods } from "../src/boundaries.js";
+import { formatRate } from "../src/format.js";
 
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
@@ -33,6 +34,10 @@ if (!plan.externalRows.some((row) => row.goodsId === "minecraft:glass")) {
 
 if (plan.totalAverageEut <= 0) {
   throw new Error("Expected non-zero average EU/t.");
+}
+
+if (formatRate(1) !== "1/min") {
+  throw new Error("Expected rates to use the /min unit.");
 }
 
 if (!targetMatches.some((good) => good.id === "gtceu:polyethylene")) {

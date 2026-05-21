@@ -1,7 +1,7 @@
-import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=crafting-tree-2026-05-21";
-import { loadRepository } from "./repository.js?v=crafting-tree-2026-05-21";
-import { createPlan } from "./planner.js?v=crafting-tree-2026-05-21";
-import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=crafting-tree-2026-05-21";
+import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=rate-unit-2026-05-21";
+import { loadRepository } from "./repository.js?v=rate-unit-2026-05-21";
+import { createPlan } from "./planner.js?v=rate-unit-2026-05-21";
+import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=rate-unit-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 
