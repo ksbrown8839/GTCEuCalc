@@ -1,7 +1,7 @@
-import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js";
-import { loadRepository } from "./repository.js";
-import { createPlan } from "./planner.js";
-import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js";
+import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=grouped-inputs-2026-05-21";
+import { loadRepository } from "./repository.js?v=grouped-inputs-2026-05-21";
+import { createPlan } from "./planner.js?v=grouped-inputs-2026-05-21";
+import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=grouped-inputs-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 
