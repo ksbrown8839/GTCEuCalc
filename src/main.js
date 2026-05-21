@@ -155,17 +155,40 @@ function renderPlan() {
 
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
 
-  const warningHtml = plan.warnings.length
-    ? `<div class="warning-list">
-        ${plan.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}
-        ${plan.suppressedWarningCount ? `<p>${escapeHtml(`${plan.suppressedWarningCount} more distinct warnings hidden.`)}</p>` : ""}
-      </div>`
+  const assumptionCount = plan.warnings.length + plan.suppressedWarningCount;
+  const assumptionHtml = assumptionCount
+    ? `<details class="assumption-panel">
+        <summary>
+          <span>Planner assumptions</span>
+          <strong>${formatAmount(assumptionCount)}</strong>
+        </summary>
+        <div class="warning-list">
+          ${plan.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}
+          ${plan.suppressedWarningCount ? `<p>${escapeHtml(`${plan.suppressedWarningCount} more distinct assumptions hidden.`)}</p>` : ""}
+        </div>
+      </details>`
     : "";
 
   elements.status.innerHTML = `
-    <strong>${plan.recipeRows.length}</strong> recipe steps,
-    <strong>${plan.externalRows.length}</strong> external inputs.
-    ${warningHtml}
+    <div class="plan-overview">
+      <div class="plan-metric">
+        <strong>${formatAmount(plan.recipeRows.length)}</strong>
+        <span>Recipe steps</span>
+      </div>
+      <div class="plan-metric">
+        <strong>${formatAmount(plan.externalRows.length)}</strong>
+        <span>External inputs</span>
+      </div>
+      <div class="plan-metric">
+        <strong>${formatAmount(plan.byproductRows.length)}</strong>
+        <span>Byproducts</span>
+      </div>
+      <div class="plan-metric">
+        <strong>${formatAmount(assumptionCount)}</strong>
+        <span>Assumptions</span>
+      </div>
+    </div>
+    ${assumptionHtml}
   `;
 
   elements.recipePlan.innerHTML = plan.recipeRows.length
