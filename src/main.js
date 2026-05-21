@@ -1,7 +1,7 @@
-import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=rate-unit-2026-05-21";
-import { loadRepository } from "./repository.js?v=rate-unit-2026-05-21";
-import { createPlan } from "./planner.js?v=rate-unit-2026-05-21";
-import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=rate-unit-2026-05-21";
+import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=inspector-2026-05-21";
+import { loadRepository } from "./repository.js?v=inspector-2026-05-21";
+import { createPlan } from "./planner.js?v=inspector-2026-05-21";
+import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 
@@ -13,7 +13,8 @@ const state = {
   manualMadeGoods: new Set(),
   activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
   targetSearch: "",
-  search: "",
+  inspectSearch: "",
+  selectedGoodsId: null,
   dataUrl: DEFAULT_DATA_URL
 };
 
@@ -41,9 +42,10 @@ const elements = {
   byproducts: document.querySelector("[data-role='byproducts']"),
   boundaryPresetList: document.querySelector("[data-role='boundary-preset-list']"),
   boundarySummary: document.querySelector("[data-role='boundary-summary']"),
-  recipeBrowser: document.querySelector("[data-role='recipe-browser']"),
-  goodsBrowser: document.querySelector("[data-role='goods-browser']"),
-  searchInput: document.querySelector("[data-role='search']"),
+  inspectSearchInput: document.querySelector("[data-role='inspect-search']"),
+  inspectMatchSummary: document.querySelector("[data-role='inspect-match-summary']"),
+  inspectResults: document.querySelector("[data-role='inspect-results']"),
+  inspectorPanel: document.querySelector("[data-role='inspector-panel']"),
   packName: document.querySelector("[data-role='pack-name']"),
   packMeta: document.querySelector("[data-role='pack-meta']"),
   totalPower: document.querySelector("[data-role='total-power']")
@@ -92,6 +94,29 @@ function getEffectiveExternalGoods(repository) {
   }
 
   return externalGoods;
+}
+
+function setGoodAsMade(goodsId) {
+  state.manualExternalGoods.delete(goodsId);
+  state.manualMadeGoods.add(goodsId);
+}
+
+function setGoodAsExternal(goodsId) {
+  state.manualExternalGoods.add(goodsId);
+  state.manualMadeGoods.delete(goodsId);
+  delete state.preferredRecipeByOutput[goodsId];
+}
+
+function setSingleTarget(goodsId) {
+  state.products = [{ goodsId, amountPerMinute: 1 }];
+  setGoodAsMade(goodsId);
+  state.selectedGoodsId = goodsId;
+}
+
+function addTarget(goodsId) {
+  setGoodAsMade(goodsId);
+  state.selectedGoodsId = goodsId;
+  state.products.push({ goodsId, amountPerMinute: 1 });
 }
 
 function renderBoundaryPresets() {
@@ -313,6 +338,7 @@ function externalInputRow(repository, row, externalGoods) {
     <div class="external-input-row">
       ${goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))}
       <button class="secondary-button" data-action="make-input" data-id="${escapeHtml(row.goodsId)}">Make</button>
+      <button class="secondary-button" data-action="inspect-good" data-id="${escapeHtml(row.goodsId)}">Inspect</button>
     </div>
   `;
 }
@@ -384,41 +410,131 @@ function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinu
   `;
 }
 
-function renderBrowser() {
+function renderInspector() {
   const repository = state.repository;
-  const query = state.search;
+  const matches = repository.searchGoods(state.inspectSearch, 30);
+  const selectedGood = state.selectedGoodsId ? repository.getGood(state.selectedGoodsId) : null;
 
-  elements.goodsBrowser.innerHTML = repository
-    .searchGoods(query)
-    .map((good) => `
-      <button class="browser-row" data-action="set-target" data-id="${escapeHtml(good.id)}">
+  elements.inspectResults.innerHTML = matches.length
+    ? matches.map((good) => inspectorResultRow(repository, good)).join("")
+    : `<div class="empty-state">No matching goods.</div>`;
+
+  if (state.inspectSearch.trim()) {
+    elements.inspectMatchSummary.textContent = matches.length
+      ? `${formatAmount(matches.length)} matches shown`
+      : "No matches";
+  } else {
+    elements.inspectMatchSummary.textContent = `Showing ${formatAmount(matches.length)} suggested goods`;
+  }
+
+  elements.inspectorPanel.innerHTML = selectedGood
+    ? selectedGoodPanel(repository, selectedGood)
+    : `<div class="empty-state">Select an item or fluid to inspect it.</div>`;
+}
+
+function inspectorResultRow(repository, good) {
+  const selected = good.id === state.selectedGoodsId ? " selected" : "";
+  const detail = `${good.id} · ${good.kind === "fluid" ? "fluid" : good.mod}`;
+  return `
+    <button class="browser-row inspector-row${selected}" data-action="inspect-good" data-id="${escapeHtml(good.id)}">
+      ${goodChip(repository, good.id)}
+      <span>${escapeHtml(detail)}</span>
+    </button>
+  `;
+}
+
+function selectedGoodPanel(repository, good) {
+  const producedBy = repository.findRecipesProducing(good.id);
+  const usedIn = repository.findRecipesUsing(good.id);
+  const effectiveExternalGoods = getEffectiveExternalGoods(repository);
+  const isExternal = effectiveExternalGoods.has(good.id);
+  const boundary = getBoundaryPresetForGood(good);
+  const preferredRecipeId = state.preferredRecipeByOutput[good.id];
+
+  return `
+    <section class="inspector-card selected-good-card">
+      <div class="inspector-good-header">
         ${goodChip(repository, good.id)}
-        <span>${escapeHtml(good.id)}</span>
-      </button>
-    `)
-    .join("");
+        <span class="inspector-id">${escapeHtml(good.id)}</span>
+      </div>
+      <div class="inspector-meta">
+        <span>${escapeHtml(good.kind)}</span>
+        <span>${escapeHtml(good.mod)}</span>
+        <span>${formatAmount(producedBy.length)} producing recipes</span>
+        <span>${formatAmount(usedIn.length)} using recipes</span>
+        ${boundary ? `<span>${escapeHtml(boundary.label)}</span>` : ""}
+        ${isExternal ? `<span>treated as external</span>` : `<span>planner may craft</span>`}
+      </div>
+      <div class="inspector-actions">
+        <button class="primary-button" data-action="inspector-set-target" data-id="${escapeHtml(good.id)}">Set as target</button>
+        <button class="secondary-button" data-action="inspector-add-target" data-id="${escapeHtml(good.id)}">Add target</button>
+        <button class="secondary-button" data-action="inspector-make-good" data-id="${escapeHtml(good.id)}">Make in plan</button>
+        <button class="secondary-button" data-action="inspector-treat-external" data-id="${escapeHtml(good.id)}">Treat external</button>
+      </div>
+    </section>
 
-  elements.recipeBrowser.innerHTML = repository
-    .searchRecipes(query)
-    .map((recipe) => {
-      const type = repository.getRecipeType(recipe.type);
-      const outputs = recipe.outputs.map((output) => repository.getGoodName(output.id)).join(", ");
-      return `
-        <div class="browser-row static">
-          <span class="recipe-type-dot"></span>
+    <section class="inspector-section">
+      <h2>Produced by</h2>
+      ${producedBy.length
+        ? producedBy.slice(0, 8).map((recipe) => inspectorRecipeCard(repository, recipe, good.id, "produced", preferredRecipeId)).join("")
+        : `<div class="empty-state">No producing recipe. This is a raw or supplied input.</div>`}
+      ${producedBy.length > 8 ? `<p class="match-summary">Showing 8 of ${formatAmount(producedBy.length)} producing recipes.</p>` : ""}
+    </section>
+
+    <section class="inspector-section">
+      <h2>Used in</h2>
+      ${usedIn.length
+        ? usedIn.slice(0, 8).map((recipe) => inspectorRecipeCard(repository, recipe, good.id, "used", null)).join("")
+        : `<div class="empty-state">No exported recipes use this good.</div>`}
+      ${usedIn.length > 8 ? `<p class="match-summary">Showing 8 of ${formatAmount(usedIn.length)} using recipes.</p>` : ""}
+    </section>
+  `;
+}
+
+function inspectorRecipeCard(repository, recipe, inspectedGoodsId, mode, preferredRecipeId) {
+  const type = repository.getRecipeType(recipe.type);
+  const outputs = recipe.outputs.map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
+  const inputs = recipe.inputs.map((input) => ingredientChip(repository, input)).join("");
+  const isPreferred = recipe.id === preferredRecipeId;
+  const firstOutput = recipe.outputs.find((output) => repository.getGood(output.id));
+  const activeClass = isPreferred ? " active" : "";
+
+  return `
+    <article class="inspector-recipe-card${activeClass}">
+      <header>
+        <div>
           <strong>${escapeHtml(type.name)}</strong>
-          <span>${escapeHtml(outputs)}</span>
+          <p>${escapeHtml(recipe.id)}</p>
         </div>
-      `;
-    })
-    .join("");
+        ${isPreferred ? `<span class="preferred-pill">preferred</span>` : ""}
+      </header>
+      <div class="recipe-meta compact-meta">
+        <span>${formatDuration(recipe.durationTicks)}</span>
+        <span>${formatAmount(recipe.eut)} EU/t</span>
+      </div>
+      <div class="inspector-io">
+        <span class="section-label">Inputs</span>
+        <div class="chip-flow">${inputs || "None"}</div>
+        <span class="section-label">Outputs</span>
+        <div class="chip-flow">${outputs || "None"}</div>
+      </div>
+      <div class="inspector-recipe-actions">
+        ${mode === "produced"
+          ? `<button class="secondary-button" data-action="inspector-prefer-recipe" data-output-id="${escapeHtml(inspectedGoodsId)}" data-recipe-id="${escapeHtml(recipe.id)}">Prefer recipe</button>`
+          : ""}
+        ${firstOutput
+          ? `<button class="secondary-button" data-action="inspect-good" data-id="${escapeHtml(firstOutput.id)}">Inspect output</button>`
+          : ""}
+      </div>
+    </article>
+  `;
 }
 
 function renderAll() {
   renderProductControls();
   renderBoundaryPresets();
   renderPlan();
-  renderBrowser();
+  renderInspector();
 }
 
 function dataUrlFromLocation() {
@@ -446,12 +562,7 @@ function chooseInitialProducts(repository) {
 function setupEvents() {
   elements.addProduct.addEventListener("click", () => {
     const goodsId = elements.productSelect.value;
-    state.manualExternalGoods.delete(goodsId);
-    state.manualMadeGoods.add(goodsId);
-    state.products.push({
-      goodsId,
-      amountPerMinute: 1
-    });
+    addTarget(goodsId);
     renderAll();
   });
 
@@ -478,27 +589,29 @@ function setupEvents() {
     if (!outputId) return;
 
     if (target.value === EXTERNAL_RECIPE_VALUE) {
-      state.manualExternalGoods.add(outputId);
-      state.manualMadeGoods.delete(outputId);
-      delete state.preferredRecipeByOutput[outputId];
+      setGoodAsExternal(outputId);
     } else {
-      state.manualExternalGoods.delete(outputId);
-      state.manualMadeGoods.add(outputId);
+      setGoodAsMade(outputId);
       state.preferredRecipeByOutput[outputId] = target.value;
     }
     renderBoundaryPresets();
     renderPlan();
+    renderInspector();
   });
 
   elements.externalInputs.addEventListener("click", (event) => {
-    const target = event.target.closest("[data-action='make-input']");
+    const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) return;
     const goodsId = target.dataset.id;
     if (!goodsId) return;
-    state.manualExternalGoods.delete(goodsId);
-    state.manualMadeGoods.add(goodsId);
-    renderBoundaryPresets();
-    renderPlan();
+
+    if (target.dataset.action === "make-input") {
+      setGoodAsMade(goodsId);
+      state.selectedGoodsId = goodsId;
+      renderBoundaryPresets();
+      renderPlan();
+      renderInspector();
+    }
   });
 
   elements.boundaryPresetList.addEventListener("change", (event) => {
@@ -514,6 +627,7 @@ function setupEvents() {
     }
     renderBoundaryPresets();
     renderPlan();
+    renderInspector();
   });
 
   elements.targetSearchInput.addEventListener("input", () => {
@@ -521,22 +635,69 @@ function setupEvents() {
     renderTargetPicker();
   });
 
-  elements.searchInput.addEventListener("input", () => {
-    state.search = elements.searchInput.value;
-    renderBrowser();
+  elements.inspectSearchInput.addEventListener("input", () => {
+    state.inspectSearch = elements.inspectSearchInput.value;
+    const matches = state.repository.searchGoods(state.inspectSearch, 30);
+    if (matches.length && (!state.selectedGoodsId || state.inspectSearch.trim())) {
+      state.selectedGoodsId = matches[0].id;
+    }
+    renderInspector();
   });
 
   document.addEventListener("click", (event) => {
-    const target = event.target.closest("[data-action='set-target']");
+    const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) return;
+
+    const action = target.dataset.action;
     const goodsId = target.dataset.id;
-    if (!goodsId) return;
-    state.products = [{ goodsId, amountPerMinute: 1 }];
-    state.targetSearch = "";
-    elements.targetSearchInput.value = "";
-    state.manualExternalGoods.delete(goodsId);
-    state.manualMadeGoods.add(goodsId);
-    renderAll();
+
+    if (action === "inspect-good" && goodsId) {
+      state.selectedGoodsId = goodsId;
+      renderInspector();
+      return;
+    }
+
+    if (action === "inspector-set-target" && goodsId) {
+      setSingleTarget(goodsId);
+      state.targetSearch = "";
+      elements.targetSearchInput.value = "";
+      renderAll();
+      return;
+    }
+
+    if (action === "inspector-add-target" && goodsId) {
+      addTarget(goodsId);
+      renderAll();
+      return;
+    }
+
+    if (action === "inspector-make-good" && goodsId) {
+      setGoodAsMade(goodsId);
+      renderBoundaryPresets();
+      renderPlan();
+      renderInspector();
+      return;
+    }
+
+    if (action === "inspector-treat-external" && goodsId) {
+      setGoodAsExternal(goodsId);
+      renderBoundaryPresets();
+      renderPlan();
+      renderInspector();
+      return;
+    }
+
+    if (action === "inspector-prefer-recipe") {
+      const outputId = target.dataset.outputId;
+      const recipeId = target.dataset.recipeId;
+      if (!outputId || !recipeId) return;
+      setGoodAsMade(outputId);
+      state.preferredRecipeByOutput[outputId] = recipeId;
+      state.selectedGoodsId = outputId;
+      renderBoundaryPresets();
+      renderPlan();
+      renderInspector();
+    }
   });
 }
 
@@ -545,6 +706,7 @@ async function main() {
     state.dataUrl = dataUrlFromLocation();
     state.repository = await loadRepository(state.dataUrl);
     state.products = chooseInitialProducts(state.repository);
+    state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     const meta = state.repository.metadata;
     const packCounts = `${formatAmount(state.repository.goods.size)} goods / ${formatAmount(state.repository.recipes.length)} recipes`;
     elements.packName.textContent = meta.packName;
