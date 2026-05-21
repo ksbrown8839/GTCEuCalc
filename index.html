@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=rate-unit-2026-05-21">
+    <link rel="stylesheet" href="styles.css?v=inspector-2026-05-21">
   </head>
   <body>
     <main class="app-shell">
@@ -84,20 +84,20 @@
         </div>
       </section>
 
-      <aside class="browser">
+      <aside class="browser inspector">
         <div class="browser-search">
-          <h2>Recipe Browser</h2>
-          <input data-role="search" type="search" placeholder="Search items, fluids, recipes">
+          <h2>Item Inspector</h2>
+          <input data-role="inspect-search" type="search" placeholder="Search items or fluids">
+          <p class="match-summary" data-role="inspect-match-summary"></p>
         </div>
 
-        <h2>Goods</h2>
-        <div class="browser-list" data-role="goods-browser"></div>
+        <h2>Matches</h2>
+        <div class="browser-list inspector-results" data-role="inspect-results"></div>
 
-        <h2>Recipes</h2>
-        <div class="browser-list" data-role="recipe-browser"></div>
+        <div data-role="inspector-panel"></div>
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=rate-unit-2026-05-21"></script>
+    <script type="module" src="src/main.js?v=inspector-2026-05-21"></script>
   </body>
 </html>
