@@ -1,0 +1,125 @@
+.inspector .browser-search {
+  margin-bottom: 16px;
+}
+
+.inspector-results {
+  max-height: 340px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.inspector-row.selected {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.inspector-card,
+.inspector-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.selected-good-card {
+  display: grid;
+  gap: 12px;
+}
+
+.inspector-good-header {
+  display: grid;
+  gap: 7px;
+}
+
+.inspector-id {
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.inspector-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inspector-meta span,
+.preferred-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #fafbf8;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.preferred-pill {
+  color: var(--accent);
+}
+
+.inspector-actions,
+.inspector-recipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inspector-actions .primary-button,
+.inspector-actions .secondary-button,
+.inspector-recipe-actions .secondary-button {
+  width: auto;
+  min-height: 30px;
+  padding: 5px 10px;
+}
+
+.inspector-section h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.inspector-recipe-card {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.inspector-recipe-card + .inspector-recipe-card {
+  margin-top: 10px;
+}
+
+.inspector-recipe-card.active {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.inspector-recipe-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.inspector-recipe-card header p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.compact-meta {
+  margin-top: 0;
+}
+
+.inspector-io {
+  display: grid;
+  gap: 7px;
+}
+
+@media (max-width: 760px) {
+  .inspector-results {
+    max-height: none;
+  }
+}
