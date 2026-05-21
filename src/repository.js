@@ -103,20 +103,22 @@ export class Repository {
     return recipes[0] ?? null;
   }
 
-  searchGoods(query) {
+  searchGoods(query, limit = 80) {
     const normalized = query.trim().toLowerCase();
     const goods = [...this.goods.values()];
-    if (!normalized) return goods.slice(0, 80);
+    if (!normalized) return goods.slice(0, limit);
 
     return goods
-      .filter((good) => {
-        return (
-          good.name.toLowerCase().includes(normalized) ||
-          good.id.toLowerCase().includes(normalized) ||
-          good.mod.toLowerCase().includes(normalized)
-        );
+      .map((good) => {
+        return {
+          good,
+          score: scoreGoodSearchMatch(good, normalized)
+        };
       })
-      .slice(0, 80);
+      .filter((match) => match.score !== null)
+      .sort((a, b) => a.score - b.score || a.good.name.localeCompare(b.good.name) || a.good.id.localeCompare(b.good.id))
+      .slice(0, limit)
+      .map((match) => match.good);
   }
 
   searchRecipes(query) {
@@ -133,6 +135,22 @@ export class Repository {
       })
       .slice(0, 80);
   }
+}
+
+function scoreGoodSearchMatch(good, query) {
+  const name = good.name.toLowerCase();
+  const id = good.id.toLowerCase();
+  const mod = good.mod.toLowerCase();
+  const tags = good.tags ?? [];
+
+  if (name === query || id === query) return 0;
+  if (name.startsWith(query)) return 1;
+  if (id.startsWith(query)) return 2;
+  if (name.includes(query)) return 3;
+  if (id.includes(query)) return 4;
+  if (tags.some((tag) => tag.toLowerCase().includes(query))) return 5;
+  if (mod.includes(query)) return 6;
+  return null;
 }
 
 export async function loadRepository(url = "data/sample-pack.json") {

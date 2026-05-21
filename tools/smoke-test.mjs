@@ -6,6 +6,7 @@ import { getBoundaryPresetGoods } from "../src/boundaries.js";
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
 const plan = createPlan(repository, [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }]);
+const targetMatches = repository.searchGoods("poly", 10);
 const boundaryPlan = createPlan(repository, [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }], {
   externalGoods: new Set(["gtceu:mv_electric_motor"])
 });
@@ -24,6 +25,10 @@ if (!plan.externalRows.some((row) => row.goodsId === "minecraft:glass")) {
 
 if (plan.totalAverageEut <= 0) {
   throw new Error("Expected non-zero average EU/t.");
+}
+
+if (!targetMatches.some((good) => good.id === "gtceu:polyethylene")) {
+  throw new Error("Expected target search to find Polyethylene.");
 }
 
 if (boundaryPlan.recipeRows.some((row) => row.recipe.id === "gtceu:assembler/mv_electric_motor")) {

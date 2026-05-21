@@ -12,6 +12,7 @@ const state = {
   manualExternalGoods: new Set(),
   manualMadeGoods: new Set(),
   activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
+  targetSearch: "",
   search: "",
   dataUrl: DEFAULT_DATA_URL
 };
@@ -22,6 +23,8 @@ const elements = {
   status: document.querySelector("[data-role='status']"),
   productList: document.querySelector("[data-role='product-list']"),
   productSelect: document.querySelector("[data-role='product-select']"),
+  targetSearchInput: document.querySelector("[data-role='target-search']"),
+  targetMatchSummary: document.querySelector("[data-role='target-match-summary']"),
   addProduct: document.querySelector("[data-action='add-product']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
@@ -100,13 +103,31 @@ function renderBoundaryPresets() {
   elements.boundarySummary.textContent = `${formatAmount(externalGoods.size)} goods treated as external`;
 }
 
+function renderTargetPicker() {
+  const repository = state.repository;
+  const matches = repository.searchGoods(state.targetSearch, 120);
+
+  elements.productSelect.innerHTML = matches
+    .map((good) => {
+      const kind = good.kind === "fluid" ? "fluid" : good.mod;
+      return `<option value="${escapeHtml(good.id)}">${escapeHtml(`${good.name} · ${kind}`)}</option>`;
+    })
+    .join("");
+
+  elements.addProduct.disabled = matches.length === 0;
+
+  if (state.targetSearch.trim()) {
+    elements.targetMatchSummary.textContent = matches.length
+      ? `${formatAmount(matches.length)} matches shown`
+      : "No matches";
+  } else {
+    elements.targetMatchSummary.textContent = `Showing ${formatAmount(matches.length)} of ${formatAmount(repository.goods.size)} goods`;
+  }
+}
+
 function renderProductControls() {
   const repository = state.repository;
-  elements.productSelect.innerHTML = repository
-    .searchGoods("")
-    .filter((good) => good.kind === "item")
-    .map((good) => `<option value="${escapeHtml(good.id)}">${escapeHtml(good.name)}</option>`)
-    .join("");
+  renderTargetPicker();
 
   elements.productList.innerHTML = state.products
     .map((product, index) => {
@@ -374,6 +395,11 @@ function setupEvents() {
     renderPlan();
   });
 
+  elements.targetSearchInput.addEventListener("input", () => {
+    state.targetSearch = elements.targetSearchInput.value;
+    renderTargetPicker();
+  });
+
   elements.searchInput.addEventListener("input", () => {
     state.search = elements.searchInput.value;
     renderBrowser();
@@ -385,6 +411,8 @@ function setupEvents() {
     const goodsId = target.dataset.id;
     if (!goodsId) return;
     state.products = [{ goodsId, amountPerMinute: 1 }];
+    state.targetSearch = "";
+    elements.targetSearchInput.value = "";
     state.manualExternalGoods.delete(goodsId);
     state.manualMadeGoods.add(goodsId);
     renderAll();
