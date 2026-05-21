@@ -421,6 +421,19 @@ select {
   color: var(--accent-3);
 }
 
+.tree-actions,
+.good-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tree-actions .secondary-button {
+  min-height: 24px;
+  padding: 2px 7px;
+}
+
 .tree-children {
   margin: 0 10px 10px 18px;
   padding-left: 14px;
@@ -644,6 +657,7 @@ select {
   align-items: center;
   gap: 6px;
   max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .secondary-button {

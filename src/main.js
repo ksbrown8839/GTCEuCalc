@@ -119,6 +119,14 @@ function addTarget(goodsId) {
   state.products.push({ goodsId, amountPerMinute: 1 });
 }
 
+function makeGoodInPlan(goodsId) {
+  setGoodAsMade(goodsId);
+  state.selectedGoodsId = goodsId;
+  renderBoundaryPresets();
+  renderPlan();
+  renderInspector();
+}
+
 function renderBoundaryPresets() {
   const repository = state.repository;
   const externalGoods = getEffectiveExternalGoods(repository);
@@ -247,6 +255,7 @@ function craftingTreeNode(repository, node, depth) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
   const open = depth < 2 ? " open" : "";
+  const actions = treeActionButtons(repository, node);
 
   if (!hasChildren) {
     return `
@@ -254,6 +263,7 @@ function craftingTreeNode(repository, node, depth) {
         <div class="tree-summary">
           ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
           <span class="tree-badge">${escapeHtml(treeReasonLabel(node.reason))}</span>
+          ${actions}
         </div>
       </div>
     `;
@@ -265,6 +275,7 @@ function craftingTreeNode(repository, node, depth) {
         <span class="tree-summary">
           ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
           <span class="tree-machine">${escapeHtml(type?.name ?? "Recipe")}</span>
+          ${actions}
         </span>
         <span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>
       </summary>
@@ -272,6 +283,26 @@ function craftingTreeNode(repository, node, depth) {
         ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1)).join("")}
       </div>
     </details>
+  `;
+}
+
+function treeActionButtons(repository, node) {
+  const canMake = node.reason === "external" && repository.findRecipesProducing(node.goodsId).length > 0;
+  return goodActionButtons(repository, node.goodsId, { canMake, className: "tree-actions" });
+}
+
+function goodActionButtons(repository, goodsId, options = {}) {
+  const canMake = options.canMake ?? false;
+  const canInspect = Boolean(repository.getGood(goodsId));
+  const className = options.className ?? "good-actions";
+
+  if (!canMake && !canInspect) return "";
+
+  return `
+    <span class="${className}">
+      ${canMake ? `<button class="secondary-button" data-action="make-input" data-id="${escapeHtml(goodsId)}">Make</button>` : ""}
+      ${canInspect ? `<button class="secondary-button" data-action="inspect-good" data-id="${escapeHtml(goodsId)}">Inspect</button>` : ""}
+    </span>
   `;
 }
 
@@ -329,16 +360,16 @@ function getExternalInputGroupId(repository, goodsId) {
 
 function externalInputRow(repository, row, externalGoods) {
   const canMake = externalGoods.has(row.goodsId) && repository.findRecipesProducing(row.goodsId).length > 0;
+  const actions = goodActionButtons(repository, row.goodsId, { canMake });
 
-  if (!canMake) {
+  if (!actions) {
     return goodChip(repository, row.goodsId, formatRate(row.amountPerMinute));
   }
 
   return `
     <div class="external-input-row">
       ${goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))}
-      <button class="secondary-button" data-action="make-input" data-id="${escapeHtml(row.goodsId)}">Make</button>
-      <button class="secondary-button" data-action="inspect-good" data-id="${escapeHtml(row.goodsId)}">Inspect</button>
+      ${actions}
     </div>
   `;
 }
@@ -599,21 +630,6 @@ function setupEvents() {
     renderInspector();
   });
 
-  elements.externalInputs.addEventListener("click", (event) => {
-    const target = event.target.closest("[data-action]");
-    if (!(target instanceof HTMLElement)) return;
-    const goodsId = target.dataset.id;
-    if (!goodsId) return;
-
-    if (target.dataset.action === "make-input") {
-      setGoodAsMade(goodsId);
-      state.selectedGoodsId = goodsId;
-      renderBoundaryPresets();
-      renderPlan();
-      renderInspector();
-    }
-  });
-
   elements.boundaryPresetList.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.dataset.action !== "toggle-boundary-preset") return;
@@ -652,12 +668,20 @@ function setupEvents() {
     const goodsId = target.dataset.id;
 
     if (action === "inspect-good" && goodsId) {
+      event.preventDefault();
       state.selectedGoodsId = goodsId;
       renderInspector();
       return;
     }
 
+    if (action === "make-input" && goodsId) {
+      event.preventDefault();
+      makeGoodInPlan(goodsId);
+      return;
+    }
+
     if (action === "inspector-set-target" && goodsId) {
+      event.preventDefault();
       setSingleTarget(goodsId);
       state.targetSearch = "";
       elements.targetSearchInput.value = "";
@@ -666,20 +690,20 @@ function setupEvents() {
     }
 
     if (action === "inspector-add-target" && goodsId) {
+      event.preventDefault();
       addTarget(goodsId);
       renderAll();
       return;
     }
 
     if (action === "inspector-make-good" && goodsId) {
-      setGoodAsMade(goodsId);
-      renderBoundaryPresets();
-      renderPlan();
-      renderInspector();
+      event.preventDefault();
+      makeGoodInPlan(goodsId);
       return;
     }
 
     if (action === "inspector-treat-external" && goodsId) {
+      event.preventDefault();
       setGoodAsExternal(goodsId);
       renderBoundaryPresets();
       renderPlan();
@@ -691,6 +715,7 @@ function setupEvents() {
       const outputId = target.dataset.outputId;
       const recipeId = target.dataset.recipeId;
       if (!outputId || !recipeId) return;
+      event.preventDefault();
       setGoodAsMade(outputId);
       state.preferredRecipeByOutput[outputId] = recipeId;
       state.selectedGoodsId = outputId;
