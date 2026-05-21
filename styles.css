@@ -157,6 +157,43 @@ select {
   color: var(--danger);
 }
 
+.boundary-list {
+  display: grid;
+  gap: 8px;
+}
+
+.boundary-toggle {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.boundary-toggle input {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.boundary-toggle strong,
+.boundary-summary {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.boundary-summary {
+  margin: 10px 0 0;
+}
+
 .status-band {
   display: grid;
   grid-template-columns: 1fr auto;

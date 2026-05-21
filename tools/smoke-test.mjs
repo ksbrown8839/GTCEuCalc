@@ -1,12 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { Repository } from "../src/repository.js";
 import { createPlan } from "../src/planner.js";
+import { getBoundaryPresetGoods } from "../src/boundaries.js";
 
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
 const plan = createPlan(repository, [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }]);
 const boundaryPlan = createPlan(repository, [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }], {
   externalGoods: new Set(["gtceu:mv_electric_motor"])
+});
+const circuitBoundaryGoods = getBoundaryPresetGoods(repository, new Set(["circuits"]));
+const circuitBoundaryPlan = createPlan(repository, [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }], {
+  externalGoods: circuitBoundaryGoods
 });
 
 if (plan.recipeRows.length === 0) {
@@ -27,6 +32,14 @@ if (boundaryPlan.recipeRows.some((row) => row.recipe.id === "gtceu:assembler/mv_
 
 if (!boundaryPlan.externalRows.some((row) => row.goodsId === "gtceu:mv_electric_motor")) {
   throw new Error("Expected externally supplied goods to appear as an external input.");
+}
+
+if (!circuitBoundaryGoods.has("gtceu:good_electronic_circuit")) {
+  throw new Error("Expected circuit boundary preset to include MV circuits.");
+}
+
+if (circuitBoundaryPlan.recipeRows.some((row) => row.recipe.id === "gtceu:assembler/good_electronic_circuit")) {
+  throw new Error("Expected circuit boundary preset to stop circuit expansion.");
 }
 
 console.log(`Smoke test passed: ${plan.recipeRows.length} recipe rows, ${plan.externalRows.length} external inputs.`);

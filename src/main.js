@@ -1,6 +1,7 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js";
 import { loadRepository } from "./repository.js";
 import { createPlan } from "./planner.js";
+import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 
@@ -8,7 +9,9 @@ const state = {
   repository: null,
   products: [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }],
   preferredRecipeByOutput: {},
-  externalGoods: new Set(),
+  manualExternalGoods: new Set(),
+  manualMadeGoods: new Set(),
+  activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
   search: "",
   dataUrl: DEFAULT_DATA_URL
 };
@@ -23,6 +26,8 @@ const elements = {
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
   byproducts: document.querySelector("[data-role='byproducts']"),
+  boundaryPresetList: document.querySelector("[data-role='boundary-preset-list']"),
+  boundarySummary: document.querySelector("[data-role='boundary-summary']"),
   recipeBrowser: document.querySelector("[data-role='recipe-browser']"),
   goodsBrowser: document.querySelector("[data-role='goods-browser']"),
   searchInput: document.querySelector("[data-role='search']"),
@@ -58,6 +63,43 @@ function ingredientChip(repository, ingredient) {
   `;
 }
 
+function getEffectiveExternalGoods(repository) {
+  const externalGoods = getBoundaryPresetGoods(repository, state.activeBoundaryPresets);
+
+  for (const goodsId of state.manualMadeGoods) {
+    externalGoods.delete(goodsId);
+  }
+
+  for (const goodsId of state.manualExternalGoods) {
+    externalGoods.add(goodsId);
+  }
+
+  for (const product of state.products) {
+    externalGoods.delete(product.goodsId);
+  }
+
+  return externalGoods;
+}
+
+function renderBoundaryPresets() {
+  const repository = state.repository;
+  const externalGoods = getEffectiveExternalGoods(repository);
+
+  elements.boundaryPresetList.innerHTML = BOUNDARY_PRESETS.map((preset) => {
+    const checked = state.activeBoundaryPresets.has(preset.id) ? " checked" : "";
+    const count = countBoundaryPresetGoods(repository, preset);
+    return `
+      <label class="boundary-toggle">
+        <input type="checkbox" data-action="toggle-boundary-preset" data-preset-id="${escapeHtml(preset.id)}"${checked}>
+        <span>${escapeHtml(preset.label)}</span>
+        <strong>${formatAmount(count)}</strong>
+      </label>
+    `;
+  }).join("");
+
+  elements.boundarySummary.textContent = `${formatAmount(externalGoods.size)} goods treated as external`;
+}
+
 function renderProductControls() {
   const repository = state.repository;
   elements.productSelect.innerHTML = repository
@@ -84,9 +126,10 @@ function renderProductControls() {
 
 function renderPlan() {
   const repository = state.repository;
+  const externalGoods = getEffectiveExternalGoods(repository);
   const plan = createPlan(repository, state.products, {
     preferredRecipeByOutput: state.preferredRecipeByOutput,
-    externalGoods: state.externalGoods
+    externalGoods
   });
 
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
@@ -105,11 +148,11 @@ function renderPlan() {
   `;
 
   elements.recipePlan.innerHTML = plan.recipeRows.length
-    ? plan.recipeRows.map((row) => recipeRow(repository, row)).join("")
+    ? plan.recipeRows.map((row) => recipeRow(repository, row, externalGoods)).join("")
     : `<div class="empty-state">Choose a product to build a plan.</div>`;
 
   elements.externalInputs.innerHTML = plan.externalRows.length
-    ? plan.externalRows.map((row) => externalInputRow(repository, row)).join("")
+    ? plan.externalRows.map((row) => externalInputRow(repository, row, externalGoods)).join("")
     : `<div class="empty-state">No unresolved inputs.</div>`;
 
   elements.byproducts.innerHTML = plan.byproductRows.length
@@ -117,8 +160,8 @@ function renderPlan() {
     : `<div class="empty-state">No byproducts in this chain.</div>`;
 }
 
-function externalInputRow(repository, row) {
-  const canMake = state.externalGoods.has(row.goodsId) && repository.findRecipesProducing(row.goodsId).length > 0;
+function externalInputRow(repository, row, externalGoods) {
+  const canMake = externalGoods.has(row.goodsId) && repository.findRecipesProducing(row.goodsId).length > 0;
 
   if (!canMake) {
     return goodChip(repository, row.goodsId, formatRate(row.amountPerMinute));
@@ -132,14 +175,14 @@ function externalInputRow(repository, row) {
   `;
 }
 
-function recipeRow(repository, row) {
+function recipeRow(repository, row, externalGoods) {
   const { recipe, runsPerMinute } = row;
   const type = repository.getRecipeType(recipe.type);
   const outputs = recipe.outputs.map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
   const inputs = recipe.inputs.map((input) => ingredientChip(repository, input)).join("");
   const plannedOutputs = [...row.plannedOutputs.entries()].sort((a, b) => b[1] - a[1]);
   const recipeChoices = plannedOutputs
-    .map(([goodsId, amountPerMinute]) => recipeChoiceControl(repository, goodsId, recipe.id, amountPerMinute))
+    .map(([goodsId, amountPerMinute]) => recipeChoiceControl(repository, goodsId, recipe.id, amountPerMinute, externalGoods))
     .join("");
 
   return `
@@ -171,10 +214,10 @@ function recipeRow(repository, row) {
   `;
 }
 
-function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinute) {
+function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinute, externalGoods) {
   const recipes = repository.findRecipesProducing(goodsId);
   const goodName = repository.getGoodName(goodsId);
-  const selectedRecipeId = state.externalGoods.has(goodsId)
+  const selectedRecipeId = externalGoods.has(goodsId)
     ? EXTERNAL_RECIPE_VALUE
     : state.preferredRecipeByOutput[goodsId] ?? currentRecipeId;
 
@@ -231,6 +274,7 @@ function renderBrowser() {
 
 function renderAll() {
   renderProductControls();
+  renderBoundaryPresets();
   renderPlan();
   renderBrowser();
 }
@@ -260,7 +304,8 @@ function chooseInitialProducts(repository) {
 function setupEvents() {
   elements.addProduct.addEventListener("click", () => {
     const goodsId = elements.productSelect.value;
-    state.externalGoods.delete(goodsId);
+    state.manualExternalGoods.delete(goodsId);
+    state.manualMadeGoods.add(goodsId);
     state.products.push({
       goodsId,
       amountPerMinute: 1
@@ -291,12 +336,15 @@ function setupEvents() {
     if (!outputId) return;
 
     if (target.value === EXTERNAL_RECIPE_VALUE) {
-      state.externalGoods.add(outputId);
+      state.manualExternalGoods.add(outputId);
+      state.manualMadeGoods.delete(outputId);
       delete state.preferredRecipeByOutput[outputId];
     } else {
-      state.externalGoods.delete(outputId);
+      state.manualExternalGoods.delete(outputId);
+      state.manualMadeGoods.add(outputId);
       state.preferredRecipeByOutput[outputId] = target.value;
     }
+    renderBoundaryPresets();
     renderPlan();
   });
 
@@ -305,7 +353,24 @@ function setupEvents() {
     if (!(target instanceof HTMLElement)) return;
     const goodsId = target.dataset.id;
     if (!goodsId) return;
-    state.externalGoods.delete(goodsId);
+    state.manualExternalGoods.delete(goodsId);
+    state.manualMadeGoods.add(goodsId);
+    renderBoundaryPresets();
+    renderPlan();
+  });
+
+  elements.boundaryPresetList.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || target.dataset.action !== "toggle-boundary-preset") return;
+    const presetId = target.dataset.presetId;
+    if (!presetId) return;
+
+    if (target.checked) {
+      state.activeBoundaryPresets.add(presetId);
+    } else {
+      state.activeBoundaryPresets.delete(presetId);
+    }
+    renderBoundaryPresets();
     renderPlan();
   });
 
@@ -320,7 +385,8 @@ function setupEvents() {
     const goodsId = target.dataset.id;
     if (!goodsId) return;
     state.products = [{ goodsId, amountPerMinute: 1 }];
-    state.externalGoods.delete(goodsId);
+    state.manualExternalGoods.delete(goodsId);
+    state.manualMadeGoods.add(goodsId);
     renderAll();
   });
 }

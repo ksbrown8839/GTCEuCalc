@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=external-boundaries-2026-05-21">
+    <link rel="stylesheet" href="styles.css?v=boundary-presets-2026-05-21">
   </head>
   <body>
     <main class="app-shell">
@@ -25,10 +25,9 @@
         </section>
 
         <section class="panel">
-          <h2>Data Source</h2>
-          <p class="muted-text">
-            Loading the pack-specific GregTech Community Pack Modern export from <code>data/gtceu-modern-pack-1.14.5.json</code>.
-          </p>
+          <h2>Planning Boundaries</h2>
+          <div class="boundary-list" data-role="boundary-preset-list"></div>
+          <p class="boundary-summary" data-role="boundary-summary"></p>
         </section>
       </aside>
 
@@ -77,6 +76,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=external-boundaries-2026-05-21"></script>
+    <script type="module" src="src/main.js?v=boundary-presets-2026-05-21"></script>
   </body>
 </html>
