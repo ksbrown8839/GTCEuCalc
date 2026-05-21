@@ -8,6 +8,7 @@ export function createPlan(repository, products, options = {}) {
   const warningKeys = new Set();
   let suppressedWarningCount = 0;
   const byproducts = new Map();
+  const planTrees = [];
   const maxWarnings = options.maxWarnings ?? 80;
   const externalGoods = new Set(options.externalGoods ?? []);
 
@@ -39,26 +40,39 @@ export function createPlan(repository, products, options = {}) {
   }
 
   function planGood(goodsId, amountPerMinute, stack) {
+    const node = {
+      goodsId,
+      amountPerMinute,
+      recipe: null,
+      runsPerMinute: 0,
+      children: [],
+      reason: null
+    };
+
     if (amountPerMinute <= 0) return;
     if (externalGoods.has(goodsId)) {
       add(externalInputs, goodsId, amountPerMinute);
-      return;
+      node.reason = "external";
+      return node;
     }
     if (stack.length > MAX_DEPTH) {
       add(externalInputs, goodsId, amountPerMinute);
       addWarning(`Stopped at ${repository.getGoodName(goodsId)} because the chain is too deep.`);
-      return;
+      node.reason = "depth";
+      return node;
     }
     if (stack.includes(goodsId)) {
       add(externalInputs, goodsId, amountPerMinute);
       addWarning(`Cycle detected around ${repository.getGoodName(goodsId)}.`);
-      return;
+      node.reason = "cycle";
+      return node;
     }
 
     const recipe = repository.chooseRecipeForOutput(goodsId, options.preferredRecipeByOutput ?? {});
     if (!recipe) {
       add(externalInputs, goodsId, amountPerMinute);
-      return;
+      node.reason = "missing";
+      return node;
     }
 
     const matchingOutputAmount = recipe.outputs
@@ -68,15 +82,33 @@ export function createPlan(repository, products, options = {}) {
     if (matchingOutputAmount <= 0) {
       add(externalInputs, goodsId, amountPerMinute);
       addWarning(`Recipe ${recipe.id} has no usable output for ${repository.getGoodName(goodsId)}.`);
-      return;
+      node.reason = "invalid";
+      return node;
     }
 
     const runsPerMinute = amountPerMinute / matchingOutputAmount;
+    node.recipe = recipe;
+    node.runsPerMinute = runsPerMinute;
     recordRecipe(recipe, runsPerMinute, goodsId, amountPerMinute);
 
     for (const output of recipe.outputs) {
       if (output.id !== goodsId) {
         add(byproducts, output.id, output.amount * (output.chance ?? 1) * runsPerMinute);
+      }
+    }
+
+    const childDemands = new Map();
+
+    function addChildDemand(key, demandedGoodsId, demandedAmountPerMinute, resolved) {
+      const current = childDemands.get(key);
+      if (current) {
+        current.amountPerMinute += demandedAmountPerMinute;
+      } else {
+        childDemands.set(key, {
+          goodsId: demandedGoodsId,
+          amountPerMinute: demandedAmountPerMinute,
+          resolved
+        });
       }
     }
 
@@ -90,15 +122,35 @@ export function createPlan(repository, products, options = {}) {
       }
 
       if (!resolved.good) {
-        add(externalInputs, input.id, input.amount * runsPerMinute);
+        addChildDemand(`unresolved:${input.id}`, input.id, input.amount * runsPerMinute, false);
       } else {
-        planGood(resolved.id, input.amount * runsPerMinute, [...stack, goodsId]);
+        addChildDemand(`good:${resolved.id}`, resolved.id, input.amount * runsPerMinute, true);
       }
     }
+
+    for (const demand of childDemands.values()) {
+      if (!demand.resolved) {
+        add(externalInputs, demand.goodsId, demand.amountPerMinute);
+        node.children.push({
+          goodsId: demand.goodsId,
+          amountPerMinute: demand.amountPerMinute,
+          recipe: null,
+          runsPerMinute: 0,
+          children: [],
+          reason: "unresolved"
+        });
+      } else {
+        const child = planGood(demand.goodsId, demand.amountPerMinute, [...stack, goodsId]);
+        if (child) node.children.push(child);
+      }
+    }
+
+    return node;
   }
 
   for (const product of products) {
-    planGood(product.goodsId, product.amountPerMinute, []);
+    const tree = planGood(product.goodsId, product.amountPerMinute, []);
+    if (tree) planTrees.push(tree);
   }
 
   const recipeRows = [...recipeRates.values()].sort((a, b) => b.runsPerMinute - a.runsPerMinute);
@@ -115,6 +167,7 @@ export function createPlan(repository, products, options = {}) {
 
   return {
     products,
+    planTrees,
     recipeRows,
     externalRows,
     byproductRows,

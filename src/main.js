@@ -1,7 +1,7 @@
-import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=how-to-use-2026-05-21";
-import { loadRepository } from "./repository.js?v=how-to-use-2026-05-21";
-import { createPlan } from "./planner.js?v=how-to-use-2026-05-21";
-import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=how-to-use-2026-05-21";
+import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=crafting-tree-2026-05-21";
+import { loadRepository } from "./repository.js?v=crafting-tree-2026-05-21";
+import { createPlan } from "./planner.js?v=crafting-tree-2026-05-21";
+import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=crafting-tree-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 
@@ -35,6 +35,7 @@ const elements = {
   targetSearchInput: document.querySelector("[data-role='target-search']"),
   targetMatchSummary: document.querySelector("[data-role='target-match-summary']"),
   addProduct: document.querySelector("[data-action='add-product']"),
+  craftingTree: document.querySelector("[data-role='crafting-tree']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
   byproducts: document.querySelector("[data-role='byproducts']"),
@@ -204,6 +205,10 @@ function renderPlan() {
     ? plan.recipeRows.map((row) => recipeRow(repository, row, externalGoods)).join("")
     : `<div class="empty-state">Choose a product to build a plan.</div>`;
 
+  elements.craftingTree.innerHTML = plan.planTrees.length
+    ? plan.planTrees.map((tree) => craftingTreeNode(repository, tree, 0)).join("")
+    : `<div class="empty-state">Choose a product to build a tree.</div>`;
+
   elements.externalInputs.innerHTML = plan.externalRows.length
     ? externalInputGroups(repository, plan.externalRows, externalGoods)
     : `<div class="empty-state">No unresolved inputs.</div>`;
@@ -211,6 +216,57 @@ function renderPlan() {
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
     : `<div class="empty-state">No byproducts in this chain.</div>`;
+}
+
+function craftingTreeNode(repository, node, depth) {
+  const hasChildren = node.children.length > 0;
+  const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
+  const open = depth < 2 ? " open" : "";
+
+  if (!hasChildren) {
+    return `
+      <div class="tree-node tree-leaf ${escapeHtml(node.reason ?? "external")}">
+        <div class="tree-summary">
+          ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+          <span class="tree-badge">${escapeHtml(treeReasonLabel(node.reason))}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <details class="tree-node tree-recipe" style="--tree-depth:${depth}"${open}>
+      <summary>
+        <span class="tree-summary">
+          ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+          <span class="tree-machine">${escapeHtml(type?.name ?? "Recipe")}</span>
+        </span>
+        <span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>
+      </summary>
+      <div class="tree-children">
+        ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1)).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function treeReasonLabel(reason) {
+  switch (reason) {
+    case "external":
+      return "supplied";
+    case "missing":
+      return "no recipe";
+    case "cycle":
+      return "cycle";
+    case "depth":
+      return "depth limit";
+    case "invalid":
+      return "invalid recipe";
+    case "unresolved":
+      return "unresolved";
+    default:
+      return "leaf";
+  }
 }
 
 function externalInputGroups(repository, rows, externalGoods) {

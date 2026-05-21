@@ -350,6 +350,10 @@ select {
   min-width: 0;
 }
 
+.main-panels {
+  min-width: 0;
+}
+
 .section-band {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -365,6 +369,80 @@ select {
 .section-band h2 {
   margin: 0 0 12px;
   font-size: 16px;
+}
+
+.tree-node {
+  position: relative;
+  min-width: 0;
+}
+
+.tree-node + .tree-node {
+  margin-top: 8px;
+}
+
+.tree-recipe {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tree-recipe summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.tree-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tree-machine,
+.tree-badge,
+.tree-run-rate {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--muted);
+  background: #fafbf8;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tree-run-rate {
+  color: var(--accent-3);
+}
+
+.tree-children {
+  margin: 0 10px 10px 18px;
+  padding-left: 14px;
+  border-left: 2px solid #dfe6dc;
+}
+
+.tree-leaf {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fbfcfa;
+}
+
+.tree-leaf.external .tree-badge {
+  color: var(--accent);
+}
+
+.tree-leaf.cycle .tree-badge,
+.tree-leaf.depth .tree-badge,
+.tree-leaf.invalid .tree-badge,
+.tree-leaf.unresolved .tree-badge {
+  color: var(--danger);
 }
 
 .recipe-row {

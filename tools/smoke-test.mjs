@@ -19,6 +19,14 @@ if (plan.recipeRows.length === 0) {
   throw new Error("Expected at least one recipe row.");
 }
 
+if (plan.planTrees.length !== 1 || plan.planTrees[0].goodsId !== "gtceu:greenhouse") {
+  throw new Error("Expected a root crafting tree for the requested target.");
+}
+
+if (!plan.planTrees[0].children.some((child) => child.goodsId === "gtceu:tempered_glass")) {
+  throw new Error("Expected crafting tree to include direct recipe inputs.");
+}
+
 if (!plan.externalRows.some((row) => row.goodsId === "minecraft:glass")) {
   throw new Error("Expected glass to appear as an external input in the sample plan.");
 }

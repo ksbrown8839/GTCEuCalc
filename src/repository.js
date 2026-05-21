@@ -6,7 +6,7 @@ export class Repository {
 
     this.data = data;
     this.metadata = data.metadata;
-    this.goods = new Map(data.goods.map((good) => [good.id, good]));
+    this.goods = new Map(data.goods.map((good) => [good.id, normalizeGood(good)]));
     this.tags = new Map(data.tags.map((tag) => [tag.id, tag]));
     this.recipeTypes = new Map(data.recipeTypes.map((type) => [type.id, type]));
     this.voltageTiers = new Map(data.voltageTiers.map((tier) => [tier.id, tier]));
@@ -135,6 +135,17 @@ export class Repository {
       })
       .slice(0, 80);
   }
+}
+
+function normalizeGood(good) {
+  return {
+    ...good,
+    name: stripMinecraftFormatting(good.name)
+  };
+}
+
+function stripMinecraftFormatting(value) {
+  return String(value).replace(/§[0-9a-fk-or]/gi, "");
 }
 
 function scoreGoodSearchMatch(good, query) {
