@@ -9,6 +9,7 @@ export function createPlan(repository, products, options = {}) {
   let suppressedWarningCount = 0;
   const byproducts = new Map();
   const maxWarnings = options.maxWarnings ?? 80;
+  const externalGoods = new Set(options.externalGoods ?? []);
 
   function add(map, id, amount) {
     map.set(id, (map.get(id) ?? 0) + amount);
@@ -39,6 +40,10 @@ export function createPlan(repository, products, options = {}) {
 
   function planGood(goodsId, amountPerMinute, stack) {
     if (amountPerMinute <= 0) return;
+    if (externalGoods.has(goodsId)) {
+      add(externalInputs, goodsId, amountPerMinute);
+      return;
+    }
     if (stack.length > MAX_DEPTH) {
       add(externalInputs, goodsId, amountPerMinute);
       addWarning(`Stopped at ${repository.getGoodName(goodsId)} because the chain is too deep.`);

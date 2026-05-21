@@ -8,9 +8,12 @@ const state = {
   repository: null,
   products: [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }],
   preferredRecipeByOutput: {},
+  externalGoods: new Set(),
   search: "",
   dataUrl: DEFAULT_DATA_URL
 };
+
+const EXTERNAL_RECIPE_VALUE = "__external__";
 
 const elements = {
   status: document.querySelector("[data-role='status']"),
@@ -82,7 +85,8 @@ function renderProductControls() {
 function renderPlan() {
   const repository = state.repository;
   const plan = createPlan(repository, state.products, {
-    preferredRecipeByOutput: state.preferredRecipeByOutput
+    preferredRecipeByOutput: state.preferredRecipeByOutput,
+    externalGoods: state.externalGoods
   });
 
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
@@ -105,12 +109,27 @@ function renderPlan() {
     : `<div class="empty-state">Choose a product to build a plan.</div>`;
 
   elements.externalInputs.innerHTML = plan.externalRows.length
-    ? plan.externalRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
+    ? plan.externalRows.map((row) => externalInputRow(repository, row)).join("")
     : `<div class="empty-state">No unresolved inputs.</div>`;
 
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
     : `<div class="empty-state">No byproducts in this chain.</div>`;
+}
+
+function externalInputRow(repository, row) {
+  const canMake = state.externalGoods.has(row.goodsId) && repository.findRecipesProducing(row.goodsId).length > 0;
+
+  if (!canMake) {
+    return goodChip(repository, row.goodsId, formatRate(row.amountPerMinute));
+  }
+
+  return `
+    <div class="external-input-row">
+      ${goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))}
+      <button class="secondary-button" data-action="make-input" data-id="${escapeHtml(row.goodsId)}">Make</button>
+    </div>
+  `;
 }
 
 function recipeRow(repository, row) {
@@ -155,17 +174,11 @@ function recipeRow(repository, row) {
 function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinute) {
   const recipes = repository.findRecipesProducing(goodsId);
   const goodName = repository.getGoodName(goodsId);
-  const selectedRecipeId = state.preferredRecipeByOutput[goodsId] ?? currentRecipeId;
+  const selectedRecipeId = state.externalGoods.has(goodsId)
+    ? EXTERNAL_RECIPE_VALUE
+    : state.preferredRecipeByOutput[goodsId] ?? currentRecipeId;
 
-  if (recipes.length <= 1) {
-    return `
-      <div class="recipe-choice compact">
-        <span>Making ${goodChip(repository, goodsId, formatRate(amountPerMinute))}</span>
-      </div>
-    `;
-  }
-
-  const options = recipes
+  const recipeOptions = recipes
     .map((candidate) => {
       const type = repository.getRecipeType(candidate.type);
       const label = `${type.name} · ${candidate.id}`;
@@ -173,12 +186,14 @@ function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinu
       return `<option value="${escapeHtml(candidate.id)}"${selected}>${escapeHtml(label)}</option>`;
     })
     .join("");
+  const externalSelected = selectedRecipeId === EXTERNAL_RECIPE_VALUE ? " selected" : "";
 
   return `
     <label class="recipe-choice">
       <span>Recipe for ${goodChip(repository, goodsId, formatRate(amountPerMinute))}</span>
       <select data-action="choose-recipe" data-output-id="${escapeHtml(goodsId)}" aria-label="Choose recipe for ${escapeHtml(goodName)}">
-        ${options}
+        <option value="${EXTERNAL_RECIPE_VALUE}"${externalSelected}>Treat as external input</option>
+        ${recipeOptions}
       </select>
     </label>
   `;
@@ -244,8 +259,10 @@ function chooseInitialProducts(repository) {
 
 function setupEvents() {
   elements.addProduct.addEventListener("click", () => {
+    const goodsId = elements.productSelect.value;
+    state.externalGoods.delete(goodsId);
     state.products.push({
-      goodsId: elements.productSelect.value,
+      goodsId,
       amountPerMinute: 1
     });
     renderAll();
@@ -273,7 +290,22 @@ function setupEvents() {
     const outputId = target.dataset.outputId;
     if (!outputId) return;
 
-    state.preferredRecipeByOutput[outputId] = target.value;
+    if (target.value === EXTERNAL_RECIPE_VALUE) {
+      state.externalGoods.add(outputId);
+      delete state.preferredRecipeByOutput[outputId];
+    } else {
+      state.externalGoods.delete(outputId);
+      state.preferredRecipeByOutput[outputId] = target.value;
+    }
+    renderPlan();
+  });
+
+  elements.externalInputs.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-action='make-input']");
+    if (!(target instanceof HTMLElement)) return;
+    const goodsId = target.dataset.id;
+    if (!goodsId) return;
+    state.externalGoods.delete(goodsId);
     renderPlan();
   });
 
@@ -288,6 +320,7 @@ function setupEvents() {
     const goodsId = target.dataset.id;
     if (!goodsId) return;
     state.products = [{ goodsId, amountPerMinute: 1 }];
+    state.externalGoods.delete(goodsId);
     renderAll();
   });
 }

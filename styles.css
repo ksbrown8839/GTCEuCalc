@@ -399,6 +399,21 @@ select {
   gap: 8px;
 }
 
+.external-input-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.secondary-button {
+  min-height: 28px;
+  padding: 4px 9px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .empty-state {
   color: var(--muted);
   font-size: 13px;
