@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { Repository } from "../src/repository.js";
 import { createPlan } from "../src/planner.js";
-import { getBoundaryPresetGoods } from "../src/boundaries.js";
+import { getBoundaryPresetForGood, getBoundaryPresetGoods } from "../src/boundaries.js";
 
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
@@ -29,6 +29,10 @@ if (plan.totalAverageEut <= 0) {
 
 if (!targetMatches.some((good) => good.id === "gtceu:polyethylene")) {
   throw new Error("Expected target search to find Polyethylene.");
+}
+
+if (getBoundaryPresetForGood(repository.getGood("gtceu:polyethylene"))?.id !== "fluids") {
+  throw new Error("Expected Polyethylene to be grouped with fluids.");
 }
 
 if (boundaryPlan.recipeRows.some((row) => row.recipe.id === "gtceu:assembler/mv_electric_motor")) {

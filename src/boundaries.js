@@ -84,3 +84,7 @@ export function countBoundaryPresetGoods(repository, preset) {
 
   return count;
 }
+
+export function getBoundaryPresetForGood(good) {
+  return BOUNDARY_PRESETS.find((preset) => preset.match(good)) ?? null;
+}

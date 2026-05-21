@@ -509,6 +509,31 @@ select {
   gap: 8px;
 }
 
+.external-group + .external-group {
+  margin-top: 14px;
+}
+
+.external-group header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.external-group h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.external-group header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .external-input-row {
   display: inline-flex;
   align-items: center;

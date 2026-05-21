@@ -1,7 +1,7 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js";
 import { loadRepository } from "./repository.js";
 import { createPlan } from "./planner.js";
-import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js";
+import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 
@@ -18,6 +18,15 @@ const state = {
 };
 
 const EXTERNAL_RECIPE_VALUE = "__external__";
+
+const EXTERNAL_INPUT_GROUPS = [
+  { id: "fluids", label: "Fluids" },
+  { id: "circuits", label: "Circuits" },
+  { id: "stock-parts", label: "Stock parts" },
+  { id: "base-materials", label: "Base materials" },
+  { id: "other", label: "Other inputs" },
+  { id: "unresolved", label: "Unresolved" }
+];
 
 const elements = {
   status: document.querySelector("[data-role='status']"),
@@ -196,12 +205,45 @@ function renderPlan() {
     : `<div class="empty-state">Choose a product to build a plan.</div>`;
 
   elements.externalInputs.innerHTML = plan.externalRows.length
-    ? plan.externalRows.map((row) => externalInputRow(repository, row, externalGoods)).join("")
+    ? externalInputGroups(repository, plan.externalRows, externalGoods)
     : `<div class="empty-state">No unresolved inputs.</div>`;
 
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
     : `<div class="empty-state">No byproducts in this chain.</div>`;
+}
+
+function externalInputGroups(repository, rows, externalGoods) {
+  const groupedRows = new Map(EXTERNAL_INPUT_GROUPS.map((group) => [group.id, []]));
+
+  for (const row of rows) {
+    groupedRows.get(getExternalInputGroupId(repository, row.goodsId)).push(row);
+  }
+
+  return EXTERNAL_INPUT_GROUPS
+    .map((group) => {
+      const groupRows = groupedRows.get(group.id);
+      if (!groupRows.length) return "";
+
+      return `
+        <section class="external-group">
+          <header>
+            <h3>${escapeHtml(group.label)}</h3>
+            <span>${formatAmount(groupRows.length)}</span>
+          </header>
+          <div class="stacked-list">
+            ${groupRows.map((row) => externalInputRow(repository, row, externalGoods)).join("")}
+          </div>
+        </section>
+      `;
+    })
+    .join("");
+}
+
+function getExternalInputGroupId(repository, goodsId) {
+  const good = repository.getGood(goodsId);
+  if (!good) return "unresolved";
+  return getBoundaryPresetForGood(good)?.id ?? "other";
 }
 
 function externalInputRow(repository, row, externalGoods) {
