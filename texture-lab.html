@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Texture Lab · GTCEu Modern Planner</title>
+    <link rel="stylesheet" href="styles.css?v=atlas-2026-05-22">
+    <link rel="stylesheet" href="texture-lab.css?v=texture-lab-2026-05-22">
+  </head>
+  <body>
+    <main class="texture-lab-shell">
+      <aside class="texture-lab-sidebar">
+        <div class="brand-block">
+          <h1>Texture Lab</h1>
+          <p data-role="lab-pack-name">Loading pack data</p>
+          <p data-role="lab-pack-meta"></p>
+          <a class="secondary-button lab-nav-link" data-role="planner-link" href="index.html">Back to planner</a>
+        </div>
+
+        <section class="panel">
+          <h2>Search</h2>
+          <input data-role="texture-search" type="search" placeholder="Search items, fluids, machines, blocks">
+          <p class="match-summary" data-role="texture-match-summary"></p>
+        </section>
+
+        <section class="panel texture-controls">
+          <h2>Preview Controls</h2>
+          <label>
+            <span>Icon size</span>
+            <input data-role="texture-size" type="range" min="32" max="192" step="8" value="96">
+            <strong data-role="texture-size-value">96px</strong>
+          </label>
+          <label class="boundary-toggle">
+            <input data-role="texture-atlas-only" type="checkbox" checked>
+            <span>Only goods with atlas icons</span>
+          </label>
+        </section>
+
+        <section class="panel" data-role="texture-detail"></section>
+      </aside>
+
+      <section class="texture-lab-main">
+        <div class="status-band">
+          <div>
+            <h2>Atlas Preview</h2>
+            <div data-role="texture-status">Loading...</div>
+          </div>
+          <div class="power-readout">
+            <span>Atlas</span>
+            <strong data-role="texture-atlas-summary">No atlas loaded</strong>
+          </div>
+        </div>
+
+        <section class="section-band">
+          <div class="texture-grid" data-role="texture-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="src/texture-lab.js?v=texture-lab-2026-05-22"></script>
+  </body>
+</html>
