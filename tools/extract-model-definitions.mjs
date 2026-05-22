@@ -211,6 +211,7 @@ function resolveModelDefinition(modelId, models, seen = new Set()) {
     ...(parent.textures ?? {}),
     ...(model.textures ?? {})
   };
+  const display = mergeDisplay(parent.display ?? {}, model.display ?? {});
   const sourceElements = Array.isArray(model.elements) ? model.elements : parent.elements;
   const elements = normalizeElements(sourceElements ?? [], textures);
 
@@ -218,6 +219,7 @@ function resolveModelDefinition(modelId, models, seen = new Set()) {
     model: modelId,
     parent: parentId,
     textures,
+    display,
     elements
   };
 }
@@ -227,8 +229,20 @@ function emptyDefinition(modelId) {
     model: modelId,
     parent: null,
     textures: {},
+    display: {},
     elements: []
   };
+}
+
+function mergeDisplay(parentDisplay = {}, childDisplay = {}) {
+  const merged = {};
+  for (const key of new Set([...Object.keys(parentDisplay), ...Object.keys(childDisplay)])) {
+    merged[key] = {
+      ...(parentDisplay[key] ?? {}),
+      ...(childDisplay[key] ?? {})
+    };
+  }
+  return merged;
 }
 
 function normalizeElements(elements, textures) {
