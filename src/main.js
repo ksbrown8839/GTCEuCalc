@@ -9,6 +9,8 @@ const DEFAULT_TEXTURE_MANIFEST_URL = "data/texture-manifest.local.json";
 const state = {
   repository: null,
   textureManifest: null,
+  textureManifestMode: "none",
+  textureFileUrls: new Map(),
   products: [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }],
   preferredRecipeByOutput: {},
   manualExternalGoods: new Set(),
@@ -48,13 +50,50 @@ const elements = {
   inspectMatchSummary: document.querySelector("[data-role='inspect-match-summary']"),
   inspectResults: document.querySelector("[data-role='inspect-results']"),
   inspectorPanel: document.querySelector("[data-role='inspector-panel']"),
+  textureStatus: document.querySelector("[data-role='texture-status']"),
+  textureManifestInput: document.querySelector("[data-role='texture-manifest-input']"),
+  textureFolderInput: document.querySelector("[data-role='texture-folder-input']"),
   packName: document.querySelector("[data-role='pack-name']"),
   packMeta: document.querySelector("[data-role='pack-meta']"),
   totalPower: document.querySelector("[data-role='total-power']")
 };
 
 function getGoodTextureUrl(id) {
-  return state.textureManifest?.textures?.[id] ?? null;
+  const texturePath = state.textureManifest?.textures?.[id] ?? null;
+  if (!texturePath) return null;
+
+  if (state.textureManifestMode === "browser") {
+    return findImportedTextureUrl(texturePath);
+  }
+
+  return texturePath;
+}
+
+function findImportedTextureUrl(texturePath) {
+  const normalized = normalizeTexturePath(texturePath);
+  const tail = stripTextureRoot(normalized);
+  return state.textureFileUrls.get(normalized)
+    ?? state.textureFileUrls.get(tail)
+    ?? state.textureFileUrls.get(`textures/${tail}`)
+    ?? state.textureFileUrls.get(`assets/textures/${tail}`)
+    ?? null;
+}
+
+function normalizeTexturePath(path) {
+  return String(path).replaceAll("\\", "/").replace(/^\/+/, "");
+}
+
+function stripTextureRoot(path) {
+  const normalized = normalizeTexturePath(path);
+  const marker = "assets/textures/";
+  const markerIndex = normalized.indexOf(marker);
+  if (markerIndex !== -1) return normalized.slice(markerIndex + marker.length);
+
+  const textureMarker = "textures/";
+  const textureIndex = normalized.indexOf(textureMarker);
+  if (textureIndex !== -1) return normalized.slice(textureIndex + textureMarker.length);
+
+  return normalized;
 }
 
 function goodIconMarkup(repository, id) {
@@ -725,8 +764,37 @@ function inspectorRecipeCard(repository, recipe, inspectedGoodsId, mode, preferr
 function renderAll() {
   renderProductControls();
   renderBoundaryPresets();
+  renderTextureStatus();
   renderPlan();
   renderInspector();
+}
+
+function renderTextureStatus() {
+  const manifestCount = Object.keys(state.textureManifest?.textures ?? {}).length;
+  const importedFileCount = state.textureFileUrls.size;
+
+  if (state.textureManifestMode === "browser") {
+    if (!manifestCount) {
+      elements.textureStatus.textContent = "Choose a manifest";
+    } else if (!importedFileCount) {
+      elements.textureStatus.textContent = `${formatAmount(manifestCount)} mapped icons; choose folder`;
+    } else {
+      elements.textureStatus.textContent = `${formatAmount(countImportedTextureMatches())} browser icons loaded`;
+    }
+    return;
+  }
+
+  elements.textureStatus.textContent = manifestCount
+    ? `${formatAmount(manifestCount)} local icons loaded`
+    : "Using fallback icons";
+}
+
+function countImportedTextureMatches() {
+  let count = 0;
+  for (const texturePath of Object.values(state.textureManifest?.textures ?? {})) {
+    if (findImportedTextureUrl(texturePath)) count += 1;
+  }
+  return count;
 }
 
 function dataUrlFromLocation() {
@@ -757,6 +825,46 @@ async function loadTextureManifest(url) {
     console.warn(`Could not load texture manifest ${url}.`, error);
     return { textures: {} };
   }
+}
+
+async function importTextureManifest(file) {
+  if (!file) return;
+  const manifest = JSON.parse(await file.text());
+  if (manifest.schema !== "gtceu-planner-texture-manifest-v1") {
+    throw new Error(`Unsupported texture manifest schema: ${manifest.schema}`);
+  }
+
+  state.textureManifest = manifest;
+  state.textureManifestMode = "browser";
+  renderAll();
+}
+
+function importTextureFolder(files) {
+  revokeImportedTextureUrls();
+
+  for (const file of files) {
+    if (!file.name.toLowerCase().endsWith(".png")) continue;
+    const url = URL.createObjectURL(file);
+    const rawPath = normalizeTexturePath(file.webkitRelativePath || file.name);
+    const tail = stripTextureRoot(rawPath);
+
+    state.textureFileUrls.set(rawPath, url);
+    state.textureFileUrls.set(tail, url);
+    state.textureFileUrls.set(`textures/${tail}`, url);
+    state.textureFileUrls.set(`assets/textures/${tail}`, url);
+  }
+
+  renderAll();
+}
+
+function revokeImportedTextureUrls() {
+  const seen = new Set();
+  for (const url of state.textureFileUrls.values()) {
+    if (seen.has(url)) continue;
+    seen.add(url);
+    URL.revokeObjectURL(url);
+  }
+  state.textureFileUrls.clear();
 }
 
 function chooseInitialProducts(repository) {
@@ -846,12 +954,40 @@ function setupEvents() {
     renderInspector();
   });
 
+  elements.textureManifestInput.addEventListener("change", async () => {
+    try {
+      await importTextureManifest(elements.textureManifestInput.files?.[0]);
+    } catch (error) {
+      elements.textureStatus.textContent = error.message;
+      console.error(error);
+    } finally {
+      elements.textureManifestInput.value = "";
+    }
+  });
+
+  elements.textureFolderInput.addEventListener("change", () => {
+    importTextureFolder(elements.textureFolderInput.files ?? []);
+    elements.textureFolderInput.value = "";
+  });
+
   document.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) return;
 
     const action = target.dataset.action;
     const goodsId = target.dataset.id;
+
+    if (action === "choose-texture-manifest") {
+      event.preventDefault();
+      elements.textureManifestInput.click();
+      return;
+    }
+
+    if (action === "choose-texture-folder") {
+      event.preventDefault();
+      elements.textureFolderInput.click();
+      return;
+    }
 
     if (action === "inspect-good" && goodsId) {
       event.preventDefault();
@@ -917,6 +1053,7 @@ async function main() {
     state.dataUrl = dataUrlFromLocation();
     state.repository = await loadRepository(state.dataUrl);
     state.textureManifest = await loadTextureManifest(textureManifestUrlFromLocation());
+    state.textureManifestMode = Object.keys(state.textureManifest.textures ?? {}).length ? "network" : "none";
     state.products = chooseInitialProducts(state.repository);
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     const meta = state.repository.metadata;

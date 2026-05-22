@@ -136,6 +136,20 @@ button:disabled {
   margin-bottom: 12px;
 }
 
+.texture-panel {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf8;
+}
+
+.texture-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .target-row {
   display: grid;
   grid-template-columns: 1fr;

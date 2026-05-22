@@ -49,6 +49,13 @@ This writes:
 
 When that manifest exists, the app loads it automatically. Use `?textures=none` to force the fallback colored slots.
 
+On the hosted GitHub Pages app, use the Texture Icons controls:
+
+- `Manifest` - choose `data/texture-manifest.local.json`
+- `Folder` - choose the generated `assets/textures` folder
+
+The browser uses those files for the current session only; the files are not uploaded.
+
 ## Project Layout
 
 - `index.html` - app shell
