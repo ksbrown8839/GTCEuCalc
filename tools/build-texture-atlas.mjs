@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { deflateSync, inflateSync } from "node:zlib";
 import { canRenderModelDefinition, drawModelIcon } from "./model-renderer.mjs";
 
+var crcTable = null;
+
 const DEFAULT_DATA_FILE = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_MANIFEST_FILE = "data/texture-manifest.local.json";
 const DEFAULT_MODEL_DEFINITIONS_FILE = "data/model-definitions.local.json";
@@ -614,8 +616,6 @@ function pngChunk(type, data) {
   crc.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0);
   return Buffer.concat([length, typeBuffer, data, crc]);
 }
-
-let crcTable = null;
 
 function getCrcTable() {
   if (crcTable) return crcTable;
