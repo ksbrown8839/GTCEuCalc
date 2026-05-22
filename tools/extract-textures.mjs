@@ -6,6 +6,142 @@ const DEFAULT_DATA_FILE = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_OUTPUT_DIR = "assets/textures";
 const DEFAULT_MANIFEST_FILE = "data/texture-manifest.local.json";
 
+const GTCEU_MATERIAL_SETS = [
+  "dull",
+  "metallic",
+  "shiny",
+  "bright",
+  "magnetic",
+  "fine",
+  "rough",
+  "gem_horizontal",
+  "gem_vertical",
+  "diamond",
+  "emerald",
+  "lapis",
+  "lignite",
+  "quartz",
+  "radioactive",
+  "certus",
+  "flint",
+  "opal",
+  "paper",
+  "powder",
+  "wood",
+  "glass",
+  "netherstar"
+];
+
+const GTCEU_GEM_MATERIAL_SETS = [
+  "gem_horizontal",
+  "gem_vertical",
+  "dull",
+  "diamond",
+  "emerald",
+  "lapis",
+  "lignite",
+  "quartz",
+  "certus",
+  "flint",
+  "opal"
+];
+
+const GTCEU_MATERIAL_ITEM_FORMS = [
+  "tool_head_wire_cutter",
+  "tool_head_screwdriver",
+  "tool_head_chainsaw",
+  "tool_head_buzz_saw",
+  "tool_head_pickaxe",
+  "tool_head_hammer",
+  "tool_head_wrench",
+  "tool_head_shovel",
+  "tool_head_mallet",
+  "tool_head_scythe",
+  "tool_head_sword",
+  "tool_head_drill",
+  "tool_head_file",
+  "tool_head_axe",
+  "tool_head_saw",
+  "tool_head_hoe",
+  "crushed_purified",
+  "crushed_refined",
+  "gem_exquisite",
+  "gem_flawless",
+  "gem_chipped",
+  "gem_flawed",
+  "ingot_double",
+  "plate_double",
+  "plate_dense",
+  "dust_impure",
+  "dust_small",
+  "dust_tiny",
+  "dust_pure",
+  "ingot_hot",
+  "gear_small",
+  "rod_long",
+  "spring_small",
+  "turbine_blade",
+  "wire_fine",
+  "raw_ore",
+  "crushed",
+  "nugget",
+  "ingot",
+  "plate",
+  "dust",
+  "foil",
+  "gear",
+  "gem",
+  "lens",
+  "ring",
+  "rotor",
+  "round",
+  "screw",
+  "spring",
+  "bolt",
+  "rod"
+];
+
+const GTCEU_TOOL_SUFFIXES = [
+  "butchery_knife",
+  "mining_hammer",
+  "wire_cutter",
+  "screwdriver",
+  "pickaxe",
+  "chainsaw",
+  "buzzsaw",
+  "crowbar",
+  "hammer",
+  "mallet",
+  "mortar",
+  "plunger",
+  "scythe",
+  "shovel",
+  "spade",
+  "sword",
+  "knife",
+  "drill",
+  "file",
+  "axe",
+  "hoe",
+  "saw",
+  "wrench"
+];
+
+const GTCEU_TOOL_HEAD_SUFFIXES = [
+  ["buzz_saw_blade", "tool_head_buzz_saw"],
+  ["chainsaw_head", "tool_head_chainsaw"],
+  ["wire_cutter_head", "tool_head_wire_cutter"],
+  ["screwdriver_tip", "tool_head_screwdriver"],
+  ["wrench_tip", "tool_head_wrench"],
+  ["drill_head", "tool_head_drill"]
+];
+
+const GTCEU_SPECIAL_TEXTURES = {
+  construction_core: "gtceu:block/multiblock/implosion_compressor/overlay_front",
+  facade_cover: "minecraft:block/stone",
+  greenhouse: "gtceu:block/multiblock/implosion_compressor/overlay_front"
+};
+
 const args = parseArgs(process.argv.slice(2));
 const instanceRoot = args.instance ? resolve(args.instance) : null;
 const dataFile = args.data ?? DEFAULT_DATA_FILE;
@@ -64,6 +200,9 @@ for (const archivePath of archives) {
   });
 }
 
+const kubejsAssetsSummary = await scanLooseAssetRoot(join(instanceRoot, "kubejs", "assets"), modelFiles, textureFiles);
+if (kubejsAssetsSummary) archiveSummaries.push(kubejsAssetsSummary);
+
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
 await mkdir(dirname(manifestFile), { recursive: true });
@@ -72,7 +211,7 @@ const textures = {};
 let extractedCount = 0;
 
 for (const good of goods) {
-  const textureRef = findTextureForGood(good.id, modelFiles, textureFiles);
+  const textureRef = findTextureForGood(good, modelFiles, textureFiles);
   if (!textureRef) continue;
 
   const source = textureFiles.get(textureRef);
@@ -149,6 +288,59 @@ async function filesIn(folder, extensions) {
     .filter((entry) => entry.isFile() && extensions.some((extension) => entry.name.toLowerCase().endsWith(extension)))
     .map((entry) => join(folder, entry.name))
     .sort((a, b) => basename(a).localeCompare(basename(b)));
+}
+
+async function scanLooseAssetRoot(root, modelFiles, textureFiles) {
+  if (!await exists(root)) return null;
+
+  const files = await filesUnder(root);
+  let modelCount = 0;
+  let textureCount = 0;
+
+  for (const filePath of files) {
+    const relativePath = toWebPath(relative(root, filePath));
+    const assetPath = `assets/${relativePath}`;
+    const data = await readFile(filePath);
+
+    if (/^assets\/[^/]+\/models\/.+\.json$/.test(assetPath)) {
+      modelFiles.set(modelIdFromPath(assetPath), {
+        archivePath: root,
+        entry: { name: assetPath, data },
+        json: JSON.parse(data.toString("utf-8"))
+      });
+      modelCount += 1;
+    } else if (/^assets\/[^/]+\/textures\/.+\.png$/.test(assetPath)) {
+      textureFiles.set(textureRefFromPath(assetPath), {
+        archivePath: root,
+        entry: { name: assetPath, data }
+      });
+      textureCount += 1;
+    }
+  }
+
+  return {
+    name: "kubejs/assets",
+    models: modelCount,
+    textures: textureCount
+  };
+}
+
+async function filesUnder(folder) {
+  if (!await exists(folder)) return [];
+
+  const entries = await readdir(folder, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const entryPath = join(folder, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await filesUnder(entryPath));
+    } else if (entry.isFile()) {
+      files.push(entryPath);
+    }
+  }
+
+  return files.sort((a, b) => a.localeCompare(b));
 }
 
 function readZipEntries(buffer) {
@@ -232,7 +424,8 @@ function textureRefToOutputPath(textureRef) {
   return join(namespace, `${texturePath}.png`);
 }
 
-function findTextureForGood(goodsId, models, texturesByRef) {
+function findTextureForGood(good, models, texturesByRef) {
+  const goodsId = good.id;
   const [namespace, path] = splitResource(goodsId);
   if (!namespace || !path) return null;
 
@@ -247,7 +440,185 @@ function findTextureForGood(goodsId, models, texturesByRef) {
   const directBlock = `${namespace}:block/${path}`;
   if (texturesByRef.has(directBlock)) return directBlock;
 
+  const blockModelTexture = firstTextureFromModels([
+    `${namespace}:block/${path}`,
+    `${namespace}:block/machine/${path}`
+  ], models, texturesByRef);
+  if (blockModelTexture) return blockModelTexture;
+
+  if (good.kind === "fluid") {
+    const fluidTexture = findFluidTexture(namespace, path, texturesByRef);
+    if (fluidTexture) return fluidTexture;
+  }
+
+  if (namespace === "gtceu") {
+    const generatedTexture = findGtceuGeneratedTexture(path, good.kind, models, texturesByRef);
+    if (generatedTexture) return generatedTexture;
+  }
+
   return null;
+}
+
+function findFluidTexture(namespace, path, texturesByRef) {
+  const candidates = [
+    `${namespace}:block/fluids/fluid.${path}`,
+    `${namespace}:block/fluids/${path}`,
+    `${namespace}:block/${path}_still`,
+    `${namespace}:block/${path}_flow`,
+    `${namespace}:block/${path}`,
+    `${namespace}:item/${path}`
+  ];
+
+  if (path.endsWith("_plasma")) {
+    candidates.unshift(`${namespace}:block/fluids/fluid.${path.replace(/_plasma$/, ".plasma")}`);
+  }
+
+  return firstExistingTexture(candidates, texturesByRef);
+}
+
+function findGtceuGeneratedTexture(path, kind, models, texturesByRef) {
+  const specialTexture = GTCEU_SPECIAL_TEXTURES[path];
+  if (specialTexture && texturesByRef.has(specialTexture)) return specialTexture;
+
+  if (kind === "fluid") {
+    return firstExistingTexture([
+      "gtceu:block/material_sets/fluid/liquid",
+      "gtceu:block/material_sets/dull/liquid",
+      "gtceu:block/material_sets/dull/gas",
+      "gtceu:block/material_sets/dull/molten",
+      "gtceu:block/material_sets/dull/plasma"
+    ], texturesByRef);
+  }
+
+  const materialForm = findMaterialForm(path);
+  if (materialForm) {
+    const texture = textureFromMaterialForm(materialForm, models, texturesByRef);
+    if (texture) return texture;
+  }
+
+  const toolHeadForm = findToolHeadForm(path);
+  if (toolHeadForm) {
+    const texture = textureFromMaterialForm(toolHeadForm, models, texturesByRef);
+    if (texture) return texture;
+  }
+
+  const armorTexture = findArmorTexture(path, models, texturesByRef);
+  if (armorTexture) return armorTexture;
+
+  const toolTexture = findToolTexture(path, models, texturesByRef);
+  if (toolTexture) return toolTexture;
+
+  const blockTexture = findGtceuBlockLikeTexture(path, models, texturesByRef);
+  if (blockTexture) return blockTexture;
+
+  const conduitTexture = findGtceuConduitTexture(path, texturesByRef);
+  if (conduitTexture) return conduitTexture;
+
+  return null;
+}
+
+function findMaterialForm(path) {
+  if (path.startsWith("raw_")) return "raw_ore";
+  if (path.startsWith("fine_") && path.endsWith("_wire")) return "wire_fine";
+  return GTCEU_MATERIAL_ITEM_FORMS.find((form) => path === form || path.endsWith(`_${form}`)) ?? null;
+}
+
+function findToolHeadForm(path) {
+  const match = GTCEU_TOOL_HEAD_SUFFIXES.find(([suffix]) => path.endsWith(`_${suffix}`));
+  return match?.[1] ?? null;
+}
+
+function findArmorTexture(path, models, texturesByRef) {
+  const match = path.match(/_(boots|chestplate|helmet|leggings)$/);
+  if (!match) return null;
+  const modelId = `gtceu:item/armor/${match[1]}`;
+  return firstTextureFromModels([modelId], models, texturesByRef)
+    ?? firstExistingTexture([modelId], texturesByRef);
+}
+
+function textureFromMaterialForm(form, models, texturesByRef) {
+  const materialSets = form.startsWith("gem") || form === "lens"
+    ? GTCEU_GEM_MATERIAL_SETS
+    : GTCEU_MATERIAL_SETS;
+  const modelIds = materialSets.map((set) => `gtceu:item/material_sets/${set}/${form}`);
+  return firstTextureFromModels(modelIds, models, texturesByRef);
+}
+
+function findToolTexture(path, models, texturesByRef) {
+  const suffix = GTCEU_TOOL_SUFFIXES.find((candidate) => path.endsWith(`_${candidate}`));
+  if (!suffix) return null;
+
+  return firstTextureFromModels([`gtceu:item/tools/${suffix}`], models, texturesByRef)
+    ?? firstExistingTexture([`gtceu:item/tools/${suffix}`], texturesByRef);
+}
+
+function findGtceuBlockLikeTexture(path, models, texturesByRef) {
+  const candidates = [];
+
+  if (path.endsWith("_indicator")) {
+    candidates.push("gtceu:block/stones/surface_rock_stone");
+  }
+
+  if (path.endsWith("_raw_ore_block")) {
+    candidates.push(...GTCEU_MATERIAL_SETS.map((set) => `gtceu:block/material_sets/${set}/raw_ore_block`));
+  }
+
+  if (path.endsWith("_block")) {
+    candidates.push(...GTCEU_MATERIAL_SETS.map((set) => `gtceu:block/material_sets/${set}/block`));
+  }
+
+  if (path.endsWith("_frame")) {
+    candidates.push(...GTCEU_MATERIAL_SETS.map((set) => `gtceu:block/material_sets/${set}/frame_gt`));
+  }
+
+  if (path.endsWith("_ore")) {
+    candidates.push(...GTCEU_MATERIAL_SETS.map((set) => `gtceu:block/material_sets/${set}/ore`));
+  }
+
+  const direct = firstExistingTexture(candidates, texturesByRef);
+  if (direct) return direct;
+
+  return firstTextureFromModels(candidates, models, texturesByRef);
+}
+
+function findGtceuConduitTexture(path, texturesByRef) {
+  const candidates = [];
+
+  if (/_(single|double|quadruple|octal|hex)_wire$/.test(path)) {
+    candidates.push("gtceu:block/cable/insulation_0");
+  }
+
+  if (/_(single|double|quadruple|octal|hex)_cable$/.test(path)) {
+    candidates.push("gtceu:block/cable/insulation_1");
+  }
+
+  const fluidPipeMatch = path.match(/_(tiny|small|normal|large|huge|quadruple|nonuple)_fluid_pipe$/);
+  if (fluidPipeMatch) {
+    candidates.push(`gtceu:block/pipe/pipe_${fluidPipeMatch[1]}_in`);
+    candidates.push("gtceu:block/pipe/pipe_side");
+  }
+
+  const itemPipeMatch = path.match(/_(small|normal|large|huge)_(restrictive_)?item_pipe$/);
+  if (itemPipeMatch) {
+    candidates.push(`gtceu:block/pipe/pipe_${itemPipeMatch[1]}_in`);
+    candidates.push(itemPipeMatch[2] ? "gtceu:block/pipe/pipe_restrictive" : "gtceu:block/pipe/pipe_side");
+  }
+
+  return firstExistingTexture(candidates, texturesByRef);
+}
+
+function firstTextureFromModels(modelIds, models, texturesByRef) {
+  for (const modelId of modelIds) {
+    const resolvedModel = resolveModelTextures(modelId, models);
+    const fromModel = pickTextureRef(resolvedModel, "gtceu");
+    if (fromModel && texturesByRef.has(fromModel)) return fromModel;
+  }
+
+  return null;
+}
+
+function firstExistingTexture(candidates, texturesByRef) {
+  return candidates.find((candidate) => texturesByRef.has(candidate)) ?? null;
 }
 
 function resolveModelTextures(modelId, models, seen = new Set()) {
@@ -258,16 +629,87 @@ function resolveModelTextures(modelId, models, seen = new Set()) {
   if (!model) return {};
 
   const [namespace] = splitResource(modelId);
-  const parentId = model.parent ? normalizeResource(model.parent, namespace) : null;
+  return resolveInlineModelTextures(model, namespace, models, seen);
+}
+
+function resolveInlineModelTextures(model, defaultNamespace, models, seen) {
+  const parentId = model.parent ? normalizeResource(model.parent, defaultNamespace) : null;
   const parentTextures = parentId ? resolveModelTextures(parentId, models, seen) : {};
+  const variantTextures = collectVariantTextures(model, defaultNamespace, models, seen);
+  const multipartTextures = collectMultipartTextures(model, defaultNamespace, models, seen);
+  const childTextures = collectChildTextures(model, defaultNamespace, models, seen);
+
   return {
     ...parentTextures,
+    ...variantTextures,
+    ...multipartTextures,
+    ...childTextures,
     ...(model.textures ?? {})
   };
 }
 
+function collectVariantTextures(model, defaultNamespace, models, seen) {
+  const variants = model.variants ? Object.values(model.variants) : [];
+  return variants.reduce((textures, variant) => {
+    const variantModel = variant?.model;
+    if (!variantModel) return textures;
+    if (typeof variantModel === "string") {
+      return {
+        ...textures,
+        ...resolveModelTextures(normalizeResource(variantModel, defaultNamespace), models, new Set(seen))
+      };
+    }
+    return {
+      ...textures,
+      ...resolveInlineModelTextures(variantModel, defaultNamespace, models, new Set(seen))
+    };
+  }, {});
+}
+
+function collectMultipartTextures(model, defaultNamespace, models, seen) {
+  const parts = Array.isArray(model.multipart) ? model.multipart : [];
+  return parts.reduce((textures, part) => {
+    const applied = part?.apply;
+    const appliedModel = applied?.model;
+    if (!appliedModel) return textures;
+    if (typeof appliedModel === "string") {
+      return {
+        ...textures,
+        ...resolveModelTextures(normalizeResource(appliedModel, defaultNamespace), models, new Set(seen))
+      };
+    }
+    return {
+      ...textures,
+      ...resolveInlineModelTextures(appliedModel, defaultNamespace, models, new Set(seen))
+    };
+  }, {});
+}
+
+function collectChildTextures(model, defaultNamespace, models, seen) {
+  const children = model.children ? Object.values(model.children) : [];
+  return children.reduce((textures, child) => {
+    if (!child) return textures;
+    if (typeof child === "string") {
+      return {
+        ...textures,
+        ...resolveModelTextures(normalizeResource(child, defaultNamespace), models, new Set(seen))
+      };
+    }
+    if (typeof child.model === "string") {
+      return {
+        ...textures,
+        ...resolveModelTextures(normalizeResource(child.model, defaultNamespace), models, new Set(seen))
+      };
+    }
+    return {
+      ...textures,
+      ...resolveInlineModelTextures(child, defaultNamespace, models, new Set(seen))
+    };
+  }, {});
+}
+
 function pickTextureRef(textures, defaultNamespace) {
-  const keys = ["layer0", "all", "particle", "front", "side", "top", "bottom", "end"];
+  const keys = ["layer0", "overlay_front", "front", "all", "particle", "side", "top", "bottom", "end", "overlay_side", "overlay_top"];
   for (const key of keys) {
     const value = resolveTextureVariable(textures[key], textures);
     if (value) return normalizeTextureRef(value, defaultNamespace);

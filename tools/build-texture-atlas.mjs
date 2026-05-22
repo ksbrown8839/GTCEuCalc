@@ -1,4 +1,5 @@
 import { readFile, stat, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { deflateSync, inflateSync } from "node:zlib";
 
 const DEFAULT_DATA_FILE = "data/gtceu-modern-pack-1.14.5.json";
@@ -63,12 +64,14 @@ for (const entry of entries) {
   }
 }
 
-await writeFile(atlasFile, encodePng(atlasWidth, atlasHeight, atlas));
+const atlasPng = encodePng(atlasWidth, atlasHeight, atlas);
+const atlasVersion = createHash("sha256").update(atlasPng).digest("hex").slice(0, 12);
+await writeFile(atlasFile, atlasPng);
 
 const atlasManifest = {
   schema: "gtceu-planner-texture-atlas-v1",
   generatedAt: new Date().toISOString(),
-  image: atlasFile.replaceAll("\\", "/"),
+  image: `${atlasFile.replaceAll("\\", "/")}?v=${atlasVersion}`,
   tileSize,
   columns,
   rows,
