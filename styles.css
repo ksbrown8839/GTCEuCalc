@@ -631,8 +631,8 @@ button.recipe-slot:hover {
 }
 
 .slot-image {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   background-image: var(--atlas-url);
   background-position: var(--atlas-x) var(--atlas-y);
   background-repeat: no-repeat;

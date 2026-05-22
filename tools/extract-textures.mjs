@@ -208,21 +208,39 @@ await mkdir(outputDir, { recursive: true });
 await mkdir(dirname(manifestFile), { recursive: true });
 
 const textures = {};
+const icons = {};
+const extractedTextureRefs = new Map();
 let extractedCount = 0;
 
 for (const good of goods) {
-  const textureRef = findTextureForGood(good, modelFiles, textureFiles);
-  if (!textureRef) continue;
+  const icon = findIconForGood(good, modelFiles, textureFiles);
+  if (!icon) continue;
 
-  const source = textureFiles.get(textureRef);
-  if (!source) continue;
+  const extractedTextures = {};
+  for (const [role, textureRef] of Object.entries(icon.textures)) {
+    const texturePath = await extractTextureRef(textureRef, textureFiles, outputDir, extractedTextureRefs);
+    if (texturePath) extractedTextures[role] = texturePath;
+  }
 
-  const outputPath = join(outputDir, textureRefToOutputPath(textureRef));
-  await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, source.entry.data);
-  textures[good.id] = toWebPath(relative(".", outputPath));
-  extractedCount += 1;
+  const primaryPath = extractedTextures.primary
+    ?? await extractTextureRef(icon.primary, textureFiles, outputDir, extractedTextureRefs);
+
+  if (!primaryPath) continue;
+
+  textures[good.id] = primaryPath;
+  icons[good.id] = {
+    kind: icon.kind,
+    primary: primaryPath,
+    textures: {
+      primary: primaryPath,
+      ...extractedTextures
+    }
+  };
+
+  if (icon.model) icons[good.id].model = icon.model;
 }
+
+extractedCount = extractedTextureRefs.size;
 
 const manifest = {
   schema: "gtceu-planner-texture-manifest-v1",
@@ -236,7 +254,8 @@ const manifest = {
     goodsMatched: Object.keys(textures).length,
     texturesExtracted: extractedCount
   },
-  textures
+  textures,
+  icons
 };
 
 await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -343,6 +362,21 @@ async function filesUnder(folder) {
   return files.sort((a, b) => a.localeCompare(b));
 }
 
+async function extractTextureRef(textureRef, textureFiles, outputDir, extractedTextureRefs) {
+  if (!textureRef || !textureFiles.has(textureRef)) return null;
+  const cached = extractedTextureRefs.get(textureRef);
+  if (cached) return cached;
+
+  const source = textureFiles.get(textureRef);
+  const outputPath = join(outputDir, textureRefToOutputPath(textureRef));
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, source.entry.data);
+
+  const webPath = toWebPath(relative(".", outputPath));
+  extractedTextureRefs.set(textureRef, webPath);
+  return webPath;
+}
+
 function readZipEntries(buffer) {
   const entries = [];
   const eocdOffset = findEndOfCentralDirectory(buffer);
@@ -424,39 +458,102 @@ function textureRefToOutputPath(textureRef) {
   return join(namespace, `${texturePath}.png`);
 }
 
-function findTextureForGood(good, models, texturesByRef) {
+function findIconForGood(good, models, texturesByRef) {
   const goodsId = good.id;
   const [namespace, path] = splitResource(goodsId);
   if (!namespace || !path) return null;
 
   const itemModel = `${namespace}:item/${path}`;
-  const resolvedModel = resolveModelTextures(itemModel, models);
-  const fromModel = pickTextureRef(resolvedModel, namespace);
-  if (fromModel && texturesByRef.has(fromModel)) return fromModel;
+  const fromItemModel = iconFromModel(itemModel, models, texturesByRef);
+  if (fromItemModel) return fromItemModel;
 
   const directItem = `${namespace}:item/${path}`;
-  if (texturesByRef.has(directItem)) return directItem;
+  if (texturesByRef.has(directItem)) return textureIcon("texture", directItem, { layer0: directItem });
 
   const directBlock = `${namespace}:block/${path}`;
-  if (texturesByRef.has(directBlock)) return directBlock;
+  if (texturesByRef.has(directBlock)) return textureIcon("block", directBlock, { all: directBlock });
 
-  const blockModelTexture = firstTextureFromModels([
+  const blockModelIcon = firstIconFromModels([
     `${namespace}:block/${path}`,
     `${namespace}:block/machine/${path}`
   ], models, texturesByRef);
-  if (blockModelTexture) return blockModelTexture;
+  if (blockModelIcon) return blockModelIcon;
 
   if (good.kind === "fluid") {
     const fluidTexture = findFluidTexture(namespace, path, texturesByRef);
-    if (fluidTexture) return fluidTexture;
+    if (fluidTexture) return textureIcon("fluid", fluidTexture, { layer0: fluidTexture });
   }
 
   if (namespace === "gtceu") {
     const generatedTexture = findGtceuGeneratedTexture(path, good.kind, models, texturesByRef);
-    if (generatedTexture) return generatedTexture;
+    if (generatedTexture) return textureIcon("generated", generatedTexture, inferredTextureRole(generatedTexture));
   }
 
   return null;
+}
+
+function findTextureForGood(good, models, texturesByRef) {
+  return findIconForGood(good, models, texturesByRef)?.primary ?? null;
+}
+
+function iconFromModel(modelId, models, texturesByRef) {
+  const [namespace] = splitResource(modelId);
+  const resolvedTextures = resolveModelTextures(modelId, models);
+  const textureRefs = textureRefsFromResolvedTextures(resolvedTextures, namespace, texturesByRef);
+  const primary = pickTextureRefFromRefs(textureRefs);
+  if (!primary) return null;
+
+  return textureIcon("model", primary, textureRefs, modelId);
+}
+
+function firstIconFromModels(modelIds, models, texturesByRef) {
+  for (const modelId of modelIds) {
+    const icon = iconFromModel(modelId, models, texturesByRef);
+    if (icon) return icon;
+  }
+
+  return null;
+}
+
+function textureIcon(kind, primary, textures = {}, model = null) {
+  return {
+    kind,
+    model,
+    primary,
+    textures: {
+      primary,
+      ...textures
+    }
+  };
+}
+
+function inferredTextureRole(textureRef) {
+  return textureRef.includes(":block/")
+    ? { all: textureRef }
+    : { layer0: textureRef };
+}
+
+function textureRefsFromResolvedTextures(textures, defaultNamespace, texturesByRef) {
+  const refs = {};
+
+  for (const [key, value] of Object.entries(textures)) {
+    const resolved = resolveTextureVariable(value, textures);
+    if (!resolved) continue;
+
+    const textureRef = normalizeTextureRef(resolved, defaultNamespace);
+    if (texturesByRef.has(textureRef)) refs[key] = textureRef;
+  }
+
+  return refs;
+}
+
+function pickTextureRefFromRefs(textureRefs) {
+  const keys = ["layer0", "front", "overlay_front", "all", "particle", "side", "top", "bottom", "end", "overlay_side", "overlay_top"];
+  for (const key of keys) {
+    if (textureRefs[key]) return textureRefs[key];
+  }
+
+  return Object.values(textureRefs)[0] ?? null;
 }
 
 function findFluidTexture(namespace, path, texturesByRef) {

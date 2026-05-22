@@ -25,23 +25,25 @@ if (sourceManifest.schema !== "gtceu-planner-texture-manifest-v1") {
 }
 
 const iconByRenderKey = new Map();
+const decodedImageByPath = new Map();
 const icons = {};
 const entries = [];
 
 for (const good of packData.goods ?? []) {
-  const texturePath = sourceManifest.textures?.[good.id];
-  if (!texturePath || !await exists(texturePath)) continue;
+  const descriptor = iconDescriptorForGood(good, sourceManifest);
+  if (!descriptor.primary || !await exists(descriptor.primary)) continue;
 
-  const renderMode = iconRenderMode(good, texturePath);
-  const renderKey = `${renderMode}:${texturePath}`;
+  const renderMode = iconRenderMode(good, descriptor);
+  const renderKey = renderKeyForDescriptor(renderMode, descriptor);
   let iconId = iconByRenderKey.get(renderKey);
   if (iconId === undefined) {
     iconId = entries.length;
     iconByRenderKey.set(renderKey, iconId);
     entries.push({
       iconId,
-      texturePath,
-      renderMode
+      primaryPath: descriptor.primary,
+      renderMode,
+      textures: descriptor.textures
     });
   }
 
@@ -60,10 +62,10 @@ for (const entry of entries) {
   }
 
   try {
-    const image = decodePng(await readFile(entry.texturePath));
-    drawIconToAtlas(image, atlas, atlasWidth, entry.iconId, tileSize, columns, entry.renderMode);
+    const images = await readIconImages(entry);
+    drawIconToAtlas(images, atlas, atlasWidth, entry.iconId, tileSize, columns, entry.renderMode);
   } catch (error) {
-    skipped.push({ iconId: entry.iconId, texturePath: entry.texturePath, reason: error.message });
+    skipped.push({ iconId: entry.iconId, texturePath: entry.primaryPath, reason: error.message });
   }
 }
 
@@ -127,25 +129,63 @@ async function exists(path) {
   }
 }
 
-function iconRenderMode(good, texturePath) {
+function iconDescriptorForGood(good, manifest) {
+  const manifestIcon = manifest.icons?.[good.id];
+  const primary = manifestIcon?.primary ?? manifest.textures?.[good.id] ?? null;
+  const textures = {
+    ...(manifestIcon?.textures ?? {})
+  };
+
+  if (primary) textures.primary ??= primary;
+
+  return {
+    kind: manifestIcon?.kind ?? "texture",
+    model: manifestIcon?.model ?? null,
+    primary,
+    textures
+  };
+}
+
+function renderKeyForDescriptor(renderMode, descriptor) {
+  return JSON.stringify({
+    renderMode,
+    textures: Object.entries(descriptor.textures ?? {}).sort(([a], [b]) => a.localeCompare(b))
+  });
+}
+
+async function readIconImages(entry) {
+  const images = {};
+  for (const [role, texturePath] of Object.entries(entry.textures ?? {})) {
+    if (!texturePath || images[role] || !await exists(texturePath)) continue;
+    images[role] = await readDecodedImage(texturePath);
+  }
+  return images;
+}
+
+async function readDecodedImage(texturePath) {
+  const cached = decodedImageByPath.get(texturePath);
+  if (cached) return cached;
+
+  const image = decodePng(await readFile(texturePath));
+  decodedImageByPath.set(texturePath, image);
+  return image;
+}
+
+function iconRenderMode(good, descriptor) {
   const idPath = good.id.includes(":") ? good.id.split(":")[1] : good.id;
   if (good.kind === "fluid") return "flat";
-  if (isConduitGood(idPath)) return "conduit";
-  if (isBlockLikeGood(idPath, texturePath)) return "cube";
+  if (hasCubeModelTextures(descriptor.textures) && isBlockLikeGood(idPath, descriptor.primary)) return "model-cube";
   return "flat";
 }
 
-function isConduitGood(idPath) {
-  return /_(single|double|quadruple|octal|hex)_(wire|cable)$/.test(idPath)
-    || /_(tiny|small|normal|large|huge|quadruple|nonuple)_fluid_pipe$/.test(idPath)
-    || /_(small|normal|large|huge)_(restrictive_)?item_pipe$/.test(idPath)
-    || /_(duct|laser|optical)_pipe$/.test(idPath);
-}
-
 function isBlockLikeGood(idPath, texturePath) {
-  if (texturePath.includes("/block/")) return true;
+  if (texturePath?.includes("/block/")) return true;
   return /_(block|casing|frame|ore|crate|drum|hatch|bus|boiler|tank|valve|machine_hull)$/.test(idPath)
     || /_(alloy_smelter|assembler|macerator|wiremill|centrifuge|compressor|extractor|furnace|bender)$/.test(idPath);
+}
+
+function hasCubeModelTextures(textures = {}) {
+  return Boolean(textures.all || textures.top || textures.side || textures.front || textures.overlay_front || textures.overlay_side || textures.overlay_top);
 }
 
 function countRenderModes(entries) {
@@ -155,18 +195,16 @@ function countRenderModes(entries) {
   }, {});
 }
 
-function drawIconToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns, renderMode) {
-  if (renderMode === "cube") {
-    drawCubeIcon(image, atlas, atlasWidth, iconId, tileSize, columns);
+function drawIconToAtlas(images, atlas, atlasWidth, iconId, tileSize, columns, renderMode) {
+  const primaryImage = firstImage(images, ["primary", "layer0", "all", "side", "top"]);
+  if (!primaryImage) throw new Error("No readable icon texture.");
+
+  if (renderMode === "model-cube") {
+    drawCubeIcon(images, atlas, atlasWidth, iconId, tileSize, columns);
     return;
   }
 
-  if (renderMode === "conduit") {
-    drawConduitIcon(image, atlas, atlasWidth, iconId, tileSize, columns);
-    return;
-  }
-
-  drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns);
+  drawImageToAtlas(primaryImage, atlas, atlasWidth, iconId, tileSize, columns);
 }
 
 function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns) {
@@ -194,24 +232,26 @@ function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns) {
   }
 }
 
-function drawCubeIcon(image, atlas, atlasWidth, iconId, tileSize, columns) {
+function drawCubeIcon(images, atlas, atlasWidth, iconId, tileSize, columns) {
   const { targetX, targetY } = iconTarget(iconId, tileSize, columns);
-  const coverage = alphaCoverage(image);
-  const baseColor = coverage < 0.35 ? [119, 132, 133, 255] : averageColor(image);
+  const topImage = firstImage(images, ["top", "all", "end", "side", "primary"]);
+  const sideImage = firstImage(images, ["side", "all", "particle", "primary"]);
+  const frontImage = firstImage(images, ["front", "side", "all", "particle", "primary"]);
+  const frontOverlay = firstImage(images, ["overlay_front"]);
+  const frontEmissive = firstImage(images, ["overlay_front_emissive"]);
+  const sideOverlay = firstImage(images, ["overlay_side"]);
+  const topOverlay = firstImage(images, ["overlay_top"]);
   const top = parallelogram([16, 3], [-11, 6], [11, 6]);
   const left = parallelogram([5, 9], [11, 6], [0, 13]);
   const right = parallelogram([16, 15], [11, -6], [0, 13]);
 
-  if (coverage < 0.35) {
-    drawSolidParallelogram(atlas, atlasWidth, targetX, targetY, left, baseColor, 0.78);
-    drawSolidParallelogram(atlas, atlasWidth, targetX, targetY, right, baseColor, 0.62);
-    drawSolidParallelogram(atlas, atlasWidth, targetX, targetY, top, baseColor, 1.08);
-    drawTexturedParallelogram(image, atlas, atlasWidth, targetX, targetY, right, 1.1);
-  } else {
-    drawTexturedParallelogram(image, atlas, atlasWidth, targetX, targetY, left, 0.78);
-    drawTexturedParallelogram(image, atlas, atlasWidth, targetX, targetY, right, 0.62);
-    drawTexturedParallelogram(image, atlas, atlasWidth, targetX, targetY, top, 1.08);
-  }
+  drawTexturedParallelogram(sideImage, atlas, atlasWidth, targetX, targetY, left, 0.78, { minimumAlpha: 170 });
+  if (sideOverlay) drawTexturedParallelogram(sideOverlay, atlas, atlasWidth, targetX, targetY, left, 0.86);
+  drawTexturedParallelogram(frontImage, atlas, atlasWidth, targetX, targetY, right, 0.72, { minimumAlpha: 170 });
+  if (frontOverlay) drawTexturedParallelogram(frontOverlay, atlas, atlasWidth, targetX, targetY, right, 0.96);
+  if (frontEmissive) drawTexturedParallelogram(frontEmissive, atlas, atlasWidth, targetX, targetY, right, 1.18);
+  drawTexturedParallelogram(topImage, atlas, atlasWidth, targetX, targetY, top, 1.08, { minimumAlpha: 170 });
+  if (topOverlay) drawTexturedParallelogram(topOverlay, atlas, atlasWidth, targetX, targetY, top, 1.12);
 
   drawLine(atlas, atlasWidth, targetX + 16, targetY + 3, targetX + 5, targetY + 9, [45, 48, 45, 105]);
   drawLine(atlas, atlasWidth, targetX + 16, targetY + 3, targetX + 27, targetY + 9, [45, 48, 45, 105]);
@@ -221,23 +261,11 @@ function drawCubeIcon(image, atlas, atlasWidth, iconId, tileSize, columns) {
   drawLine(atlas, atlasWidth, targetX + 16, targetY + 28, targetX + 27, targetY + 22, [45, 48, 45, 80]);
 }
 
-function drawConduitIcon(image, atlas, atlasWidth, iconId, tileSize, columns) {
-  const { targetX, targetY } = iconTarget(iconId, tileSize, columns);
-  const color = averageColor(image);
-  const dark = tintColor(color, 0.58);
-  const mid = tintColor(color, 0.82);
-  const light = tintColor(color, 1.15);
-
-  drawPolygon(atlas, atlasWidth, targetX, targetY, [[3, 14], [14, 9], [18, 13], [7, 20]], dark);
-  drawPolygon(atlas, atlasWidth, targetX, targetY, [[14, 9], [29, 13], [22, 20], [18, 13]], mid);
-  drawPolygon(atlas, atlasWidth, targetX, targetY, [[12, 8], [20, 8], [24, 16], [16, 22], [8, 16]], dark);
-  drawPolygon(atlas, atlasWidth, targetX, targetY, [[12, 8], [20, 8], [16, 13], [8, 16]], light);
-  drawPolygon(atlas, atlasWidth, targetX, targetY, [[20, 8], [24, 16], [16, 22], [16, 13]], mid);
-  drawPolygon(atlas, atlasWidth, targetX, targetY, [[8, 16], [16, 13], [16, 22]], tintColor(color, 0.7));
-  drawLine(atlas, atlasWidth, targetX + 4, targetY + 14, targetX + 15, targetY + 10, [34, 36, 34, 95]);
-  drawLine(atlas, atlasWidth, targetX + 18, targetY + 13, targetX + 29, targetY + 13, [34, 36, 34, 95]);
-  drawLine(atlas, atlasWidth, targetX + 8, targetY + 16, targetX + 16, targetY + 22, [34, 36, 34, 90]);
-  drawLine(atlas, atlasWidth, targetX + 24, targetY + 16, targetX + 16, targetY + 22, [34, 36, 34, 90]);
+function firstImage(images, roles) {
+  for (const role of roles) {
+    if (images[role]) return images[role];
+  }
+  return Object.values(images)[0] ?? null;
 }
 
 function iconTarget(iconId, tileSize, columns) {
@@ -261,7 +289,7 @@ function parallelogram(origin, uVector, vVector) {
   };
 }
 
-function drawTexturedParallelogram(image, atlas, atlasWidth, targetX, targetY, shape, shade) {
+function drawTexturedParallelogram(image, atlas, atlasWidth, targetX, targetY, shape, shade, options = {}) {
   const [minX, minY, maxX, maxY] = polygonBounds(shape.points);
   const [originX, originY] = shape.origin;
   const [ux, uy] = shape.uVector;
@@ -286,24 +314,11 @@ function drawTexturedParallelogram(image, atlas, atlasWidth, targetX, targetY, s
         Math.min(255, Math.round(image.pixels[sourceOffset] * shade)),
         Math.min(255, Math.round(image.pixels[sourceOffset + 1] * shade)),
         Math.min(255, Math.round(image.pixels[sourceOffset + 2] * shade)),
-        image.pixels[sourceOffset + 3]
+        options.minimumAlpha && image.pixels[sourceOffset + 3] > 0
+          ? Math.max(options.minimumAlpha, image.pixels[sourceOffset + 3])
+          : image.pixels[sourceOffset + 3]
       ];
       blendPixel(atlas, atlasWidth, targetX + x, targetY + y, color);
-    }
-  }
-}
-
-function drawSolidParallelogram(atlas, atlasWidth, targetX, targetY, shape, color, shade) {
-  drawPolygon(atlas, atlasWidth, targetX, targetY, shape.points, tintColor(color, shade));
-}
-
-function drawPolygon(atlas, atlasWidth, targetX, targetY, points, color) {
-  const [minX, minY, maxX, maxY] = polygonBounds(points);
-  for (let y = Math.floor(minY); y <= Math.ceil(maxY); y += 1) {
-    for (let x = Math.floor(minX); x <= Math.ceil(maxX); x += 1) {
-      if (pointInPolygon(x + 0.5, y + 0.5, points)) {
-        blendPixel(atlas, atlasWidth, targetX + x, targetY + y, color);
-      }
     }
   }
 }
@@ -312,17 +327,6 @@ function polygonBounds(points) {
   const xs = points.map((point) => point[0]);
   const ys = points.map((point) => point[1]);
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-}
-
-function pointInPolygon(x, y, points) {
-  let inside = false;
-  for (let index = 0, previous = points.length - 1; index < points.length; previous = index, index += 1) {
-    const [xi, yi] = points[index];
-    const [xj, yj] = points[previous];
-    const intersects = ((yi > y) !== (yj > y)) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-    if (intersects) inside = !inside;
-  }
-  return inside;
 }
 
 function drawLine(atlas, atlasWidth, x0, y0, x1, y1, color) {
@@ -359,44 +363,6 @@ function blendPixel(atlas, atlasWidth, x, y, color) {
   atlas[offset + 1] = Math.round(color[1] * alpha + atlas[offset + 1] * inverse);
   atlas[offset + 2] = Math.round(color[2] * alpha + atlas[offset + 2] * inverse);
   atlas[offset + 3] = Math.round(255 * (alpha + (atlas[offset + 3] / 255) * inverse));
-}
-
-function averageColor(image) {
-  let red = 0;
-  let green = 0;
-  let blue = 0;
-  let alpha = 0;
-  let total = 0;
-
-  for (let offset = 0; offset < image.pixels.length; offset += 4) {
-    const pixelAlpha = image.pixels[offset + 3];
-    if (pixelAlpha < 8) continue;
-    red += image.pixels[offset] * pixelAlpha;
-    green += image.pixels[offset + 1] * pixelAlpha;
-    blue += image.pixels[offset + 2] * pixelAlpha;
-    alpha += pixelAlpha;
-    total += 1;
-  }
-
-  if (!alpha || !total) return [126, 134, 132, 255];
-  return [Math.round(red / alpha), Math.round(green / alpha), Math.round(blue / alpha), 255];
-}
-
-function alphaCoverage(image) {
-  let visible = 0;
-  for (let offset = 3; offset < image.pixels.length; offset += 4) {
-    if (image.pixels[offset] > 24) visible += 1;
-  }
-  return visible / (image.width * image.height);
-}
-
-function tintColor(color, shade) {
-  return [
-    Math.max(0, Math.min(255, Math.round(color[0] * shade))),
-    Math.max(0, Math.min(255, Math.round(color[1] * shade))),
-    Math.max(0, Math.min(255, Math.round(color[2] * shade))),
-    color[3]
-  ];
 }
 
 function decodePng(buffer) {

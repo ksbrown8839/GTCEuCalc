@@ -84,7 +84,7 @@ function atlasIconMarkup(goodsId, kind, className, displaySize) {
 }
 
 function slotIconMarkup({ goodsId, kind, color, label, fallback }) {
-  const atlasIcon = goodsId ? atlasIconMarkup(goodsId, kind, "slot-image", 30) : "";
+  const atlasIcon = goodsId ? atlasIconMarkup(goodsId, kind, "slot-image", 32) : "";
   if (atlasIcon) {
     return atlasIcon;
   }
