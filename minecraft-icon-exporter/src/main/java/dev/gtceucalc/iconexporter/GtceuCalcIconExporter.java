@@ -44,6 +44,7 @@ public final class GtceuCalcIconExporter {
     public static final String MOD_ID = "gtceucalc_icon_exporter";
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int DEFAULT_ICON_SIZE = 64;
+    private static final int BACKGROUND_RGB_THRESHOLD = 2;
 
     public GtceuCalcIconExporter() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -232,6 +233,7 @@ public final class GtceuCalcIconExporter {
 
             NativeImage image = Screenshot.takeScreenshot(exportTarget);
             try {
+                makeEdgeBackgroundTransparent(image);
                 image.writeToFile(outputPath);
             } finally {
                 image.close();
@@ -245,6 +247,65 @@ public final class GtceuCalcIconExporter {
             RenderSystem.viewport(0, 0, mainTarget.viewWidth, mainTarget.viewHeight);
             exportTarget.destroyBuffers();
         }
+    }
+
+    private static void makeEdgeBackgroundTransparent(NativeImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        boolean[] visited = new boolean[width * height];
+        int[] queueX = new int[width * height];
+        int[] queueY = new int[width * height];
+        int head = 0;
+        int tail = 0;
+
+        for (int x = 0; x < width; x += 1) {
+            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, 0);
+            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, height - 1);
+        }
+
+        for (int y = 0; y < height; y += 1) {
+            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, 0, y);
+            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, width - 1, y);
+        }
+
+        while (head < tail) {
+            int x = queueX[head];
+            int y = queueY[head];
+            head += 1;
+
+            int color = image.getPixelRGBA(x, y);
+            image.setPixelRGBA(x, y, color & 0x00FFFFFF);
+
+            if (x > 0) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x - 1, y);
+            if (x + 1 < width) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x + 1, y);
+            if (y > 0) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, y - 1);
+            if (y + 1 < height) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, y + 1);
+        }
+    }
+
+    private static int enqueueBackgroundPixel(NativeImage image, boolean[] visited, int[] queueX, int[] queueY, int tail, int x, int y) {
+        int width = image.getWidth();
+        int index = y * width + x;
+        if (visited[index]) return tail;
+        visited[index] = true;
+
+        if (!isBlackBackgroundPixel(image.getPixelRGBA(x, y))) return tail;
+
+        queueX[tail] = x;
+        queueY[tail] = y;
+        return tail + 1;
+    }
+
+    private static boolean isBlackBackgroundPixel(int color) {
+        int red = color & 0xFF;
+        int green = (color >>> 8) & 0xFF;
+        int blue = (color >>> 16) & 0xFF;
+        int alpha = (color >>> 24) & 0xFF;
+
+        return alpha > 0
+            && red <= BACKGROUND_RGB_THRESHOLD
+            && green <= BACKGROUND_RGB_THRESHOLD
+            && blue <= BACKGROUND_RGB_THRESHOLD;
     }
 
     private static List<IconEntry> collectItemEntries() {
