@@ -1,25 +1,34 @@
-const VISIBLE_FACE_GROUPS = [
-  ["north", "south"],
-  ["east", "west"],
-  ["up"]
-];
+const DEFAULT_GUI_TRANSFORM = {
+  rotation: [30, 225, 0],
+  translation: [0, 0, 0],
+  scale: [0.625, 0.625, 0.625]
+};
+
+const FACE_NORMALS = {
+  up: [0, 1, 0],
+  down: [0, -1, 0],
+  north: [0, 0, -1],
+  south: [0, 0, 1],
+  east: [1, 0, 0],
+  west: [-1, 0, 0]
+};
 
 const FACE_SHADE = {
   up: 1.08,
-  north: 0.82,
+  north: 0.88,
   south: 0.82,
-  east: 0.72,
-  west: 0.72,
+  east: 0.86,
+  west: 0.76,
   down: 0.55
 };
 
 const FACE_PRIORITY = {
-  south: 10,
-  north: 12,
+  down: 0,
+  north: 10,
+  south: 12,
   west: 18,
   east: 20,
-  up: 30,
-  down: 0
+  up: 30
 };
 
 export function canRenderModelDefinition(definition) {
@@ -31,40 +40,46 @@ export function drawModelIcon(definition, images, atlas, atlasWidth, iconId, til
 
   const targetX = (iconId % columns) * tileSize;
   const targetY = Math.floor(iconId / columns) * tileSize;
-  const scale = tileSize / 32;
-  const faces = collectRenderableFaces(definition, images);
+  const transform = resolvedGuiTransform(definition);
+  const faces = collectRenderableFaces(definition, images, transform);
+  if (!faces.length) return false;
+
+  const fit = projectionFit(faces, tileSize);
 
   faces.sort((a, b) => {
     if (a.depth !== b.depth) return a.depth - b.depth;
-    return FACE_PRIORITY[a.faceName] - FACE_PRIORITY[b.faceName];
+    return (FACE_PRIORITY[a.faceName] ?? 0) - (FACE_PRIORITY[b.faceName] ?? 0);
   });
 
   for (const face of faces) {
-    drawTexturedFace(face, images, atlas, atlasWidth, targetX, targetY, scale);
+    drawTexturedFace(face, images, atlas, atlasWidth, targetX, targetY, fit);
   }
 
   return true;
 }
 
-function collectRenderableFaces(definition, images) {
+function collectRenderableFaces(definition, images, transform) {
   const faces = [];
 
   for (const element of definition.elements) {
     const from = normalizeVector(element.from, [0, 0, 0]);
     const to = normalizeVector(element.to, [16, 16, 16]);
     const elementFaces = element.faces ?? {};
-    const selectedFaceNames = selectVisibleFaceNames(elementFaces);
 
-    for (const faceName of selectedFaceNames) {
-      const face = elementFaces[faceName];
+    for (const [faceName, face] of Object.entries(elementFaces)) {
       if (!face?.texture || !images[face.texture]) continue;
 
-      const vertices = faceVertices(faceName, from, to);
+      const rawVertices = faceVertices(faceName, from, to);
+      const vertices = rawVertices.map((vertex) => transformVertex(vertex, transform));
+      const normal = transformNormal(FACE_NORMALS[faceName] ?? [0, 0, 1], transform);
+      if (!isFaceVisible(normal)) continue;
+
       faces.push({
         element,
         face,
         faceName,
         vertices,
+        normal,
         depth: averageDepth(vertices, faceName)
       });
     }
@@ -73,18 +88,79 @@ function collectRenderableFaces(definition, images) {
   return faces;
 }
 
-function selectVisibleFaceNames(faces) {
-  const selected = [];
-  for (const group of VISIBLE_FACE_GROUPS) {
-    const faceName = group.find((candidate) => faces[candidate]?.texture);
-    if (faceName) selected.push(faceName);
-  }
-  return selected;
+function resolvedGuiTransform(definition) {
+  const gui = definition?.display?.gui ?? {};
+  return {
+    rotation: normalizeVector(gui.rotation, DEFAULT_GUI_TRANSFORM.rotation),
+    translation: normalizeVector(gui.translation, DEFAULT_GUI_TRANSFORM.translation),
+    scale: normalizeVector(gui.scale, DEFAULT_GUI_TRANSFORM.scale)
+  };
 }
 
 function normalizeVector(value, fallback) {
-  if (!Array.isArray(value) || value.length < 3) return fallback;
+  if (!Array.isArray(value) || value.length < 3) return [...fallback];
   return [Number(value[0]), Number(value[1]), Number(value[2])];
+}
+
+function transformVertex(vertex, transform) {
+  let [x, y, z] = vertex.map(Number);
+
+  x -= 8;
+  y -= 8;
+  z -= 8;
+
+  x *= transform.scale[0];
+  y *= transform.scale[1];
+  z *= transform.scale[2];
+
+  [x, y, z] = rotateX([x, y, z], degreesToRadians(transform.rotation[0]));
+  [x, y, z] = rotateY([x, y, z], degreesToRadians(transform.rotation[1]));
+  [x, y, z] = rotateZ([x, y, z], degreesToRadians(transform.rotation[2]));
+
+  x += transform.translation[0];
+  y += transform.translation[1];
+  z += transform.translation[2];
+
+  return [x, y, z];
+}
+
+function transformNormal(normal, transform) {
+  let [x, y, z] = normal.map(Number);
+  [x, y, z] = rotateX([x, y, z], degreesToRadians(transform.rotation[0]));
+  [x, y, z] = rotateY([x, y, z], degreesToRadians(transform.rotation[1]));
+  [x, y, z] = rotateZ([x, y, z], degreesToRadians(transform.rotation[2]));
+  return normalizeNormal([x, y, z]);
+}
+
+function normalizeNormal([x, y, z]) {
+  const length = Math.hypot(x, y, z) || 1;
+  return [x / length, y / length, z / length];
+}
+
+function isFaceVisible(normal) {
+  return normal[2] < -0.0001;
+}
+
+function degreesToRadians(degrees) {
+  return (Number(degrees) * Math.PI) / 180;
+}
+
+function rotateX([x, y, z], radians) {
+  const c = Math.cos(radians);
+  const s = Math.sin(radians);
+  return [x, y * c - z * s, y * s + z * c];
+}
+
+function rotateY([x, y, z], radians) {
+  const c = Math.cos(radians);
+  const s = Math.sin(radians);
+  return [x * c + z * s, y, -x * s + z * c];
+}
+
+function rotateZ([x, y, z], radians) {
+  const c = Math.cos(radians);
+  const s = Math.sin(radians);
+  return [x * c - y * s, x * s + y * c, z];
 }
 
 function faceVertices(faceName, from, to) {
@@ -110,34 +186,53 @@ function faceVertices(faceName, from, to) {
 }
 
 function averageDepth(vertices, faceName) {
-  const center = vertices.reduce((sum, vertex) => {
-    sum[0] += vertex[0];
-    sum[1] += vertex[1];
-    sum[2] += vertex[2];
-    return sum;
-  }, [0, 0, 0]).map((value) => value / vertices.length);
-
-  const [x, y, z] = center;
-  return x + z - y * 0.08 + (FACE_PRIORITY[faceName] ?? 0) / 100;
+  const z = vertices.reduce((sum, vertex) => sum + vertex[2], 0) / vertices.length;
+  return z + (FACE_PRIORITY[faceName] ?? 0) / 10000;
 }
 
-function project([x, y, z], scale) {
-  return [
-    (16 + (x - z) * (11 / 16)) * scale,
-    (3 + (x + z) * (6 / 16) + (16 - y) * (13 / 16)) * scale
-  ];
+function projectionFit(faces, tileSize) {
+  const points = faces.flatMap((face) => face.vertices.map(projectRaw));
+  const xs = points.map((point) => point[0]);
+  const ys = points.map((point) => point[1]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+  const width = Math.max(0.0001, maxX - minX);
+  const height = Math.max(0.0001, maxY - minY);
+  const padding = Math.max(2, tileSize * 0.08);
+  const scale = Math.min((tileSize - padding * 2) / width, (tileSize - padding * 2) / height);
+  const offsetX = padding + (tileSize - padding * 2 - width * scale) / 2 - minX * scale;
+  const offsetY = padding + (tileSize - padding * 2 - height * scale) / 2 - minY * scale;
+  return { scale, offsetX, offsetY };
 }
 
-function drawTexturedFace(faceEntry, images, atlas, atlasWidth, targetX, targetY, scale) {
+function projectRaw([x, y]) {
+  return [x, -y];
+}
+
+function project(vertex, fit) {
+  const [x, y] = projectRaw(vertex);
+  return [x * fit.scale + fit.offsetX, y * fit.scale + fit.offsetY];
+}
+
+function drawTexturedFace(faceEntry, images, atlas, atlasWidth, targetX, targetY, fit) {
   const image = images[faceEntry.face.texture];
   if (!image) return;
 
-  const points = faceEntry.vertices.map((vertex) => project(vertex, scale));
-  const shade = FACE_SHADE[faceEntry.faceName] ?? 1;
+  const points = faceEntry.vertices.map((vertex) => project(vertex, fit));
+  const shade = shadeForFace(faceEntry);
   const uv = normalizeUv(faceEntry.face.uv);
   const rotation = Number(faceEntry.face.rotation ?? 0);
 
   drawTexturedQuad(image, atlas, atlasWidth, targetX, targetY, points, uv, rotation, shade);
+}
+
+function shadeForFace(faceEntry) {
+  const base = FACE_SHADE[faceEntry.faceName] ?? 1;
+  const normalLift = Math.max(0, faceEntry.normal[1]) * 0.18;
+  const normalTurn = Math.max(0, -faceEntry.normal[2]) * 0.08;
+  return Math.min(1.18, Math.max(0.58, base + normalLift + normalTurn));
 }
 
 function normalizeUv(uv) {
