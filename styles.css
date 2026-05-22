@@ -377,26 +377,67 @@ select {
 }
 
 .tree-node + .tree-node {
-  margin-top: 8px;
+  margin-top: 10px;
+}
+
+.tree-children > .tree-node::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 24px;
+  width: 14px;
+  border-top: 2px solid #cfd8ca;
 }
 
 .tree-recipe {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: #fffdf8;
+  box-shadow: 0 1px 0 rgba(31, 37, 37, 0.03);
 }
 
-.tree-recipe summary {
+.tree-recipe > summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: start;
   gap: 12px;
-  min-height: 42px;
-  padding: 9px 10px;
+  min-height: 64px;
+  padding: 11px 12px;
   cursor: pointer;
+  list-style: none;
 }
 
-.tree-summary {
+.tree-recipe > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree-recipe > summary::before {
+  content: "+";
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 3px;
+  border: 1px solid #b8c4b2;
+  border-radius: 5px;
+  background: #eef3e9;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tree-recipe[open] > summary::before {
+  content: "-";
+}
+
+.tree-card-body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tree-node-header {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -419,6 +460,7 @@ select {
 
 .tree-run-rate {
   color: var(--accent-3);
+  margin-top: 3px;
 }
 
 .tree-actions,
@@ -434,13 +476,192 @@ select {
   padding: 2px 7px;
 }
 
+.recipe-visual {
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.crafting-visual {
+  grid-template-columns: max-content 24px minmax(52px, max-content);
+}
+
+.machine-visual {
+  grid-template-columns: minmax(160px, 1fr) minmax(96px, 130px) 24px minmax(52px, max-content);
+}
+
+.crafting-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-rows: repeat(3, 42px);
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid #c9c0ad;
+  border-radius: 6px;
+  background: #d8d1c2;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.machine-inputs,
+.recipe-output-stack {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.machine-inputs {
+  padding: 6px;
+  border: 1px solid #d7d9d1;
+  border-radius: 6px;
+  background: #f1f3ed;
+}
+
+.machine-stage {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid #c9d1d6;
+  border-radius: 6px;
+  background: #eaf0f3;
+  color: #36566a;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.machine-stage strong {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.recipe-arrow {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--accent-2);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.recipe-slot {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr;
+  justify-items: center;
+  align-items: center;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 3px;
+  border: 1px solid #8f9589;
+  border-radius: 4px;
+  background: #f8f8f2;
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.8), inset -2px -2px 0 rgba(67, 72, 65, 0.12);
+  color: var(--ink);
+  font-size: 9px;
+  line-height: 1;
+  text-align: center;
+}
+
+button.recipe-slot {
+  cursor: pointer;
+}
+
+button.recipe-slot:hover {
+  border-color: var(--accent);
+  background: #ffffff;
+}
+
+.recipe-slot.empty {
+  background: #c9c3b6;
+  border-color: #aaa394;
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.35), inset -2px -2px 0 rgba(67, 72, 65, 0.1);
+}
+
+.recipe-slot.output-slot {
+  border-color: #7d9a8c;
+  background: #f5fbf7;
+}
+
+.recipe-slot.fluid .slot-swatch {
+  border-radius: 50%;
+}
+
+.recipe-slot.tag .slot-swatch {
+  border-style: dashed;
+}
+
+.recipe-slot.unresolved {
+  border-color: #c89595;
+}
+
+.recipe-slot.overflow {
+  display: grid;
+  grid-template-rows: 1fr;
+  background: #eef0ec;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.slot-swatch {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
+  background: var(--swatch);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
+  text-transform: uppercase;
+}
+
+.slot-name {
+  display: none;
+}
+
+.recipe-slot.overflow .slot-name {
+  display: block;
+  width: auto;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.slot-amount {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: rgba(31, 37, 37, 0.72);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
 .tree-children {
-  margin: 0 10px 10px 18px;
-  padding-left: 14px;
+  position: relative;
+  margin: 0 12px 12px 24px;
+  padding-left: 16px;
   border-left: 2px solid #dfe6dc;
 }
 
 .tree-leaf {
+  border: 0;
+}
+
+.tree-leaf-card {
   border: 1px dashed var(--line);
   border-radius: 8px;
   padding: 8px;
@@ -738,8 +959,28 @@ select {
   .content-grid,
   .status-band,
   .io-grid,
-  .recipe-choice {
+  .recipe-choice,
+  .tree-recipe > summary,
+  .machine-visual {
     grid-template-columns: 1fr;
+  }
+
+  .tree-recipe > summary::before {
+    display: none;
+  }
+
+  .tree-run-rate {
+    justify-self: start;
+  }
+
+  .crafting-visual {
+    grid-template-columns: max-content 24px minmax(52px, max-content);
+    overflow-x: auto;
+  }
+
+  .machine-stage {
+    justify-self: start;
+    min-width: 120px;
   }
 
   .sidebar,

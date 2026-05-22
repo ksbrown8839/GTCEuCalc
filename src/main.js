@@ -78,6 +78,133 @@ function ingredientChip(repository, ingredient) {
   `;
 }
 
+function goodSlot(repository, id, amountText = "", options = {}) {
+  const good = repository.getGood(id);
+  const color = good?.color ?? "#7d8790";
+  const name = good?.name ?? id;
+  const kind = good?.kind ?? "item";
+  const className = options.className ? ` ${options.className}` : "";
+  const content = `
+    <span class="slot-swatch ${kind}" style="--swatch:${escapeHtml(color)}">
+      <span>${escapeHtml(slotInitials(name, id))}</span>
+    </span>
+    <span class="slot-name">${escapeHtml(name)}</span>
+    ${amountText ? `<strong class="slot-amount">${escapeHtml(amountText)}</strong>` : ""}
+  `;
+
+  if (!good) {
+    return `<span class="recipe-slot unresolved${className}" title="${escapeHtml(id)}">${content}</span>`;
+  }
+
+  return `
+    <button class="recipe-slot ${kind}${className}" type="button" title="${escapeHtml(id)}" aria-label="Inspect ${escapeHtml(name)}" data-action="inspect-good" data-id="${escapeHtml(id)}">
+      ${content}
+    </button>
+  `;
+}
+
+function ingredientSlot(repository, ingredient) {
+  if (!ingredient) {
+    return `<span class="recipe-slot empty" aria-hidden="true"></span>`;
+  }
+
+  if (ingredient.kind === "tag") {
+    const resolved = repository.resolveIngredient(ingredient);
+    const color = resolved.good?.color ?? "#7d8790";
+    const name = repository.getIngredientName(ingredient);
+    const detail = resolved.good ? `${ingredient.id} -> ${resolved.good.name}` : ingredient.id;
+    const content = `
+      <span class="slot-swatch tag" style="--swatch:${escapeHtml(color)}">
+        <span>${escapeHtml(slotInitials(name, ingredient.id))}</span>
+      </span>
+      <span class="slot-name">${escapeHtml(name)}</span>
+      ${formatSlotAmount(ingredient.amount) ? `<strong class="slot-amount">${formatSlotAmount(ingredient.amount)}</strong>` : ""}
+    `;
+
+    if (!resolved.good) {
+      return `<span class="recipe-slot tag unresolved" title="${escapeHtml(detail)}">${content}</span>`;
+    }
+
+    return `
+      <button class="recipe-slot tag" type="button" title="${escapeHtml(detail)}" aria-label="Inspect ${escapeHtml(resolved.good.name)}" data-action="inspect-good" data-id="${escapeHtml(resolved.id)}">
+        ${content}
+      </button>
+    `;
+  }
+
+  return goodSlot(repository, ingredient.id, formatSlotAmount(ingredient.amount));
+}
+
+function recipeVisual(repository, recipe) {
+  if (!recipe) return "";
+  const type = repository.getRecipeType(recipe.type);
+  const inputs = recipe.inputs.filter((input) => !input.notConsumed);
+  const outputs = recipe.outputs.filter((output) => repository.getGood(output.id));
+  const isCrafting = isCraftingRecipe(recipe);
+
+  if (isCrafting) {
+    return `
+      <span class="recipe-visual crafting-visual" aria-label="${escapeHtml(type.name)} recipe preview">
+        <span class="crafting-grid">
+          ${Array.from({ length: 9 }, (_, index) => ingredientSlot(repository, inputs[index])).join("")}
+        </span>
+        <span class="recipe-arrow" aria-hidden="true">&rarr;</span>
+        <span class="recipe-output-stack">
+          ${outputs.length ? outputs.slice(0, 3).map((output) => goodSlot(repository, output.id, formatSlotAmount(output.amount), { className: "output-slot" })).join("") : `<span class="recipe-slot empty"></span>`}
+        </span>
+      </span>
+    `;
+  }
+
+  const visibleInputs = inputs.slice(0, 8);
+  const hiddenInputCount = Math.max(0, inputs.length - visibleInputs.length);
+  const visibleOutputs = outputs.slice(0, 4);
+
+  return `
+    <span class="recipe-visual machine-visual" aria-label="${escapeHtml(type.name)} recipe preview">
+      <span class="machine-inputs">
+        ${visibleInputs.map((input) => ingredientSlot(repository, input)).join("")}
+        ${hiddenInputCount ? overflowSlot(hiddenInputCount) : ""}
+      </span>
+      <span class="machine-stage">
+        <span>${escapeHtml(type.name)}</span>
+        ${recipe.durationTicks ? `<strong>${formatDuration(recipe.durationTicks)}</strong>` : ""}
+      </span>
+      <span class="recipe-arrow" aria-hidden="true">&rarr;</span>
+      <span class="recipe-output-stack">
+        ${visibleOutputs.length ? visibleOutputs.map((output) => goodSlot(repository, output.id, formatSlotAmount(output.amount), { className: "output-slot" })).join("") : `<span class="recipe-slot empty"></span>`}
+      </span>
+    </span>
+  `;
+}
+
+function formatSlotAmount(amount) {
+  return Number(amount) === 1 ? "" : formatAmount(amount);
+}
+
+function slotInitials(name, fallback) {
+  const words = String(name)
+    .replace(/^#/, "")
+    .split(/[^a-z0-9]+/i)
+    .filter(Boolean);
+  const letters = words.length > 1
+    ? words.slice(0, 2).map((word) => word[0]).join("")
+    : (words[0] ?? fallback).slice(0, 2);
+  return letters.toUpperCase();
+}
+
+function overflowSlot(count) {
+  return `
+    <span class="recipe-slot overflow" title="${formatAmount(count)} more ingredients">
+      <span class="slot-name">+${formatAmount(count)}</span>
+    </span>
+  `;
+}
+
+function isCraftingRecipe(recipe) {
+  return recipe.type.includes("crafting") || recipe.type.includes("shaped") || recipe.type.includes("shapeless");
+}
+
 function getEffectiveExternalGoods(repository) {
   const externalGoods = getBoundaryPresetGoods(repository, state.activeBoundaryPresets);
 
@@ -260,10 +387,12 @@ function craftingTreeNode(repository, node, depth) {
   if (!hasChildren) {
     return `
       <div class="tree-node tree-leaf ${escapeHtml(node.reason ?? "external")}">
-        <div class="tree-summary">
-          ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
-          <span class="tree-badge">${escapeHtml(treeReasonLabel(node.reason))}</span>
-          ${actions}
+        <div class="tree-leaf-card">
+          <div class="tree-node-header">
+            ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+            <span class="tree-badge">${escapeHtml(treeReasonLabel(node.reason))}</span>
+            ${actions}
+          </div>
         </div>
       </div>
     `;
@@ -271,11 +400,14 @@ function craftingTreeNode(repository, node, depth) {
 
   return `
     <details class="tree-node tree-recipe" style="--tree-depth:${depth}"${open}>
-      <summary>
-        <span class="tree-summary">
-          ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
-          <span class="tree-machine">${escapeHtml(type?.name ?? "Recipe")}</span>
-          ${actions}
+      <summary class="tree-card-summary">
+        <span class="tree-card-body">
+          <span class="tree-node-header">
+            ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+            <span class="tree-machine">${escapeHtml(type?.name ?? "Recipe")}</span>
+            ${actions}
+          </span>
+          ${recipeVisual(repository, node.recipe)}
         </span>
         <span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>
       </summary>
