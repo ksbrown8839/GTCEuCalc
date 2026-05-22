@@ -4,9 +4,11 @@ import { createPlan } from "./planner.js?v=inspector-2026-05-21";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
+const DEFAULT_TEXTURE_MANIFEST_URL = "data/texture-manifest.local.json";
 
 const state = {
   repository: null,
+  textureManifest: null,
   products: [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }],
   preferredRecipeByOutput: {},
   manualExternalGoods: new Set(),
@@ -51,14 +53,41 @@ const elements = {
   totalPower: document.querySelector("[data-role='total-power']")
 };
 
-function goodChip(repository, id, amountText = "") {
+function getGoodTextureUrl(id) {
+  return state.textureManifest?.textures?.[id] ?? null;
+}
+
+function goodIconMarkup(repository, id) {
   const good = repository.getGood(id);
   const color = good?.color ?? "#7d8790";
-  const name = good?.name ?? id;
   const kind = good?.kind ?? "item";
+  const textureUrl = getGoodTextureUrl(id);
+
+  if (textureUrl) {
+    return `<img class="good-icon ${kind}" src="${escapeHtml(textureUrl)}" alt="" loading="lazy">`;
+  }
+
+  return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(color)}"></span>`;
+}
+
+function slotIconMarkup({ textureUrl, kind, color, label, fallback }) {
+  if (textureUrl) {
+    return `<img class="slot-image ${kind}" src="${escapeHtml(textureUrl)}" alt="" loading="lazy">`;
+  }
+
+  return `
+    <span class="slot-swatch ${kind}" style="--swatch:${escapeHtml(color)}">
+      <span>${escapeHtml(slotInitials(label, fallback))}</span>
+    </span>
+  `;
+}
+
+function goodChip(repository, id, amountText = "") {
+  const good = repository.getGood(id);
+  const name = good?.name ?? id;
   return `
     <span class="good-chip" title="${escapeHtml(id)}">
-      <span class="good-swatch ${kind}" style="--swatch:${escapeHtml(color)}"></span>
+      ${goodIconMarkup(repository, id)}
       <span>${escapeHtml(name)}</span>
       ${amountText ? `<strong>${escapeHtml(amountText)}</strong>` : ""}
     </span>
@@ -69,9 +98,11 @@ function ingredientChip(repository, ingredient) {
   const color = repository.getIngredientColor(ingredient);
   const name = repository.getIngredientName(ingredient);
   const prefix = ingredient.kind === "tag" ? "#" : "";
+  const resolved = ingredient.kind === "tag" ? repository.resolveIngredient(ingredient) : null;
+  const textureUrl = resolved?.good ? getGoodTextureUrl(resolved.id) : getGoodTextureUrl(ingredient.id);
   return `
     <span class="good-chip muted" title="${escapeHtml(prefix + ingredient.id)}">
-      <span class="good-swatch ${ingredient.kind}" style="--swatch:${escapeHtml(color)}"></span>
+      ${textureUrl ? `<img class="good-icon ${ingredient.kind}" src="${escapeHtml(textureUrl)}" alt="" loading="lazy">` : `<span class="good-swatch ${ingredient.kind}" style="--swatch:${escapeHtml(color)}"></span>`}
       <span>${escapeHtml(name)}</span>
       <strong>${formatAmount(ingredient.amount)}</strong>
     </span>
@@ -83,11 +114,10 @@ function goodSlot(repository, id, amountText = "", options = {}) {
   const color = good?.color ?? "#7d8790";
   const name = good?.name ?? id;
   const kind = good?.kind ?? "item";
+  const textureUrl = getGoodTextureUrl(id);
   const className = options.className ? ` ${options.className}` : "";
   const content = `
-    <span class="slot-swatch ${kind}" style="--swatch:${escapeHtml(color)}">
-      <span>${escapeHtml(slotInitials(name, id))}</span>
-    </span>
+    ${slotIconMarkup({ textureUrl, kind, color, label: name, fallback: id })}
     <span class="slot-name">${escapeHtml(name)}</span>
     ${amountText ? `<strong class="slot-amount">${escapeHtml(amountText)}</strong>` : ""}
   `;
@@ -113,10 +143,9 @@ function ingredientSlot(repository, ingredient) {
     const color = resolved.good?.color ?? "#7d8790";
     const name = repository.getIngredientName(ingredient);
     const detail = resolved.good ? `${ingredient.id} -> ${resolved.good.name}` : ingredient.id;
+    const textureUrl = resolved.good ? getGoodTextureUrl(resolved.id) : null;
     const content = `
-      <span class="slot-swatch tag" style="--swatch:${escapeHtml(color)}">
-        <span>${escapeHtml(slotInitials(name, ingredient.id))}</span>
-      </span>
+      ${slotIconMarkup({ textureUrl, kind: "tag", color, label: name, fallback: ingredient.id })}
       <span class="slot-name">${escapeHtml(name)}</span>
       ${formatSlotAmount(ingredient.amount) ? `<strong class="slot-amount">${formatSlotAmount(ingredient.amount)}</strong>` : ""}
     `;
@@ -705,6 +734,31 @@ function dataUrlFromLocation() {
   return params.get("data") || DEFAULT_DATA_URL;
 }
 
+function textureManifestUrlFromLocation() {
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get("textures");
+  if (value === "none") return null;
+  return value || DEFAULT_TEXTURE_MANIFEST_URL;
+}
+
+async function loadTextureManifest(url) {
+  if (!url) return { textures: {} };
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return { textures: {} };
+    const manifest = await response.json();
+    if (manifest.schema !== "gtceu-planner-texture-manifest-v1") {
+      console.warn(`Ignoring unsupported texture manifest schema: ${manifest.schema}`);
+      return { textures: {} };
+    }
+    return manifest;
+  } catch (error) {
+    console.warn(`Could not load texture manifest ${url}.`, error);
+    return { textures: {} };
+  }
+}
+
 function chooseInitialProducts(repository) {
   if (repository.getGood("gtceu:greenhouse")) {
     return [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }];
@@ -862,6 +916,7 @@ async function main() {
   try {
     state.dataUrl = dataUrlFromLocation();
     state.repository = await loadRepository(state.dataUrl);
+    state.textureManifest = await loadTextureManifest(textureManifestUrlFromLocation());
     state.products = chooseInitialProducts(state.repository);
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     const meta = state.repository.metadata;

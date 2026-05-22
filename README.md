@@ -34,6 +34,21 @@ Then open the URL printed by the server.
 
 In this Codex workspace, local `node` was not available from PATH, so I use the bundled runtime path when running checks.
 
+## Local Textures
+
+The app can use real Minecraft/mod item textures from a local pack install. Generated textures are intentionally ignored by git.
+
+```bash
+node tools/extract-textures.mjs --instance "C:\Users\ksbro\curseforge\minecraft\Instances\GregTech Community Pack Modern"
+```
+
+This writes:
+
+- `assets/textures/` - extracted PNGs
+- `data/texture-manifest.local.json` - item-to-texture map
+
+When that manifest exists, the app loads it automatically. Use `?textures=none` to force the fallback colored slots.
+
 ## Project Layout
 
 - `index.html` - app shell

@@ -599,6 +599,10 @@ button.recipe-slot:hover {
   border-style: dashed;
 }
 
+.recipe-slot.fluid .slot-image {
+  border-radius: 50%;
+}
+
 .recipe-slot.unresolved {
   border-color: #c89595;
 }
@@ -624,6 +628,13 @@ button.recipe-slot:hover {
   font-weight: 900;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
   text-transform: uppercase;
+}
+
+.slot-image {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .slot-name {
@@ -825,6 +836,14 @@ button.recipe-slot:hover {
 
 .good-swatch.fluid {
   border-radius: 50%;
+}
+
+.good-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .recipe-meta {

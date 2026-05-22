@@ -4,3 +4,5 @@ dist/
 *.log
 GTNHcalc-main.zip
 reference/
+assets/textures/
+data/texture-manifest.local.json
