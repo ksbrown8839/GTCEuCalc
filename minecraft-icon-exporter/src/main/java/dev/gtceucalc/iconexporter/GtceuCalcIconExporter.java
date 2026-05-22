@@ -8,6 +8,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -61,6 +62,16 @@ public final class GtceuCalcIconExporter {
                     context.getSource(),
                     ResourceLocationArgument.getId(context, "item_id")
                 ))));
+
+        dispatcher.register(Commands.literal("gtceucalc_export_icons_sample")
+            .then(Commands.argument("count", IntegerArgumentType.integer(1, 1000))
+                .executes(context -> exportIconBatch(
+                    context.getSource(),
+                    IntegerArgumentType.getInteger(context, "count")
+                ))));
+
+        dispatcher.register(Commands.literal("gtceucalc_export_icons_all")
+            .executes(context -> exportIconBatch(context.getSource(), Integer.MAX_VALUE)));
     }
 
     private static int exportIconManifest(CommandSourceStack source) {
@@ -85,31 +96,17 @@ public final class GtceuCalcIconExporter {
     }
 
     private static int exportSingleIcon(CommandSourceStack source, ResourceLocation itemId) {
-        if (!BuiltInRegistries.ITEM.containsKey(itemId)) {
-            source.sendFailure(Component.literal("Item not found: " + itemId));
-            return 0;
-        }
+        Item item = itemForId(source, itemId);
+        if (item == null) return 0;
 
         Minecraft minecraft = Minecraft.getInstance();
-        Item item = BuiltInRegistries.ITEM.get(itemId);
-
-        if (item == Items.AIR) {
-            source.sendFailure(Component.literal("Item is air or empty: " + itemId));
-            return 0;
-        }
-
         ItemStack stack = new ItemStack(item);
         if (stack.isEmpty()) {
             source.sendFailure(Component.literal("Item stack was empty: " + itemId));
             return 0;
         }
 
-        Path outputPath = minecraft.gameDirectory.toPath()
-            .resolve("gtceucalc-icon-export")
-            .resolve("rendered-icons")
-            .resolve("items")
-            .resolve(itemId.getNamespace())
-            .resolve(itemId.getPath() + ".png");
+        Path outputPath = outputPathForItem(minecraft, itemId);
 
         try {
             Files.createDirectories(outputPath.getParent());
@@ -122,6 +119,76 @@ public final class GtceuCalcIconExporter {
             LOGGER.error("Failed to export icon for {}", itemId, error);
             return 0;
         }
+    }
+
+    private static int exportIconBatch(CommandSourceStack source, int requestedLimit) {
+        Minecraft minecraft = Minecraft.getInstance();
+        List<ItemExportEntry> entries = collectItemExportEntries();
+        int limit = Math.min(requestedLimit, entries.size());
+        int exported = 0;
+        int failed = 0;
+
+        source.sendSuccess(() -> Component.literal("Starting GTCEuCalc icon export: " + limit + " / " + entries.size() + " items"), false);
+        LOGGER.info("Starting GTCEuCalc icon export: {} / {} items", limit, entries.size());
+
+        for (int index = 0; index < limit; index += 1) {
+            ItemExportEntry entry = entries.get(index);
+            ItemStack stack = new ItemStack(entry.item());
+            if (stack.isEmpty()) continue;
+
+            Path outputPath = outputPathForItem(minecraft, entry.id());
+            try {
+                Files.createDirectories(outputPath.getParent());
+                renderItemStackToPng(minecraft, stack, outputPath, DEFAULT_ICON_SIZE);
+                exported += 1;
+            } catch (Exception error) {
+                failed += 1;
+                LOGGER.warn("Failed to export icon for {}", entry.id(), error);
+            }
+
+            int completed = index + 1;
+            if (completed % 100 == 0 || completed == limit) {
+                int exportedNow = exported;
+                int failedNow = failed;
+                source.sendSuccess(() -> Component.literal(
+                    "GTCEuCalc icon export progress: " + completed + " / " + limit
+                        + " exported=" + exportedNow + " failed=" + failedNow
+                ), false);
+                LOGGER.info("GTCEuCalc icon export progress: {} / {} exported={} failed={}", completed, limit, exported, failed);
+            }
+        }
+
+        int exportedFinal = exported;
+        int failedFinal = failed;
+        source.sendSuccess(() -> Component.literal(
+            "Finished GTCEuCalc icon export: exported=" + exportedFinal + " failed=" + failedFinal
+        ), false);
+        LOGGER.info("Finished GTCEuCalc icon export: exported={} failed={}", exported, failed);
+        return exported;
+    }
+
+    private static Item itemForId(CommandSourceStack source, ResourceLocation itemId) {
+        if (!BuiltInRegistries.ITEM.containsKey(itemId)) {
+            source.sendFailure(Component.literal("Item not found: " + itemId));
+            return null;
+        }
+
+        Item item = BuiltInRegistries.ITEM.get(itemId);
+        if (item == Items.AIR) {
+            source.sendFailure(Component.literal("Item is air or empty: " + itemId));
+            return null;
+        }
+
+        return item;
+    }
+
+    private static Path outputPathForItem(Minecraft minecraft, ResourceLocation itemId) {
+        return minecraft.gameDirectory.toPath()
+            .resolve("gtceucalc-icon-export")
+            .resolve("rendered-icons")
+            .resolve("items")
+            .resolve(itemId.getNamespace())
+            .resolve(itemId.getPath() + ".png");
     }
 
     private static void renderItemStackToPng(Minecraft minecraft, ItemStack stack, Path outputPath, int size) throws IOException {
@@ -193,6 +260,19 @@ public final class GtceuCalcIconExporter {
         return entries;
     }
 
+    private static List<ItemExportEntry> collectItemExportEntries() {
+        List<ItemExportEntry> entries = new ArrayList<>();
+        for (Item item : BuiltInRegistries.ITEM) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            if (id == null || item == Items.AIR) continue;
+            ItemStack stack = new ItemStack(item);
+            if (stack.isEmpty()) continue;
+            entries.add(new ItemExportEntry(id, item));
+        }
+        entries.sort(Comparator.comparing(entry -> entry.id().toString()));
+        return entries;
+    }
+
     private static String iconPathFor(ResourceLocation id) {
         return "rendered-icons/items/" + id.getNamespace() + "/" + id.getPath() + ".png";
     }
@@ -228,4 +308,6 @@ public final class GtceuCalcIconExporter {
     }
 
     private record IconEntry(String goodsId, String path) {}
+
+    private record ItemExportEntry(ResourceLocation id, Item item) {}
 }
