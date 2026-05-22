@@ -1,0 +1,61 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = '0.1.0'
+group = 'dev.gtceucalc'
+
+base {
+    archivesName = 'gtceucalc-icon-exporter'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'info'
+            mods {
+                gtceucalc_icon_exporter {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.10'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        minecraft_version: '1.20.1',
+        forge_version: '47.4.10',
+        mod_id: 'gtceucalc_icon_exporter',
+        mod_name: 'GTCEuCalc Icon Exporter',
+        mod_license: 'MIT',
+        mod_version: project.version,
+        mod_authors: 'Kollin Brown, ChatGPT',
+        mod_description: 'Client-only helper mod that exports Minecraft-rendered item icons for GTCEuCalc.'
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
