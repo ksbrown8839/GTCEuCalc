@@ -1,9 +1,11 @@
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { deflateSync, inflateSync } from "node:zlib";
+import { canRenderModelDefinition, drawModelIcon } from "./model-renderer.mjs";
 
 const DEFAULT_DATA_FILE = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_MANIFEST_FILE = "data/texture-manifest.local.json";
+const DEFAULT_MODEL_DEFINITIONS_FILE = "data/model-definitions.local.json";
 const DEFAULT_ATLAS_FILE = "data/texture-atlas.png";
 const DEFAULT_ATLAS_MANIFEST_FILE = "data/texture-atlas.json";
 const DEFAULT_TILE_SIZE = 32;
@@ -12,6 +14,7 @@ const DEFAULT_COLUMNS = 128;
 const args = parseArgs(process.argv.slice(2));
 const dataFile = args.data ?? DEFAULT_DATA_FILE;
 const sourceManifestFile = args.source ?? DEFAULT_TEXTURE_MANIFEST_FILE;
+const modelDefinitionsFile = args.models ?? DEFAULT_MODEL_DEFINITIONS_FILE;
 const atlasFile = args.atlas ?? DEFAULT_ATLAS_FILE;
 const atlasManifestFile = args.manifest ?? DEFAULT_ATLAS_MANIFEST_FILE;
 const tileSize = Number(args.tileSize ?? DEFAULT_TILE_SIZE);
@@ -19,6 +22,7 @@ const columns = Number(args.columns ?? DEFAULT_COLUMNS);
 
 const packData = JSON.parse(await readFile(dataFile, "utf-8"));
 const sourceManifest = JSON.parse(await readFile(sourceManifestFile, "utf-8"));
+const modelDefinitions = await loadModelDefinitions(modelDefinitionsFile);
 
 if (sourceManifest.schema !== "gtceu-planner-texture-manifest-v1") {
   throw new Error(`Unsupported texture source manifest schema: ${sourceManifest.schema}`);
@@ -30,7 +34,7 @@ const icons = {};
 const entries = [];
 
 for (const good of packData.goods ?? []) {
-  const descriptor = iconDescriptorForGood(good, sourceManifest);
+  const descriptor = iconDescriptorForGood(good, sourceManifest, modelDefinitions);
   if (!descriptor.primary || !await exists(descriptor.primary)) continue;
 
   const renderMode = iconRenderMode(good, descriptor);
@@ -43,6 +47,8 @@ for (const good of packData.goods ?? []) {
       iconId,
       primaryPath: descriptor.primary,
       renderMode,
+      model: descriptor.model,
+      modelDefinition: descriptor.modelDefinition,
       textures: descriptor.textures
     });
   }
@@ -63,7 +69,7 @@ for (const entry of entries) {
 
   try {
     const images = await readIconImages(entry);
-    drawIconToAtlas(images, atlas, atlasWidth, entry.iconId, tileSize, columns, entry.renderMode);
+    drawIconToAtlas(entry, images, atlas, atlasWidth, tileSize, columns);
   } catch (error) {
     skipped.push({ iconId: entry.iconId, texturePath: entry.primaryPath, reason: error.message });
   }
@@ -87,6 +93,7 @@ const atlasManifest = {
     packVersion: packData.metadata?.packVersion ?? null,
     minecraftVersion: packData.metadata?.minecraftVersion ?? null,
     sourceManifest: sourceManifestFile,
+    modelDefinitions: modelDefinitions ? modelDefinitionsFile : null,
     uniqueTextures: entries.length,
     goodsScanned: packData.goods?.length ?? 0,
     skippedIcons: skipped.length,
@@ -120,6 +127,16 @@ function parseArgs(argv) {
   return parsed;
 }
 
+async function loadModelDefinitions(path) {
+  if (!await exists(path)) return null;
+  const definitions = JSON.parse(await readFile(path, "utf-8"));
+  if (definitions.schema !== "gtceu-planner-model-definitions-v1") {
+    console.warn(`Ignoring unsupported model definition schema: ${definitions.schema}`);
+    return null;
+  }
+  return definitions;
+}
+
 async function exists(path) {
   try {
     const info = await stat(path);
@@ -129,7 +146,7 @@ async function exists(path) {
   }
 }
 
-function iconDescriptorForGood(good, manifest) {
+function iconDescriptorForGood(good, manifest, definitions) {
   const manifestIcon = manifest.icons?.[good.id];
   const primary = manifestIcon?.primary ?? manifest.textures?.[good.id] ?? null;
   const textures = {
@@ -141,6 +158,7 @@ function iconDescriptorForGood(good, manifest) {
   return {
     kind: manifestIcon?.kind ?? "texture",
     model: manifestIcon?.model ?? null,
+    modelDefinition: manifestIcon?.model ? definitions?.models?.[manifestIcon.model] ?? null : null,
     primary,
     textures
   };
@@ -149,6 +167,7 @@ function iconDescriptorForGood(good, manifest) {
 function renderKeyForDescriptor(renderMode, descriptor) {
   return JSON.stringify({
     renderMode,
+    model: renderMode === "model-json" ? descriptor.model : null,
     textures: Object.entries(descriptor.textures ?? {}).sort(([a], [b]) => a.localeCompare(b))
   });
 }
@@ -174,6 +193,7 @@ async function readDecodedImage(texturePath) {
 function iconRenderMode(good, descriptor) {
   const idPath = good.id.includes(":") ? good.id.split(":")[1] : good.id;
   if (good.kind === "fluid") return "flat";
+  if (canRenderModelDefinition(descriptor.modelDefinition) && isBlockLikeGood(idPath, descriptor.primary)) return "model-json";
   if (hasCubeModelTextures(descriptor.textures) && isBlockLikeGood(idPath, descriptor.primary)) return "model-cube";
   return "flat";
 }
@@ -195,16 +215,21 @@ function countRenderModes(entries) {
   }, {});
 }
 
-function drawIconToAtlas(images, atlas, atlasWidth, iconId, tileSize, columns, renderMode) {
+function drawIconToAtlas(entry, images, atlas, atlasWidth, tileSize, columns) {
   const primaryImage = firstImage(images, ["primary", "layer0", "all", "side", "top"]);
   if (!primaryImage) throw new Error("No readable icon texture.");
 
-  if (renderMode === "model-cube") {
-    drawCubeIcon(images, atlas, atlasWidth, iconId, tileSize, columns);
+  if (entry.renderMode === "model-json") {
+    const rendered = drawModelIcon(entry.modelDefinition, images, atlas, atlasWidth, entry.iconId, tileSize, columns);
+    if (rendered) return;
+  }
+
+  if (entry.renderMode === "model-cube" || entry.renderMode === "model-json") {
+    drawCubeIcon(images, atlas, atlasWidth, entry.iconId, tileSize, columns);
     return;
   }
 
-  drawImageToAtlas(primaryImage, atlas, atlasWidth, iconId, tileSize, columns);
+  drawImageToAtlas(primaryImage, atlas, atlasWidth, entry.iconId, tileSize, columns);
 }
 
 function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns) {
@@ -590,7 +615,7 @@ function pngChunk(type, data) {
   return Buffer.concat([length, typeBuffer, data, crc]);
 }
 
-var crcTable = null;
+let crcTable = null;
 
 function getCrcTable() {
   if (crcTable) return crcTable;
