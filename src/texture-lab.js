@@ -1,5 +1,5 @@
-import { escapeHtml } from "./format.js?v=texture-lab-2026-05-22";
-import { loadRepository } from "./repository.js?v=texture-lab-2026-05-22";
+import { escapeHtml } from "./format.js?v=texture-lab-2026-05-22b";
+import { loadRepository } from "./repository.js?v=texture-lab-2026-05-22b";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -21,6 +21,7 @@ const elements = {
 
 const state = {
   repository: null,
+  goods: [],
   atlas: null,
   query: "",
   iconSize: 96,
@@ -40,6 +41,7 @@ async function main() {
   ]);
 
   state.repository = repository;
+  state.goods = goodsListFromRepository(repository);
   state.atlas = atlas;
 
   const meta = repository.metadata;
@@ -48,10 +50,10 @@ async function main() {
 
   if (atlas) {
     elements.atlasSummary.textContent = `${formatNumber(atlas.goodsWithIcons)} goods / ${formatNumber(atlas.iconCount)} tiles`;
-    elements.status.textContent = `Loaded ${formatNumber(repository.goods.length)} goods. Showing up to ${MAX_RESULTS} matches.`;
+    elements.status.textContent = `Loaded ${formatNumber(state.goods.length)} goods. Showing up to ${MAX_RESULTS} matches.`;
   } else {
     elements.atlasSummary.textContent = "No atlas loaded";
-    elements.status.textContent = "Atlas disabled or unavailable; showing fallback previews.";
+    elements.status.textContent = `Loaded ${formatNumber(state.goods.length)} goods. Atlas disabled or unavailable; showing fallback previews.`;
   }
 
   bindEvents();
@@ -102,20 +104,28 @@ function filteredGoods() {
   const query = normalizeSearch(state.query);
   const terms = query.split(" ").filter(Boolean);
 
-  return state.repository.goods
+  return state.goods
     .filter((good) => !state.atlasOnly || hasAtlasIcon(good.id))
     .filter((good) => {
       if (!terms.length) return true;
-      const haystack = normalizeSearch(`${good.id} ${good.name ?? ""} ${good.kind ?? ""}`);
+      const haystack = normalizeSearch(`${good.id} ${good.name ?? ""} ${good.kind ?? ""} ${good.mod ?? ""}`);
       return terms.every((term) => haystack.includes(term));
     })
     .sort((a, b) => scoreGood(b, terms) - scoreGood(a, terms) || a.name.localeCompare(b.name));
+}
+
+function goodsListFromRepository(repository) {
+  if (repository.goods instanceof Map) return [...repository.goods.values()];
+  if (Array.isArray(repository.goods)) return repository.goods;
+  if (Array.isArray(repository.data?.goods)) return repository.data.goods;
+  return [];
 }
 
 function scoreGood(good, terms) {
   if (!terms.length) return hasAtlasIcon(good.id) ? 1 : 0;
   const name = normalizeSearch(good.name ?? "");
   const id = normalizeSearch(good.id);
+  const mod = normalizeSearch(good.mod ?? "");
   let score = hasAtlasIcon(good.id) ? 10 : 0;
   for (const term of terms) {
     if (name === term || id === term) score += 200;
@@ -123,6 +133,7 @@ function scoreGood(good, terms) {
     else if (id.includes(`:${term}`)) score += 70;
     else if (name.includes(term)) score += 40;
     else if (id.includes(term)) score += 20;
+    else if (mod.includes(term)) score += 10;
   }
   return score;
 }
