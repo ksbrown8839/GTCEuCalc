@@ -8,6 +8,7 @@
     "serve": "node tools/serve.mjs",
     "smoke": "node tools/smoke-test.mjs",
     "textures": "node tools/extract-textures.mjs",
+    "atlas": "node tools/build-texture-atlas.mjs",
     "normalize": "node tools/normalize-export.mjs data/gtceu-modern-pack-1.14.5.json",
     "validate": "node tools/validate-export.mjs data/sample-pack.json"
   }

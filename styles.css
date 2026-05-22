@@ -136,20 +136,6 @@ button:disabled {
   margin-bottom: 12px;
 }
 
-.texture-panel {
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fafbf8;
-}
-
-.texture-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
 .target-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -647,7 +633,10 @@ button.recipe-slot:hover {
 .slot-image {
   width: 30px;
   height: 30px;
-  object-fit: contain;
+  background-image: var(--atlas-url);
+  background-position: var(--atlas-x) var(--atlas-y);
+  background-repeat: no-repeat;
+  background-size: var(--atlas-width) auto;
   image-rendering: pixelated;
 }
 
@@ -833,7 +822,7 @@ button.recipe-slot:hover {
   white-space: nowrap;
 }
 
-.good-chip span:not(.good-swatch) {
+.good-chip > span:not(.good-swatch):not(.good-icon) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -856,7 +845,10 @@ button.recipe-slot:hover {
   width: 18px;
   height: 18px;
   flex: 0 0 18px;
-  object-fit: contain;
+  background-image: var(--atlas-url);
+  background-position: var(--atlas-x) var(--atlas-y);
+  background-repeat: no-repeat;
+  background-size: var(--atlas-width) auto;
   image-rendering: pixelated;
 }
 

@@ -34,27 +34,28 @@ Then open the URL printed by the server.
 
 In this Codex workspace, local `node` was not available from PATH, so I use the bundled runtime path when running checks.
 
-## Local Textures
+## Texture Atlas
 
-The app can use real Minecraft/mod item textures from a local pack install. Generated textures are intentionally ignored by git.
+The app uses a generated texture atlas for Minecraft/mod item icons. This follows the same general shape as the GTNH calculator: build icons once, assign goods to atlas positions, and let the browser render from one image.
 
 ```bash
 node tools/extract-textures.mjs --instance "C:\Users\ksbro\curseforge\minecraft\Instances\GregTech Community Pack Modern"
+node tools/build-texture-atlas.mjs
 ```
 
-This writes:
+The extractor writes local build inputs:
 
 - `assets/textures/` - extracted PNGs
 - `data/texture-manifest.local.json` - item-to-texture map
 
-When that manifest exists, the app loads it automatically. Use `?textures=none` to force the fallback colored slots.
+The atlas builder writes committed app assets:
 
-On the hosted GitHub Pages app, use the Texture Icons controls:
+- `data/texture-atlas.png` - packed icon atlas
+- `data/texture-atlas.json` - goods-to-atlas map
 
-- `Manifest` - choose `data/texture-manifest.local.json`
-- `Folder` - choose the generated `assets/textures` folder
+Use `?textures=none` to force the fallback colored slots.
 
-The browser uses those files for the current session only; the files are not uploaded.
+The generated atlas contains icons derived from Minecraft and mod assets; see `data/ASSET-NOTICE.md`.
 
 ## Project Layout
 

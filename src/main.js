@@ -4,13 +4,11 @@ import { createPlan } from "./planner.js?v=inspector-2026-05-21";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
-const DEFAULT_TEXTURE_MANIFEST_URL = "data/texture-manifest.local.json";
+const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
 
 const state = {
   repository: null,
-  textureManifest: null,
-  textureManifestMode: "none",
-  textureFileUrls: new Map(),
+  textureAtlas: null,
   products: [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }],
   preferredRecipeByOutput: {},
   manualExternalGoods: new Set(),
@@ -50,68 +48,45 @@ const elements = {
   inspectMatchSummary: document.querySelector("[data-role='inspect-match-summary']"),
   inspectResults: document.querySelector("[data-role='inspect-results']"),
   inspectorPanel: document.querySelector("[data-role='inspector-panel']"),
-  textureStatus: document.querySelector("[data-role='texture-status']"),
-  textureManifestInput: document.querySelector("[data-role='texture-manifest-input']"),
-  textureFolderInput: document.querySelector("[data-role='texture-folder-input']"),
   packName: document.querySelector("[data-role='pack-name']"),
   packMeta: document.querySelector("[data-role='pack-meta']"),
   totalPower: document.querySelector("[data-role='total-power']")
 };
 
-function getGoodTextureUrl(id) {
-  const texturePath = state.textureManifest?.textures?.[id] ?? null;
-  if (!texturePath) return null;
-
-  if (state.textureManifestMode === "browser") {
-    return findImportedTextureUrl(texturePath);
-  }
-
-  return texturePath;
-}
-
-function findImportedTextureUrl(texturePath) {
-  const normalized = normalizeTexturePath(texturePath);
-  const tail = stripTextureRoot(normalized);
-  return state.textureFileUrls.get(normalized)
-    ?? state.textureFileUrls.get(tail)
-    ?? state.textureFileUrls.get(`textures/${tail}`)
-    ?? state.textureFileUrls.get(`assets/textures/${tail}`)
-    ?? null;
-}
-
-function normalizeTexturePath(path) {
-  return String(path).replaceAll("\\", "/").replace(/^\/+/, "");
-}
-
-function stripTextureRoot(path) {
-  const normalized = normalizeTexturePath(path);
-  const marker = "assets/textures/";
-  const markerIndex = normalized.indexOf(marker);
-  if (markerIndex !== -1) return normalized.slice(markerIndex + marker.length);
-
-  const textureMarker = "textures/";
-  const textureIndex = normalized.indexOf(textureMarker);
-  if (textureIndex !== -1) return normalized.slice(textureIndex + textureMarker.length);
-
-  return normalized;
-}
-
 function goodIconMarkup(repository, id) {
   const good = repository.getGood(id);
   const color = good?.color ?? "#7d8790";
   const kind = good?.kind ?? "item";
-  const textureUrl = getGoodTextureUrl(id);
+  const atlasIcon = atlasIconMarkup(id, kind, "good-icon", 18);
 
-  if (textureUrl) {
-    return `<img class="good-icon ${kind}" src="${escapeHtml(textureUrl)}" alt="" loading="lazy">`;
+  if (atlasIcon) {
+    return atlasIcon;
   }
 
   return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(color)}"></span>`;
 }
 
-function slotIconMarkup({ textureUrl, kind, color, label, fallback }) {
-  if (textureUrl) {
-    return `<img class="slot-image ${kind}" src="${escapeHtml(textureUrl)}" alt="" loading="lazy">`;
+function atlasIconMarkup(goodsId, kind, className, displaySize) {
+  const atlas = state.textureAtlas;
+  const iconId = atlas?.icons?.[goodsId];
+  if (!atlas || iconId === undefined) return "";
+
+  const column = iconId % atlas.columns;
+  const row = Math.floor(iconId / atlas.columns);
+  const style = [
+    `--atlas-url:url(${escapeHtml(atlas.image)})`,
+    `--atlas-x:${-(column * displaySize)}px`,
+    `--atlas-y:${-(row * displaySize)}px`,
+    `--atlas-width:${atlas.columns * displaySize}px`
+  ].join(";");
+
+  return `<span class="${className} ${kind}" style="${style}" aria-hidden="true"></span>`;
+}
+
+function slotIconMarkup({ goodsId, kind, color, label, fallback }) {
+  const atlasIcon = goodsId ? atlasIconMarkup(goodsId, kind, "slot-image", 30) : "";
+  if (atlasIcon) {
+    return atlasIcon;
   }
 
   return `
@@ -138,10 +113,10 @@ function ingredientChip(repository, ingredient) {
   const name = repository.getIngredientName(ingredient);
   const prefix = ingredient.kind === "tag" ? "#" : "";
   const resolved = ingredient.kind === "tag" ? repository.resolveIngredient(ingredient) : null;
-  const textureUrl = resolved?.good ? getGoodTextureUrl(resolved.id) : getGoodTextureUrl(ingredient.id);
+  const atlasIcon = atlasIconMarkup(resolved?.good ? resolved.id : ingredient.id, ingredient.kind, "good-icon", 18);
   return `
     <span class="good-chip muted" title="${escapeHtml(prefix + ingredient.id)}">
-      ${textureUrl ? `<img class="good-icon ${ingredient.kind}" src="${escapeHtml(textureUrl)}" alt="" loading="lazy">` : `<span class="good-swatch ${ingredient.kind}" style="--swatch:${escapeHtml(color)}"></span>`}
+      ${atlasIcon || `<span class="good-swatch ${ingredient.kind}" style="--swatch:${escapeHtml(color)}"></span>`}
       <span>${escapeHtml(name)}</span>
       <strong>${formatAmount(ingredient.amount)}</strong>
     </span>
@@ -153,10 +128,9 @@ function goodSlot(repository, id, amountText = "", options = {}) {
   const color = good?.color ?? "#7d8790";
   const name = good?.name ?? id;
   const kind = good?.kind ?? "item";
-  const textureUrl = getGoodTextureUrl(id);
   const className = options.className ? ` ${options.className}` : "";
   const content = `
-    ${slotIconMarkup({ textureUrl, kind, color, label: name, fallback: id })}
+    ${slotIconMarkup({ goodsId: id, kind, color, label: name, fallback: id })}
     <span class="slot-name">${escapeHtml(name)}</span>
     ${amountText ? `<strong class="slot-amount">${escapeHtml(amountText)}</strong>` : ""}
   `;
@@ -182,9 +156,8 @@ function ingredientSlot(repository, ingredient) {
     const color = resolved.good?.color ?? "#7d8790";
     const name = repository.getIngredientName(ingredient);
     const detail = resolved.good ? `${ingredient.id} -> ${resolved.good.name}` : ingredient.id;
-    const textureUrl = resolved.good ? getGoodTextureUrl(resolved.id) : null;
     const content = `
-      ${slotIconMarkup({ textureUrl, kind: "tag", color, label: name, fallback: ingredient.id })}
+      ${slotIconMarkup({ goodsId: resolved.good ? resolved.id : null, kind: "tag", color, label: name, fallback: ingredient.id })}
       <span class="slot-name">${escapeHtml(name)}</span>
       ${formatSlotAmount(ingredient.amount) ? `<strong class="slot-amount">${formatSlotAmount(ingredient.amount)}</strong>` : ""}
     `;
@@ -764,37 +737,8 @@ function inspectorRecipeCard(repository, recipe, inspectedGoodsId, mode, preferr
 function renderAll() {
   renderProductControls();
   renderBoundaryPresets();
-  renderTextureStatus();
   renderPlan();
   renderInspector();
-}
-
-function renderTextureStatus() {
-  const manifestCount = Object.keys(state.textureManifest?.textures ?? {}).length;
-  const importedFileCount = state.textureFileUrls.size;
-
-  if (state.textureManifestMode === "browser") {
-    if (!manifestCount) {
-      elements.textureStatus.textContent = "Choose a manifest";
-    } else if (!importedFileCount) {
-      elements.textureStatus.textContent = `${formatAmount(manifestCount)} mapped icons; choose folder`;
-    } else {
-      elements.textureStatus.textContent = `${formatAmount(countImportedTextureMatches())} browser icons loaded`;
-    }
-    return;
-  }
-
-  elements.textureStatus.textContent = manifestCount
-    ? `${formatAmount(manifestCount)} local icons loaded`
-    : "Using fallback icons";
-}
-
-function countImportedTextureMatches() {
-  let count = 0;
-  for (const texturePath of Object.values(state.textureManifest?.textures ?? {})) {
-    if (findImportedTextureUrl(texturePath)) count += 1;
-  }
-  return count;
 }
 
 function dataUrlFromLocation() {
@@ -802,69 +746,29 @@ function dataUrlFromLocation() {
   return params.get("data") || DEFAULT_DATA_URL;
 }
 
-function textureManifestUrlFromLocation() {
+function textureAtlasUrlFromLocation() {
   const params = new URLSearchParams(window.location.search);
   const value = params.get("textures");
   if (value === "none") return null;
-  return value || DEFAULT_TEXTURE_MANIFEST_URL;
+  return value || DEFAULT_TEXTURE_ATLAS_URL;
 }
 
-async function loadTextureManifest(url) {
-  if (!url) return { textures: {} };
+async function loadTextureAtlas(url) {
+  if (!url) return null;
 
   try {
     const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) return { textures: {} };
-    const manifest = await response.json();
-    if (manifest.schema !== "gtceu-planner-texture-manifest-v1") {
-      console.warn(`Ignoring unsupported texture manifest schema: ${manifest.schema}`);
-      return { textures: {} };
+    if (!response.ok) return null;
+    const atlas = await response.json();
+    if (atlas.schema !== "gtceu-planner-texture-atlas-v1") {
+      console.warn(`Ignoring unsupported texture atlas schema: ${atlas.schema}`);
+      return null;
     }
-    return manifest;
+    return atlas;
   } catch (error) {
-    console.warn(`Could not load texture manifest ${url}.`, error);
-    return { textures: {} };
+    console.warn(`Could not load texture atlas ${url}.`, error);
+    return null;
   }
-}
-
-async function importTextureManifest(file) {
-  if (!file) return;
-  const manifest = JSON.parse(await file.text());
-  if (manifest.schema !== "gtceu-planner-texture-manifest-v1") {
-    throw new Error(`Unsupported texture manifest schema: ${manifest.schema}`);
-  }
-
-  state.textureManifest = manifest;
-  state.textureManifestMode = "browser";
-  renderAll();
-}
-
-function importTextureFolder(files) {
-  revokeImportedTextureUrls();
-
-  for (const file of files) {
-    if (!file.name.toLowerCase().endsWith(".png")) continue;
-    const url = URL.createObjectURL(file);
-    const rawPath = normalizeTexturePath(file.webkitRelativePath || file.name);
-    const tail = stripTextureRoot(rawPath);
-
-    state.textureFileUrls.set(rawPath, url);
-    state.textureFileUrls.set(tail, url);
-    state.textureFileUrls.set(`textures/${tail}`, url);
-    state.textureFileUrls.set(`assets/textures/${tail}`, url);
-  }
-
-  renderAll();
-}
-
-function revokeImportedTextureUrls() {
-  const seen = new Set();
-  for (const url of state.textureFileUrls.values()) {
-    if (seen.has(url)) continue;
-    seen.add(url);
-    URL.revokeObjectURL(url);
-  }
-  state.textureFileUrls.clear();
 }
 
 function chooseInitialProducts(repository) {
@@ -954,40 +858,12 @@ function setupEvents() {
     renderInspector();
   });
 
-  elements.textureManifestInput.addEventListener("change", async () => {
-    try {
-      await importTextureManifest(elements.textureManifestInput.files?.[0]);
-    } catch (error) {
-      elements.textureStatus.textContent = error.message;
-      console.error(error);
-    } finally {
-      elements.textureManifestInput.value = "";
-    }
-  });
-
-  elements.textureFolderInput.addEventListener("change", () => {
-    importTextureFolder(elements.textureFolderInput.files ?? []);
-    elements.textureFolderInput.value = "";
-  });
-
   document.addEventListener("click", (event) => {
     const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) return;
 
     const action = target.dataset.action;
     const goodsId = target.dataset.id;
-
-    if (action === "choose-texture-manifest") {
-      event.preventDefault();
-      elements.textureManifestInput.click();
-      return;
-    }
-
-    if (action === "choose-texture-folder") {
-      event.preventDefault();
-      elements.textureFolderInput.click();
-      return;
-    }
 
     if (action === "inspect-good" && goodsId) {
       event.preventDefault();
@@ -1052,8 +928,7 @@ async function main() {
   try {
     state.dataUrl = dataUrlFromLocation();
     state.repository = await loadRepository(state.dataUrl);
-    state.textureManifest = await loadTextureManifest(textureManifestUrlFromLocation());
-    state.textureManifestMode = Object.keys(state.textureManifest.textures ?? {}).length ? "network" : "none";
+    state.textureAtlas = await loadTextureAtlas(textureAtlasUrlFromLocation());
     state.products = chooseInitialProducts(state.repository);
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     const meta = state.repository.metadata;
