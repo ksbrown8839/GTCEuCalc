@@ -218,11 +218,12 @@ function texturePreviewMarkup(goodsId, className, displaySize) {
 
 function animatedStyle(animation, displaySize) {
   const frames = Math.max(1, Number(animation.frames ?? animation.steps ?? 1));
-  const steps = Math.max(1, Number(animation.steps ?? frames));
+  const visibleTransitions = Math.max(1, frames - 1);
+  const steps = Math.max(1, Number(animation.steps ?? visibleTransitions));
   return [
     `--animation-url:url(${escapeHtml(animation.image)})`,
     `--animation-width:${displaySize}px`,
-    `--animation-distance:${-(frames * displaySize)}px`,
+    `--animation-distance:${-(visibleTransitions * displaySize)}px`,
     `--animation-duration:${Math.max(80, Number(animation.durationMs ?? frames * 100))}ms`,
     `--animation-steps:${steps}`
   ].join(";");
