@@ -51,11 +51,12 @@ button:disabled {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 360px;
+  grid-template-columns: 320px minmax(0, 1fr);
 }
 
 .sidebar,
-.browser {
+.browser,
+.inspector-drawer {
   background: var(--surface);
   border-color: var(--line);
   border-style: solid;
@@ -73,6 +74,26 @@ button:disabled {
   max-height: 100vh;
 }
 
+.inspector-drawer {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 650;
+  width: min(430px, calc(100vw - 36px));
+  padding: 18px;
+  border-width: 1px;
+  border-radius: 8px;
+  box-shadow: 0 20px 52px rgba(16, 20, 19, 0.22);
+  overflow: auto;
+  transform: translateX(calc(100% + 32px));
+  transition: transform 160ms ease;
+}
+
+.inspector-drawer.open {
+  transform: translateX(0);
+}
+
 .workspace {
   padding: 24px;
   overflow-y: auto;
@@ -83,7 +104,8 @@ button:disabled {
 
 .brand-block h1,
 .panel h2,
-.browser h2 {
+.browser h2,
+.inspector-drawer h2 {
   margin: 0;
 }
 
@@ -965,12 +987,6 @@ button.recipe-slot:hover {
   .app-shell {
     grid-template-columns: 280px 1fr;
   }
-
-  .browser {
-    grid-column: 1 / -1;
-    border-width: 1px 0 0;
-    max-height: none;
-  }
 }
 
 @media (max-width: 1340px) {
@@ -1009,7 +1025,7 @@ button.recipe-slot:hover {
   }
 
   .sidebar,
-  .browser,
+  .inspector-drawer,
   .workspace {
     max-height: none;
   }
@@ -1020,7 +1036,7 @@ button.recipe-slot:hover {
 
   .workspace,
   .sidebar,
-  .browser {
+  .inspector-drawer {
     padding: 16px;
   }
 

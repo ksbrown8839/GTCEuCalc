@@ -17,6 +17,7 @@ const state = {
   targetSearch: "",
   inspectSearch: "",
   selectedGoodsId: null,
+  inspectorOpen: false,
   dataUrl: DEFAULT_DATA_URL
 };
 
@@ -47,6 +48,7 @@ const elements = {
   inspectSearchInput: document.querySelector("[data-role='inspect-search']"),
   inspectMatchSummary: document.querySelector("[data-role='inspect-match-summary']"),
   inspectResults: document.querySelector("[data-role='inspect-results']"),
+  inspectorDrawer: document.querySelector("[data-role='inspector-drawer']"),
   inspectorPanel: document.querySelector("[data-role='inspector-panel']"),
   packName: document.querySelector("[data-role='pack-name']"),
   packMeta: document.querySelector("[data-role='pack-meta']"),
@@ -243,6 +245,7 @@ function recipeVisual(repository, recipe) {
         ${hiddenInputCount ? overflowSlot(hiddenInputCount) : ""}
       </span>
       <span class="machine-stage">
+        <em>Machine</em>
         <span>${escapeHtml(type.name)}</span>
         ${recipe.durationTicks ? `<strong>${formatDuration(recipe.durationTicks)}</strong>` : ""}
       </span>
@@ -481,7 +484,7 @@ function craftingTreeNode(repository, node, depth) {
         <span class="tree-card-body">
           <span class="tree-node-header">
             ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
-            <span class="tree-machine">${escapeHtml(type?.name ?? "Recipe")}</span>
+            ${node.recipe ? machineRequirementBadge(node.recipe, type) : ""}
             ${node.recipe?.durationTicks ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
             ${node.recipe?.eut ? `<span class="tree-stat">${formatAverageEut(node.recipe, node.runsPerMinute)}</span>` : ""}
             ${actions}
@@ -495,6 +498,20 @@ function craftingTreeNode(repository, node, depth) {
         ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1)).join("")}
       </div>
     </details>
+  `;
+}
+
+function machineRequirementBadge(recipe, type) {
+  const crafting = isCraftingRecipe(recipe);
+  const label = crafting ? "Crafting" : "Machine required";
+  const name = crafting
+    ? (type?.name ?? "Recipe").replace(/^Crafting\s+/i, "")
+    : type?.name ?? "Recipe";
+  return `
+    <span class="tree-machine-required">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(name)}</strong>
+    </span>
   `;
 }
 
@@ -687,6 +704,14 @@ function renderInspector() {
   elements.inspectorPanel.innerHTML = selectedGood
     ? selectedGoodPanel(repository, selectedGood)
     : `<div class="empty-state">Select an item or fluid to inspect it.</div>`;
+
+  setInspectorOpen(state.inspectorOpen);
+}
+
+function setInspectorOpen(open) {
+  state.inspectorOpen = open;
+  elements.inspectorDrawer?.classList.toggle("open", open);
+  elements.inspectorDrawer?.setAttribute("aria-hidden", open ? "false" : "true");
 }
 
 function inspectorResultRow(repository, good) {
@@ -891,7 +916,10 @@ function setupMinecraftTooltips() {
 
   document.addEventListener("focusout", () => hideMinecraftTooltip());
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") hideMinecraftTooltip();
+    if (event.key === "Escape") {
+      hideMinecraftTooltip();
+      setInspectorOpen(false);
+    }
   });
 }
 
@@ -1058,7 +1086,14 @@ function setupEvents() {
     if (action === "inspect-good" && goodsId) {
       event.preventDefault();
       state.selectedGoodsId = goodsId;
+      state.inspectorOpen = true;
       renderInspector();
+      return;
+    }
+
+    if (action === "close-inspector") {
+      event.preventDefault();
+      setInspectorOpen(false);
       return;
     }
 
@@ -1073,6 +1108,7 @@ function setupEvents() {
       setSingleTarget(goodsId);
       state.targetSearch = "";
       elements.targetSearchInput.value = "";
+      state.inspectorOpen = false;
       renderAll();
       return;
     }
@@ -1080,12 +1116,14 @@ function setupEvents() {
     if (action === "inspector-add-target" && goodsId) {
       event.preventDefault();
       addTarget(goodsId);
+      state.inspectorOpen = false;
       renderAll();
       return;
     }
 
     if (action === "inspector-make-good" && goodsId) {
       event.preventDefault();
+      state.inspectorOpen = false;
       makeGoodInPlan(goodsId);
       return;
     }
@@ -1095,6 +1133,7 @@ function setupEvents() {
       setGoodAsExternal(goodsId);
       renderBoundaryPresets();
       renderPlan();
+      state.inspectorOpen = false;
       renderInspector();
       return;
     }

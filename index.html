@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=atlas-2026-05-22">
-    <link rel="stylesheet" href="minecraft-ui.css?v=minecraft-ui-2026-05-23-tooltip">
-    <link rel="stylesheet" href="inspector.css?v=inspector-2026-05-21">
+    <link rel="stylesheet" href="styles.css?v=wide-tree-2026-05-23">
+    <link rel="stylesheet" href="minecraft-ui.css?v=machine-callouts-2026-05-23">
+    <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
     <main class="app-shell">
@@ -87,9 +87,15 @@
         </div>
       </section>
 
-      <aside class="browser inspector">
+      <aside class="inspector-drawer inspector" data-role="inspector-drawer" aria-hidden="true">
+        <header class="inspector-drawer-header">
+          <div>
+            <h2>Item Inspector</h2>
+            <p>Recipe choices, uses, and planning actions</p>
+          </div>
+          <button class="icon-button" data-action="close-inspector" aria-label="Close inspector">x</button>
+        </header>
         <div class="browser-search">
-          <h2>Item Inspector</h2>
           <input data-role="inspect-search" type="search" placeholder="Search items or fluids">
           <p class="match-summary" data-role="inspect-match-summary"></p>
         </div>
@@ -101,6 +107,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=tooltips-2026-05-23"></script>
+    <script type="module" src="src/main.js?v=inspector-drawer-2026-05-23"></script>
   </body>
 </html>

@@ -1,3 +1,22 @@
+.inspector-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.inspector-drawer-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.inspector-drawer-header .icon-button {
+  flex: 0 0 auto;
+  align-self: start;
+}
+
 .inspector .browser-search {
   margin-bottom: 16px;
 }

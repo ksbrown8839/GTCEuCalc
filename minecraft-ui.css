@@ -66,6 +66,7 @@
 }
 
 .tree-machine,
+.tree-machine-required,
 .tree-badge,
 .tree-run-rate,
 .tree-stat,
@@ -84,6 +85,25 @@
   line-height: 1.2;
   text-shadow: 1px 1px 0 #000000;
   text-transform: uppercase;
+}
+
+.tree-machine-required {
+  display: inline-grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px;
+  background: #4f5f66;
+  white-space: nowrap;
+}
+
+.tree-machine-required > span {
+  color: #bfe9ff;
+  font-size: 10px;
+}
+
+.tree-machine-required > strong {
+  color: #ffffff;
+  font-size: 12px;
 }
 
 .tree-run-rate {
@@ -305,8 +325,17 @@
   text-shadow: none;
 }
 
+.tree-card-body .machine-stage em {
+  color: #4b626d;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .tree-card-body .machine-stage span {
   overflow-wrap: anywhere;
+  font-weight: 900;
 }
 
 .tree-card-body .machine-stage strong {
