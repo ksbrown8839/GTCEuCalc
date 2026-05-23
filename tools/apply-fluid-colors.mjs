@@ -5,19 +5,6 @@ const DEFAULT_COLORS_FILE = "data/fluid-colors.local.json";
 const DEFAULT_OVERRIDES_FILE = "data/fluid-color-overrides.local.json";
 const DEFAULT_OUTPUT_FILE = "data/gtceu-modern-pack-1.14.5.fluid-colors.local.json";
 
-const BUILTIN_FLUID_COLOR_OVERRIDES = {
-  // Forge reports these as #FFFFFF in GTCEu Modern even though their in-game
-  // rendered colors are not neutral white. These values are intentionally kept
-  // here instead of in the exporter because the exporter reports what Forge
-  // exposes; this merge step controls the static web atlas approximation.
-  "gtceu:diesel": "#D97A00",
-  "gtceu:flowing_diesel": "#D97A00",
-  "gtceu:bio_diesel": "#A9D000",
-  "gtceu:flowing_bio_diesel": "#A9D000",
-  "gtceu:cetane_boosted_diesel": "#D6D000",
-  "gtceu:flowing_cetane_boosted_diesel": "#D6D000"
-};
-
 const args = parseArgs(process.argv.slice(2));
 const dataFile = args.data ?? DEFAULT_DATA_FILE;
 const colorsFile = args.colors ?? DEFAULT_COLORS_FILE;
@@ -34,10 +21,7 @@ if (fluidColorManifest.schema !== "gtceu-fluid-colors-v1") {
 
 const fluidColors = fluidColorManifest.fluids ?? {};
 const colorById = buildFluidColorLookup(fluidColors);
-const overrideColorById = buildOverrideColorLookup({
-  ...BUILTIN_FLUID_COLOR_OVERRIDES,
-  ...fluidColorOverrides
-});
+const overrideColorById = buildOverrideColorLookup(fluidColorOverrides);
 let fluidGoods = 0;
 let coloredFluidGoods = 0;
 let overrideFluidGoods = 0;
