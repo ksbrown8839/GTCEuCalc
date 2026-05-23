@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=tree-only-2026-05-23">
-    <link rel="stylesheet" href="minecraft-ui.css?v=machine-banner-2026-05-23">
+    <link rel="stylesheet" href="styles.css?v=tree-controls-2026-05-23">
+    <link rel="stylesheet" href="minecraft-ui.css?v=branch-arrows-2026-05-23">
     <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
@@ -64,7 +64,23 @@
         <div class="content-grid">
           <div class="main-panels">
             <section class="section-band">
-              <h2>Crafting Tree</h2>
+              <header class="section-header">
+                <h2>Crafting Tree</h2>
+                <div class="tree-view-controls" data-role="tree-view-controls" aria-label="Crafting tree display options">
+                  <label>
+                    <input type="checkbox" data-action="toggle-tree-option" data-option="showRecipeChoices">
+                    <span>Choices</span>
+                  </label>
+                  <label>
+                    <input type="checkbox" data-action="toggle-tree-option" data-option="showRecipePreviews" checked>
+                    <span>Grids</span>
+                  </label>
+                  <label>
+                    <input type="checkbox" data-action="toggle-tree-option" data-option="showInspectButtons">
+                    <span>Inspect</span>
+                  </label>
+                </div>
+              </header>
               <div data-role="crafting-tree"></div>
             </section>
           </div>
@@ -102,6 +118,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=tree-only-2026-05-23"></script>
+    <script type="module" src="src/main.js?v=tree-controls-2026-05-23"></script>
   </body>
 </html>

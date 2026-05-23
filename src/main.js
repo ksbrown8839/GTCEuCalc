@@ -18,6 +18,11 @@ const state = {
   inspectSearch: "",
   selectedGoodsId: null,
   inspectorOpen: false,
+  treeView: {
+    showRecipeChoices: false,
+    showRecipePreviews: true,
+    showInspectButtons: false
+  },
   dataUrl: DEFAULT_DATA_URL
 };
 
@@ -40,6 +45,7 @@ const elements = {
   targetMatchSummary: document.querySelector("[data-role='target-match-summary']"),
   addProduct: document.querySelector("[data-action='add-product']"),
   craftingTree: document.querySelector("[data-role='crafting-tree']"),
+  treeViewControls: document.querySelector("[data-role='tree-view-controls']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
   byproducts: document.querySelector("[data-role='byproducts']"),
@@ -213,7 +219,7 @@ function ingredientSlot(repository, ingredient) {
   return goodSlot(repository, ingredient.id, formatSlotAmount(ingredient.amount));
 }
 
-function recipeVisual(repository, recipe) {
+function recipeVisual(repository, recipe, options = {}) {
   if (!recipe) return "";
   const type = repository.getRecipeType(recipe.type);
   const inputs = recipe.inputs.filter((input) => !input.notConsumed);
@@ -244,10 +250,10 @@ function recipeVisual(repository, recipe) {
         ${visibleInputs.map((input) => ingredientSlot(repository, input)).join("")}
         ${hiddenInputCount ? overflowSlot(hiddenInputCount) : ""}
       </span>
-      <span class="machine-stage">
-        <em>Machine</em>
-        <span>${escapeHtml(type.name)}</span>
-        ${recipe.durationTicks ? `<strong>${formatDuration(recipe.durationTicks)}</strong>` : ""}
+      <span class="machine-stage${options.compactMachineStage ? " compact" : ""}">
+        ${options.compactMachineStage
+          ? `<em>Process</em>${recipe.durationTicks ? ` <strong>${formatDuration(recipe.durationTicks)}</strong>` : ""}`
+          : `<em>Machine</em> <span>${escapeHtml(type.name)}</span>${recipe.durationTicks ? ` <strong>${formatDuration(recipe.durationTicks)}</strong>` : ""}`}
       </span>
       <span class="recipe-arrow" aria-hidden="true">&rarr;</span>
       <span class="recipe-output-stack">
@@ -459,6 +465,14 @@ function renderPlan() {
     : `<div class="empty-state">No byproducts in this chain.</div>`;
 }
 
+function renderTreeViewControls() {
+  elements.treeViewControls?.querySelectorAll("[data-option]").forEach((input) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    const option = input.dataset.option;
+    input.checked = Boolean(option && state.treeView[option]);
+  });
+}
+
 function craftingTreeNode(repository, node, depth, externalGoods) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
@@ -487,12 +501,12 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
           ${node.recipe ? machineRequirementBanner(node.recipe, type) : ""}
           <span class="tree-node-header">
             ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
-            ${node.recipe?.durationTicks ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
+            ${node.recipe?.durationTicks && !state.treeView.showRecipePreviews ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
             ${node.recipe?.eut ? `<span class="tree-stat">${formatAverageEut(node.recipe, node.runsPerMinute)}</span>` : ""}
             ${actions}
           </span>
-          ${node.recipe ? treeRecipeChoiceControl(repository, node, externalGoods) : ""}
-          ${recipeVisual(repository, node.recipe)}
+          ${state.treeView.showRecipeChoices && node.recipe ? treeRecipeChoiceControl(repository, node, externalGoods) : ""}
+          ${state.treeView.showRecipePreviews ? recipeVisual(repository, node.recipe, { compactMachineStage: true }) : ""}
           ${treeCostStrip(repository, node)}
         </span>
         <span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>
@@ -542,8 +556,7 @@ function treeRecipeChoiceControl(repository, node, externalGoods) {
   return `
     <label class="tree-recipe-choice">
       <span>
-        <strong>Recipe choice</strong>
-        ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+        <strong>Recipe</strong>
       </span>
       <select data-action="choose-recipe" data-output-id="${escapeHtml(node.goodsId)}" aria-label="Choose recipe for ${escapeHtml(goodName)}">
         ${canTreatAsExternal ? `<option value="${EXTERNAL_RECIPE_VALUE}"${externalSelected}>Treat as supplied</option>` : ""}
@@ -569,12 +582,16 @@ function treeCostStrip(repository, node) {
 
 function treeActionButtons(repository, node) {
   const canMake = node.reason === "external" && repository.findRecipesProducing(node.goodsId).length > 0;
-  return goodActionButtons(repository, node.goodsId, { canMake, className: "tree-actions" });
+  return goodActionButtons(repository, node.goodsId, {
+    canMake,
+    className: "tree-actions",
+    showInspect: state.treeView.showInspectButtons
+  });
 }
 
 function goodActionButtons(repository, goodsId, options = {}) {
   const canMake = options.canMake ?? false;
-  const canInspect = Boolean(repository.getGood(goodsId));
+  const canInspect = options.showInspect !== false && Boolean(repository.getGood(goodsId));
   const className = options.className ?? "good-actions";
 
   if (!canMake && !canInspect) return "";
@@ -853,6 +870,7 @@ function inspectorRecipeCard(repository, recipe, inspectedGoodsId, mode, preferr
 function renderAll() {
   renderProductControls();
   renderBoundaryPresets();
+  renderTreeViewControls();
   renderPlan();
   renderInspector();
 }
@@ -1065,6 +1083,17 @@ function setupEvents() {
     const index = Number(target.dataset.index);
     state.products.splice(index, 1);
     renderAll();
+  });
+
+  elements.treeViewControls?.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || target.dataset.action !== "toggle-tree-option") return;
+    const option = target.dataset.option;
+    if (!option || !(option in state.treeView)) return;
+
+    state.treeView[option] = target.checked;
+    renderTreeViewControls();
+    renderPlan();
   });
 
   document.addEventListener("change", (event) => {

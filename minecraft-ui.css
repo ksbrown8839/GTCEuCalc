@@ -7,6 +7,9 @@
   --minecraft-panel-dark: #373737;
   --minecraft-panel-shadow: #555555;
   --minecraft-highlight: #ffffa0;
+  --minecraft-branch: #696969;
+  --minecraft-branch-dark: #3f3f3f;
+  --minecraft-branch-light: #bdbdbd;
 }
 
 .tree-recipe,
@@ -52,6 +55,21 @@
 
 .tree-node-header {
   gap: 6px;
+}
+
+.tree-view-controls label {
+  border: 0;
+  border-radius: 0;
+  background: #c6c6c6;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #6f6f6f;
+  color: #303030;
+  text-transform: uppercase;
+}
+
+.tree-view-controls input {
+  accent-color: #355a70;
 }
 
 .tree-node-header .good-chip,
@@ -208,15 +226,37 @@
 
 .tree-children {
   margin: 0 10px 10px 28px;
-  padding-left: 18px;
-  border-left: 3px solid var(--minecraft-panel-mid);
+  padding-left: 24px;
+  border-left: 4px solid var(--minecraft-branch);
+  box-shadow:
+    -1px 0 0 var(--minecraft-branch-light),
+    1px 0 0 var(--minecraft-branch-dark);
 }
 
 .tree-children > .tree-node::before {
-  left: -18px;
-  top: 24px;
-  width: 16px;
-  border-top: 3px solid var(--minecraft-panel-mid);
+  left: -24px;
+  top: 27px;
+  width: 19px;
+  border-top: 4px solid var(--minecraft-branch);
+  box-shadow:
+    0 -1px 0 var(--minecraft-branch-light),
+    0 1px 0 var(--minecraft-branch-dark);
+}
+
+.tree-children > .tree-node::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 21px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 9px solid var(--minecraft-branch);
+  filter:
+    drop-shadow(-1px -1px 0 var(--minecraft-branch-light))
+    drop-shadow(1px 1px 0 var(--minecraft-branch-dark));
+  pointer-events: none;
 }
 
 .tree-leaf-card {
@@ -416,6 +456,18 @@
   color: #2f4149;
 }
 
+.tree-card-body .machine-stage.compact {
+  min-width: 86px;
+}
+
+.tree-card-body .machine-stage.compact em {
+  font-size: 10px;
+}
+
+.tree-card-body .machine-stage.compact strong {
+  font-size: 13px;
+}
+
 .tree-card-body .machine-visual .recipe-arrow {
   display: block;
   width: 30px;
@@ -562,6 +614,20 @@
     grid-template-columns: max-content 90px 28px max-content;
     gap: 7px;
     padding: 8px;
+  }
+
+  .tree-children {
+    margin-left: 18px;
+    padding-left: 18px;
+  }
+
+  .tree-children > .tree-node::before {
+    left: -18px;
+    width: 14px;
+  }
+
+  .tree-children > .tree-node::after {
+    left: -6px;
   }
 
   .tree-recipe-choice {
