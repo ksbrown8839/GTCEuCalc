@@ -1,26 +1,33 @@
 :root {
-  --minecraft-slot-size: 46px;
+  --minecraft-slot-size: 42px;
   --minecraft-slot-inner: 32px;
+  --minecraft-panel: #c6c6c6;
+  --minecraft-panel-light: #ffffff;
+  --minecraft-panel-mid: #8b8b8b;
+  --minecraft-panel-dark: #373737;
+  --minecraft-panel-shadow: #555555;
 }
 
 .crafting-visual {
   display: inline-grid;
-  grid-template-columns: max-content 64px var(--minecraft-slot-size);
+  grid-template-columns: max-content 48px var(--minecraft-slot-size);
   align-items: center;
   justify-content: start;
   justify-self: start;
-  gap: 16px;
+  gap: 10px;
   width: max-content;
   max-width: none;
   min-height: 0;
-  padding: 12px 14px;
-  border: 2px solid #4a4a4a;
-  border-radius: 4px;
-  background: #c6c6c6;
+  padding: 10px;
+  border: 0;
+  border-radius: 0;
+  background: var(--minecraft-panel);
   box-shadow:
-    inset 2px 2px 0 #ffffff,
-    inset -2px -2px 0 #555555,
-    0 1px 0 rgba(0, 0, 0, 0.25);
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 var(--minecraft-panel-light),
+    inset -2px -2px 0 var(--minecraft-panel-shadow),
+    inset 4px 4px 0 #d9d9d9,
+    inset -4px -4px 0 var(--minecraft-panel-mid);
   image-rendering: pixelated;
 }
 
@@ -38,20 +45,23 @@
 
 .crafting-visual .recipe-arrow {
   display: block;
-  width: 64px;
-  height: 38px;
+  width: 48px;
+  height: 28px;
   color: transparent;
   font-size: 0;
-  background: #8b8b8b;
+  background: var(--minecraft-panel-mid);
   clip-path: polygon(
-    0 39%,
-    48% 39%,
-    48% 14%,
+    0 36%,
+    46% 36%,
+    46% 8%,
     100% 50%,
-    48% 86%,
-    48% 61%,
-    0 61%
+    46% 92%,
+    46% 64%,
+    0 64%
   );
+  filter:
+    drop-shadow(1px 1px 0 var(--minecraft-panel-light))
+    drop-shadow(-1px -1px 0 var(--minecraft-panel-shadow));
 }
 
 .crafting-visual .recipe-arrow::before,
@@ -79,50 +89,48 @@
   padding: calc((var(--minecraft-slot-size) - var(--minecraft-slot-inner)) / 2);
   border: 0;
   border-radius: 0;
-  background: #8b8b8b;
+  background: var(--minecraft-panel-mid);
   box-shadow:
-    inset 3px 3px 0 #373737,
-    inset -3px -3px 0 #ffffff,
-    inset 6px 6px 0 #8b8b8b,
+    inset 2px 2px 0 var(--minecraft-panel-dark),
+    inset -2px -2px 0 var(--minecraft-panel-light),
+    inset 5px 5px 0 var(--minecraft-panel-mid),
     inset -6px -6px 0 #b8b8b8;
 }
 
 .crafting-visual .recipe-output-stack .recipe-slot {
-  background: #8b8b8b;
+  background: var(--minecraft-panel-mid);
   box-shadow:
-    inset 3px 3px 0 #373737,
-    inset -3px -3px 0 #ffffff,
-    inset 6px 6px 0 #8b8b8b,
+    inset 2px 2px 0 var(--minecraft-panel-dark),
+    inset -2px -2px 0 var(--minecraft-panel-light),
+    inset 5px 5px 0 var(--minecraft-panel-mid),
     inset -6px -6px 0 #b8b8b8;
 }
 
 .crafting-visual .recipe-slot.empty {
-  background: #8b8b8b;
+  background: var(--minecraft-panel-mid);
   box-shadow:
-    inset 3px 3px 0 #373737,
-    inset -3px -3px 0 #ffffff,
-    inset 6px 6px 0 #8b8b8b,
+    inset 2px 2px 0 var(--minecraft-panel-dark),
+    inset -2px -2px 0 var(--minecraft-panel-light),
+    inset 5px 5px 0 var(--minecraft-panel-mid),
     inset -6px -6px 0 #b8b8b8;
 }
 
 .crafting-visual button.recipe-slot:hover,
 .crafting-visual button.recipe-slot:focus-visible {
-  outline: 3px solid rgba(255, 255, 255, 0.9);
+  outline: 2px solid #ffffa0;
   outline-offset: -3px;
 }
 
 .crafting-visual .slot-image {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
-  transform: scale(1.15);
-  transform-origin: center;
+  transform: none;
 }
 
 .crafting-visual .slot-swatch {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
-  transform: scale(1.1);
-  transform-origin: center;
+  transform: none;
 }
 
 .crafting-visual .slot-amount {
@@ -140,22 +148,18 @@
 
 @media (max-width: 700px) {
   :root {
-    --minecraft-slot-size: 40px;
-    --minecraft-slot-inner: 28px;
+    --minecraft-slot-size: 38px;
+    --minecraft-slot-inner: 30px;
   }
 
   .crafting-visual {
-    grid-template-columns: max-content 52px var(--minecraft-slot-size);
-    gap: 9px;
-    padding: 9px;
+    grid-template-columns: max-content 40px var(--minecraft-slot-size);
+    gap: 8px;
+    padding: 8px;
   }
 
   .crafting-visual .recipe-arrow {
-    width: 52px;
-    height: 34px;
-  }
-
-  .crafting-visual .slot-image {
-    transform: scale(1.08);
+    width: 40px;
+    height: 24px;
   }
 }
