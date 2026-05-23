@@ -1,27 +1,20 @@
 .crafting-visual {
-  position: relative;
-  display: block;
-  width: 352px;
-  height: 166px;
-  min-height: 166px;
-  max-width: none;
-  padding: 0;
+  display: inline-grid;
+  grid-template-columns: max-content 52px 36px;
+  align-items: center;
+  gap: 14px;
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  padding: 10px;
   border: 1px solid #2d2d2d;
   border-radius: 4px;
-  overflow: hidden;
-  background-color: #c6c6c6;
-  background-image: url("assets/gui/minecraft/crafting_table.png"), linear-gradient(135deg, #d9d9d9, #a8a8a8);
-  background-position: 0 0, 0 0;
-  background-repeat: no-repeat, repeat;
-  background-size: 352px 332px, auto;
+  background: #c6c6c6;
   box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.55), inset -2px -2px 0 rgba(0, 0, 0, 0.28);
   image-rendering: pixelated;
 }
 
 .crafting-visual .crafting-grid {
-  position: absolute;
-  left: 60px;
-  top: 34px;
   display: grid;
   grid-template-columns: repeat(3, 36px);
   grid-template-rows: repeat(3, 36px);
@@ -34,13 +27,19 @@
 }
 
 .crafting-visual .recipe-arrow {
-  display: none;
+  display: block;
+  width: 52px;
+  height: 36px;
+  color: transparent;
+  font-size: 0;
+  background-image: url("assets/gui/minecraft/crafting_table.png");
+  background-repeat: no-repeat;
+  background-size: 352px 332px;
+  background-position: -176px -68px;
+  image-rendering: pixelated;
 }
 
 .crafting-visual .recipe-output-stack {
-  position: absolute;
-  left: 248px;
-  top: 70px;
   display: grid;
   place-items: center;
   width: 36px;
@@ -60,8 +59,24 @@
   padding: 2px;
   border: 0;
   border-radius: 0;
-  background: transparent;
+  background-color: #8b8b8b;
+  background-image: url("assets/gui/minecraft/crafting_table.png");
+  background-repeat: no-repeat;
+  background-size: 352px 332px;
+  background-position: -60px -34px;
   box-shadow: none;
+}
+
+.crafting-visual .recipe-output-stack .recipe-slot {
+  background-position: -248px -70px;
+}
+
+.crafting-visual .recipe-slot.empty {
+  background-color: #8b8b8b;
+  background-image: url("assets/gui/minecraft/crafting_table.png");
+  background-repeat: no-repeat;
+  background-size: 352px 332px;
+  background-position: -60px -34px;
 }
 
 .crafting-visual button.recipe-slot:hover,
@@ -94,8 +109,12 @@
 
 @media (max-width: 700px) {
   .crafting-visual {
-    transform: scale(0.85);
-    transform-origin: left top;
-    margin-bottom: -25px;
+    grid-template-columns: max-content 40px 36px;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .crafting-visual .recipe-arrow {
+    width: 40px;
   }
 }
