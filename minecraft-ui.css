@@ -1,19 +1,19 @@
 :root {
-  --minecraft-slot-size: 50px;
-  --minecraft-slot-inner: 31px;
+  --minecraft-slot-size: 46px;
+  --minecraft-slot-inner: 32px;
 }
 
 .crafting-visual {
   display: inline-grid;
-  grid-template-columns: max-content 72px var(--minecraft-slot-size);
+  grid-template-columns: max-content 64px var(--minecraft-slot-size);
   align-items: center;
   justify-content: start;
   justify-self: start;
-  gap: 18px;
+  gap: 16px;
   width: max-content;
   max-width: none;
   min-height: 0;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 2px solid #4a4a4a;
   border-radius: 4px;
   background: #c6c6c6;
@@ -38,8 +38,8 @@
 
 .crafting-visual .recipe-arrow {
   display: block;
-  width: 72px;
-  height: 42px;
+  width: 64px;
+  height: 38px;
   color: transparent;
   font-size: 0;
   background: #8b8b8b;
@@ -114,16 +114,20 @@
 .crafting-visual .slot-image {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
+  transform: scale(1.15);
+  transform-origin: center;
 }
 
 .crafting-visual .slot-swatch {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
+  transform: scale(1.1);
+  transform-origin: center;
 }
 
 .crafting-visual .slot-amount {
-  right: 6px;
-  bottom: 5px;
+  right: 4px;
+  bottom: 3px;
   font-size: 10px;
   text-shadow: 1px 1px 0 #000000;
 }
@@ -137,7 +141,7 @@
 @media (max-width: 700px) {
   :root {
     --minecraft-slot-size: 40px;
-    --minecraft-slot-inner: 27px;
+    --minecraft-slot-inner: 28px;
   }
 
   .crafting-visual {
@@ -149,5 +153,9 @@
   .crafting-visual .recipe-arrow {
     width: 52px;
     height: 34px;
+  }
+
+  .crafting-visual .slot-image {
+    transform: scale(1.08);
   }
 }
