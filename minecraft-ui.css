@@ -66,7 +66,7 @@
 }
 
 .tree-machine,
-.tree-machine-required,
+.tree-machine-banner,
 .tree-badge,
 .tree-run-rate,
 .tree-stat,
@@ -87,23 +87,97 @@
   text-transform: uppercase;
 }
 
-.tree-machine-required {
-  display: inline-grid;
+.tree-machine-banner {
+  display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 6px;
-  background: #4f5f66;
+  justify-self: start;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: min(100%, 280px);
+  padding: 8px 10px;
+  background: #3d5865;
+  white-space: normal;
+}
+
+.tree-machine-banner.machine {
+  background: #355a70;
+}
+
+.tree-machine-banner.crafting {
+  background: #5f6b5d;
+}
+
+.tree-machine-banner > span {
+  color: #bfe9ff;
+  font-size: 11px;
   white-space: nowrap;
 }
 
-.tree-machine-required > span {
-  color: #bfe9ff;
-  font-size: 10px;
+.tree-machine-banner > strong {
+  color: #ffffff;
+  font-size: 16px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
 }
 
-.tree-machine-required > strong {
+.tree-recipe-choice {
+  display: grid;
+  grid-template-columns: max-content minmax(220px, 1fr);
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  width: min(100%, 760px);
+  max-width: 100%;
+  padding: 7px;
+  background: #b1b1b1;
+  box-shadow:
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #676767;
+}
+
+.tree-recipe-choice > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tree-recipe-choice > span > strong {
+  padding: 3px 6px;
+  background: #5f6b5d;
   color: #ffffff;
+  font-size: 10px;
+  line-height: 1.2;
+  text-shadow: 1px 1px 0 #000000;
+  text-transform: uppercase;
+  box-shadow:
+    inset 1px 1px 0 #b8b8b8,
+    inset -1px -1px 0 var(--minecraft-panel-dark);
+}
+
+.tree-recipe-choice .good-chip {
+  border-radius: 0;
+  background: #eeeeee;
+  border-color: #5f5f5f;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9a9a;
+}
+
+.tree-recipe-choice select {
+  min-height: 32px;
+  border: 0;
+  border-radius: 0;
+  background: #eeeeee;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #7d7d7d;
+  color: #1f2525;
   font-size: 12px;
+  font-weight: 700;
 }
 
 .tree-run-rate {
@@ -488,5 +562,9 @@
     grid-template-columns: max-content 90px 28px max-content;
     gap: 7px;
     padding: 8px;
+  }
+
+  .tree-recipe-choice {
+    grid-template-columns: 1fr;
   }
 }

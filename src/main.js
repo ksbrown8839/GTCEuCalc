@@ -422,7 +422,7 @@ function renderPlan() {
     <div class="plan-overview">
       <div class="plan-metric">
         <strong>${formatAmount(plan.recipeRows.length)}</strong>
-        <span>Recipe steps</span>
+        <span>Tree recipes</span>
       </div>
       <div class="plan-metric">
         <strong>${formatAmount(plan.externalRows.length)}</strong>
@@ -440,12 +440,14 @@ function renderPlan() {
     ${assumptionHtml}
   `;
 
-  elements.recipePlan.innerHTML = plan.recipeRows.length
-    ? plan.recipeRows.map((row) => recipeRow(repository, row, externalGoods)).join("")
-    : `<div class="empty-state">Choose a product to build a plan.</div>`;
+  if (elements.recipePlan) {
+    elements.recipePlan.innerHTML = plan.recipeRows.length
+      ? plan.recipeRows.map((row) => recipeRow(repository, row, externalGoods)).join("")
+      : `<div class="empty-state">Choose a product to build a plan.</div>`;
+  }
 
   elements.craftingTree.innerHTML = plan.planTrees.length
-    ? plan.planTrees.map((tree) => craftingTreeNode(repository, tree, 0)).join("")
+    ? plan.planTrees.map((tree) => craftingTreeNode(repository, tree, 0, externalGoods)).join("")
     : `<div class="empty-state">Choose a product to build a tree.</div>`;
 
   elements.externalInputs.innerHTML = plan.externalRows.length
@@ -457,7 +459,7 @@ function renderPlan() {
     : `<div class="empty-state">No byproducts in this chain.</div>`;
 }
 
-function craftingTreeNode(repository, node, depth) {
+function craftingTreeNode(repository, node, depth, externalGoods) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
   const recipeKindClass = node.recipe && isCraftingRecipe(node.recipe) ? " tree-crafting" : " tree-machine-node";
@@ -482,36 +484,72 @@ function craftingTreeNode(repository, node, depth) {
     <details class="tree-node tree-recipe${recipeKindClass}" style="--tree-depth:${depth}"${open}>
       <summary class="tree-card-summary">
         <span class="tree-card-body">
+          ${node.recipe ? machineRequirementBanner(node.recipe, type) : ""}
           <span class="tree-node-header">
             ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
-            ${node.recipe ? machineRequirementBadge(node.recipe, type) : ""}
             ${node.recipe?.durationTicks ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
             ${node.recipe?.eut ? `<span class="tree-stat">${formatAverageEut(node.recipe, node.runsPerMinute)}</span>` : ""}
             ${actions}
           </span>
+          ${node.recipe ? treeRecipeChoiceControl(repository, node, externalGoods) : ""}
           ${recipeVisual(repository, node.recipe)}
           ${treeCostStrip(repository, node)}
         </span>
         <span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>
       </summary>
       <div class="tree-children">
-        ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1)).join("")}
+        ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1, externalGoods)).join("")}
       </div>
     </details>
   `;
 }
 
-function machineRequirementBadge(recipe, type) {
+function machineRequirementBanner(recipe, type) {
   const crafting = isCraftingRecipe(recipe);
-  const label = crafting ? "Crafting" : "Machine required";
+  const label = crafting ? "Crafting method" : "Machine required";
   const name = crafting
     ? (type?.name ?? "Recipe").replace(/^Crafting\s+/i, "")
     : type?.name ?? "Recipe";
   return `
-    <span class="tree-machine-required">
+    <span class="tree-machine-banner ${crafting ? "crafting" : "machine"}">
       <span>${escapeHtml(label)}</span>
       <strong>${escapeHtml(name)}</strong>
     </span>
+  `;
+}
+
+function treeRecipeChoiceControl(repository, node, externalGoods) {
+  const recipes = repository.findRecipesProducing(node.goodsId);
+  const goodName = repository.getGoodName(node.goodsId);
+  const isTarget = state.products.some((product) => product.goodsId === node.goodsId);
+  const canTreatAsExternal = !isTarget;
+
+  if (recipes.length <= 1 && !canTreatAsExternal) return "";
+
+  const selectedRecipeId = canTreatAsExternal && externalGoods.has(node.goodsId)
+    ? EXTERNAL_RECIPE_VALUE
+    : state.preferredRecipeByOutput[node.goodsId] ?? node.recipe.id;
+  const recipeOptions = recipes
+    .map((candidate) => {
+      const type = repository.getRecipeType(candidate.type);
+      const label = `${type.name} · ${candidate.id}`;
+      const selected = candidate.id === selectedRecipeId ? " selected" : "";
+      return `<option value="${escapeHtml(candidate.id)}"${selected}>${escapeHtml(label)}</option>`;
+    })
+    .join("");
+  const externalSelected = selectedRecipeId === EXTERNAL_RECIPE_VALUE ? " selected" : "";
+
+  return `
+    <label class="tree-recipe-choice">
+      <span>
+        <strong>Recipe choice</strong>
+        ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+      </span>
+      <select data-action="choose-recipe" data-output-id="${escapeHtml(node.goodsId)}" aria-label="Choose recipe for ${escapeHtml(goodName)}">
+        ${canTreatAsExternal ? `<option value="${EXTERNAL_RECIPE_VALUE}"${externalSelected}>Treat as supplied</option>` : ""}
+        ${recipeOptions}
+      </select>
+    </label>
   `;
 }
 
@@ -1029,7 +1067,7 @@ function setupEvents() {
     renderAll();
   });
 
-  elements.recipePlan.addEventListener("change", (event) => {
+  document.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLSelectElement) || target.dataset.action !== "choose-recipe") return;
     const outputId = target.dataset.outputId;
