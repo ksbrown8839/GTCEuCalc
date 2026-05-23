@@ -23,6 +23,7 @@ const state = {
     showRecipePreviews: true,
     showInspectButtons: false
   },
+  expandedTreeGoods: new Set(),
   dataUrl: DEFAULT_DATA_URL
 };
 
@@ -316,6 +317,7 @@ function setGoodAsMade(goodsId) {
 function setGoodAsExternal(goodsId) {
   state.manualExternalGoods.add(goodsId);
   state.manualMadeGoods.delete(goodsId);
+  state.expandedTreeGoods.delete(goodsId);
   delete state.preferredRecipeByOutput[goodsId];
 }
 
@@ -333,6 +335,7 @@ function addTarget(goodsId) {
 
 function makeGoodInPlan(goodsId) {
   setGoodAsMade(goodsId);
+  state.expandedTreeGoods.add(goodsId);
   state.selectedGoodsId = goodsId;
   renderBoundaryPresets();
   renderPlan();
@@ -494,7 +497,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
   }
 
   return `
-    <details class="tree-node tree-recipe${recipeKindClass}" style="--tree-depth:${depth}">
+    <details class="tree-node tree-recipe${recipeKindClass}" data-goods-id="${escapeHtml(node.goodsId)}" style="--tree-depth:${depth}"${treeOpenAttribute(node.goodsId)}>
       <summary class="tree-card-summary">
         <span class="tree-card-body">
           ${node.recipe ? machineRequirementBanner(node.recipe, type) : ""}
@@ -515,6 +518,10 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
       </div>
     </details>
   `;
+}
+
+function treeOpenAttribute(goodsId) {
+  return state.expandedTreeGoods.has(goodsId) ? " open" : "";
 }
 
 function machineRequirementBanner(recipe, type) {
@@ -1084,6 +1091,19 @@ function setupEvents() {
     renderAll();
   });
 
+  elements.craftingTree.addEventListener("toggle", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLDetailsElement) || !target.classList.contains("tree-recipe")) return;
+    const goodsId = target.dataset.goodsId;
+    if (!goodsId) return;
+
+    if (target.open) {
+      state.expandedTreeGoods.add(goodsId);
+    } else {
+      state.expandedTreeGoods.delete(goodsId);
+    }
+  }, true);
+
   elements.treeViewControls?.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.dataset.action !== "toggle-tree-option") return;
@@ -1234,11 +1254,19 @@ function setupEvents() {
 }
 
 function setTreeExpansion(open) {
-  elements.craftingTree
-    .querySelectorAll("details.tree-recipe")
-    .forEach((node) => {
-      node.open = open;
-    });
+  const nodes = [...elements.craftingTree.querySelectorAll("details.tree-recipe")];
+
+  if (open) {
+    for (const node of nodes) {
+      if (node.dataset.goodsId) state.expandedTreeGoods.add(node.dataset.goodsId);
+    }
+  } else {
+    state.expandedTreeGoods.clear();
+  }
+
+  nodes.forEach((node) => {
+    node.open = open;
+  });
 }
 
 async function main() {
