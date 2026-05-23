@@ -141,6 +141,53 @@
   color: #ffb8b8;
 }
 
+.minecraft-tooltip {
+  position: fixed;
+  z-index: 1000;
+  display: none;
+  max-width: min(340px, calc(100vw - 16px));
+  padding: 7px 9px;
+  border: 2px solid #2a0a63;
+  background: linear-gradient(135deg, rgba(20, 0, 20, 0.98), rgba(13, 0, 32, 0.98));
+  box-shadow:
+    0 0 0 2px #100010,
+    inset 1px 1px 0 rgba(170, 86, 255, 0.48),
+    inset -1px -1px 0 rgba(48, 0, 92, 0.95),
+    3px 3px 0 rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.25;
+  pointer-events: none;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.minecraft-tooltip.visible {
+  display: grid;
+  gap: 3px;
+}
+
+.minecraft-tooltip-name {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.minecraft-tooltip-amount {
+  color: var(--minecraft-highlight);
+}
+
+.minecraft-tooltip-detail {
+  color: #aaaaff;
+}
+
+.minecraft-tooltip-meta {
+  color: #55ff55;
+}
+
+.minecraft-tooltip-id {
+  color: #808080;
+}
+
 .crafting-visual {
   display: inline-grid;
   grid-template-columns: max-content 48px var(--minecraft-slot-size);

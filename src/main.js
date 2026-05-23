@@ -96,11 +96,37 @@ function slotIconMarkup({ goodsId, kind, color, label, fallback }) {
   `;
 }
 
+function tooltipAttrs({ name, id, amountText = "", kind = "", mod = "", detail = "" }) {
+  const attrs = [
+    "data-mc-tooltip",
+    `data-tooltip-name="${escapeHtml(name)}"`,
+    `data-tooltip-id="${escapeHtml(id)}"`
+  ];
+
+  if (amountText) attrs.push(`data-tooltip-amount="${escapeHtml(amountText)}"`);
+  if (kind) attrs.push(`data-tooltip-kind="${escapeHtml(kind)}"`);
+  if (mod) attrs.push(`data-tooltip-mod="${escapeHtml(mod)}"`);
+  if (detail) attrs.push(`data-tooltip-detail="${escapeHtml(detail)}"`);
+
+  return attrs.join(" ");
+}
+
+function goodTooltipAttrs(good, fallbackId, amountText = "", detail = "") {
+  return tooltipAttrs({
+    name: good?.name ?? fallbackId,
+    id: good?.id ?? fallbackId,
+    amountText,
+    kind: good?.kind ?? "",
+    mod: good?.mod ?? "",
+    detail
+  });
+}
+
 function goodChip(repository, id, amountText = "") {
   const good = repository.getGood(id);
   const name = good?.name ?? id;
   return `
-    <span class="good-chip" title="${escapeHtml(id)}">
+    <span class="good-chip" ${goodTooltipAttrs(good, id, amountText)}>
       ${goodIconMarkup(repository, id)}
       <span>${escapeHtml(name)}</span>
       ${amountText ? `<strong>${escapeHtml(amountText)}</strong>` : ""}
@@ -114,8 +140,17 @@ function ingredientChip(repository, ingredient) {
   const prefix = ingredient.kind === "tag" ? "#" : "";
   const resolved = ingredient.kind === "tag" ? repository.resolveIngredient(ingredient) : null;
   const atlasIcon = atlasIconMarkup(resolved?.good ? resolved.id : ingredient.id, ingredient.kind, "good-icon", 18);
+  const tooltip = resolved?.good
+    ? goodTooltipAttrs(resolved.good, resolved.id, formatAmount(ingredient.amount), `${prefix}${ingredient.id}`)
+    : tooltipAttrs({
+        name,
+        id: `${prefix}${ingredient.id}`,
+        amountText: formatAmount(ingredient.amount),
+        kind: ingredient.kind,
+        detail: "Unresolved ingredient"
+      });
   return `
-    <span class="good-chip muted" title="${escapeHtml(prefix + ingredient.id)}">
+    <span class="good-chip muted" ${tooltip}>
       ${atlasIcon || `<span class="good-swatch ${ingredient.kind}" style="--swatch:${escapeHtml(color)}"></span>`}
       <span>${escapeHtml(name)}</span>
       <strong>${formatAmount(ingredient.amount)}</strong>
@@ -136,11 +171,11 @@ function goodSlot(repository, id, amountText = "", options = {}) {
   `;
 
   if (!good) {
-    return `<span class="recipe-slot unresolved${className}" title="${escapeHtml(id)}">${content}</span>`;
+    return `<span class="recipe-slot unresolved${className}" ${goodTooltipAttrs(good, id, amountText, "Unresolved good")}>${content}</span>`;
   }
 
   return `
-    <button class="recipe-slot ${kind}${className}" type="button" title="${escapeHtml(id)}" aria-label="Inspect ${escapeHtml(name)}" data-action="inspect-good" data-id="${escapeHtml(id)}">
+    <button class="recipe-slot ${kind}${className}" type="button" ${goodTooltipAttrs(good, id, amountText)} aria-label="Inspect ${escapeHtml(name)}" data-action="inspect-good" data-id="${escapeHtml(id)}">
       ${content}
     </button>
   `;
@@ -163,11 +198,11 @@ function ingredientSlot(repository, ingredient) {
     `;
 
     if (!resolved.good) {
-      return `<span class="recipe-slot tag unresolved" title="${escapeHtml(detail)}">${content}</span>`;
+      return `<span class="recipe-slot tag unresolved" ${tooltipAttrs({ name, id: ingredient.id, amountText: formatSlotAmount(ingredient.amount), kind: "tag", detail: "Unresolved tag" })}>${content}</span>`;
     }
 
     return `
-      <button class="recipe-slot tag" type="button" title="${escapeHtml(detail)}" aria-label="Inspect ${escapeHtml(resolved.good.name)}" data-action="inspect-good" data-id="${escapeHtml(resolved.id)}">
+      <button class="recipe-slot tag" type="button" ${goodTooltipAttrs(resolved.good, resolved.id, formatSlotAmount(ingredient.amount), detail)} aria-label="Inspect ${escapeHtml(resolved.good.name)}" data-action="inspect-good" data-id="${escapeHtml(resolved.id)}">
         ${content}
       </button>
     `;
@@ -806,7 +841,144 @@ function chooseInitialProducts(repository) {
   return firstItem ? [{ goodsId: firstItem.id, amountPerMinute: 1 }] : [];
 }
 
+let activeTooltipTarget = null;
+let tooltipElement = null;
+
+function setupMinecraftTooltips() {
+  const showFromEvent = (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest("[data-mc-tooltip]");
+    if (!(target instanceof HTMLElement)) return;
+    showMinecraftTooltip(target, event);
+  };
+
+  const moveFromEvent = (event) => {
+    if (!activeTooltipTarget || !tooltipElement) return;
+    positionMinecraftTooltip(event.clientX, event.clientY);
+  };
+
+  const hideFromEvent = (event) => {
+    if (!activeTooltipTarget) return;
+    if (event.relatedTarget instanceof Node && activeTooltipTarget.contains(event.relatedTarget)) return;
+    hideMinecraftTooltip();
+  };
+
+  document.addEventListener("pointerover", showFromEvent);
+  document.addEventListener("pointermove", moveFromEvent);
+  document.addEventListener("pointerout", hideFromEvent);
+  document.addEventListener("mouseover", showFromEvent);
+  document.addEventListener("mousemove", moveFromEvent);
+  document.addEventListener("mouseout", hideFromEvent);
+
+  document.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest("[data-mc-tooltip]");
+    if (!(target instanceof HTMLElement)) {
+      hideMinecraftTooltip();
+      return;
+    }
+
+    showMinecraftTooltip(target, event);
+  });
+
+  document.addEventListener("focusin", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest("[data-mc-tooltip]");
+    if (!(target instanceof HTMLElement)) return;
+    const rect = target.getBoundingClientRect();
+    showMinecraftTooltip(target, { clientX: rect.right, clientY: rect.top });
+  });
+
+  document.addEventListener("focusout", () => hideMinecraftTooltip());
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") hideMinecraftTooltip();
+  });
+}
+
+function showMinecraftTooltip(target, pointer) {
+  const tooltip = getMinecraftTooltipElement();
+  activeTooltipTarget = target;
+  tooltip.replaceChildren(...minecraftTooltipLines(target));
+  tooltip.classList.add("visible");
+  positionMinecraftTooltip(pointer.clientX, pointer.clientY);
+}
+
+function hideMinecraftTooltip() {
+  activeTooltipTarget = null;
+  tooltipElement?.classList.remove("visible");
+}
+
+function getMinecraftTooltipElement() {
+  if (tooltipElement) return tooltipElement;
+  tooltipElement = document.createElement("div");
+  tooltipElement.className = "minecraft-tooltip";
+  tooltipElement.setAttribute("role", "tooltip");
+  document.body.append(tooltipElement);
+  return tooltipElement;
+}
+
+function minecraftTooltipLines(target) {
+  const lines = [];
+  const title = document.createElement("div");
+  title.className = "minecraft-tooltip-name";
+  title.textContent = target.dataset.tooltipName ?? "Unknown item";
+  lines.push(title);
+
+  if (target.dataset.tooltipAmount) {
+    const amount = document.createElement("div");
+    amount.className = "minecraft-tooltip-amount";
+    amount.textContent = target.dataset.tooltipAmount;
+    lines.push(amount);
+  }
+
+  if (target.dataset.tooltipDetail) {
+    const detail = document.createElement("div");
+    detail.className = "minecraft-tooltip-detail";
+    detail.textContent = target.dataset.tooltipDetail;
+    lines.push(detail);
+  }
+
+  const meta = [target.dataset.tooltipMod, target.dataset.tooltipKind].filter(Boolean).join(" / ");
+  if (meta) {
+    const metaLine = document.createElement("div");
+    metaLine.className = "minecraft-tooltip-meta";
+    metaLine.textContent = meta;
+    lines.push(metaLine);
+  }
+
+  if (target.dataset.tooltipId) {
+    const id = document.createElement("div");
+    id.className = "minecraft-tooltip-id";
+    id.textContent = target.dataset.tooltipId;
+    lines.push(id);
+  }
+
+  return lines;
+}
+
+function positionMinecraftTooltip(clientX, clientY) {
+  const tooltip = getMinecraftTooltipElement();
+  const offset = 14;
+  const width = tooltip.offsetWidth;
+  const height = tooltip.offsetHeight;
+  let left = clientX + offset;
+  let top = clientY + offset;
+
+  if (left + width + 8 > window.innerWidth) {
+    left = clientX - width - offset;
+  }
+
+  if (top + height + 8 > window.innerHeight) {
+    top = clientY - height - offset;
+  }
+
+  tooltip.style.left = `${Math.max(8, left)}px`;
+  tooltip.style.top = `${Math.max(8, top)}px`;
+}
+
 function setupEvents() {
+  setupMinecraftTooltips();
+
   elements.addProduct.addEventListener("click", () => {
     const goodsId = elements.productSelect.value;
     addTarget(goodsId);
