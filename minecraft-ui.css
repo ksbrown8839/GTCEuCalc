@@ -1,0 +1,101 @@
+.crafting-visual {
+  position: relative;
+  display: block;
+  width: 352px;
+  height: 166px;
+  min-height: 166px;
+  max-width: none;
+  padding: 0;
+  border: 1px solid #2d2d2d;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #c6c6c6;
+  background-image: url("assets/gui/minecraft/crafting_table.png"), linear-gradient(135deg, #d9d9d9, #a8a8a8);
+  background-position: 0 0, 0 0;
+  background-repeat: no-repeat, repeat;
+  background-size: 352px 332px, auto;
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.55), inset -2px -2px 0 rgba(0, 0, 0, 0.28);
+  image-rendering: pixelated;
+}
+
+.crafting-visual .crafting-grid {
+  position: absolute;
+  left: 60px;
+  top: 34px;
+  display: grid;
+  grid-template-columns: repeat(3, 36px);
+  grid-template-rows: repeat(3, 36px);
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.crafting-visual .recipe-arrow {
+  display: none;
+}
+
+.crafting-visual .recipe-output-stack {
+  position: absolute;
+  left: 248px;
+  top: 70px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  gap: 0;
+}
+
+.crafting-visual .recipe-output-stack .recipe-slot:nth-child(n + 2) {
+  display: none;
+}
+
+.crafting-visual .recipe-slot {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.crafting-visual button.recipe-slot:hover,
+.crafting-visual button.recipe-slot:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: -2px;
+}
+
+.crafting-visual .slot-image {
+  width: 32px;
+  height: 32px;
+}
+
+.crafting-visual .slot-swatch {
+  width: 28px;
+  height: 28px;
+}
+
+.crafting-visual .slot-amount {
+  right: 0;
+  bottom: 0;
+  font-size: 9px;
+}
+
+.tree-card-body .crafting-visual,
+.recipe-row .crafting-visual,
+.inspector-recipe-card .crafting-visual {
+  margin-top: 4px;
+}
+
+@media (max-width: 700px) {
+  .crafting-visual {
+    transform: scale(0.85);
+    transform-origin: left top;
+    margin-bottom: -25px;
+  }
+}
