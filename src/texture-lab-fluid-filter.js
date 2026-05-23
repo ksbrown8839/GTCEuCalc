@@ -11,7 +11,6 @@ const matchSummary = document.querySelector('[data-role="texture-match-summary"]
 let fluidGoods = [];
 let atlas = null;
 let ready = false;
-let renderingFluidGrid = false;
 
 Promise.all([loadFluidGoods(), loadTextureAtlas()]).then(([goods, loadedAtlas]) => {
   fluidGoods = goods;
@@ -35,13 +34,6 @@ search?.addEventListener("input", () => {
 atlasOnly?.addEventListener("change", () => {
   renderFluidGridIfEnabled();
 });
-
-if (grid) {
-  new MutationObserver(() => {
-    if (renderingFluidGrid) return;
-    renderFluidGridIfEnabled();
-  }).observe(grid, { childList: true });
-}
 
 async function loadFluidGoods() {
   const response = await fetch(dataUrlFromLocation(), { cache: "no-store" });
@@ -74,9 +66,7 @@ function renderFluidGridIfEnabled() {
     .filter((good) => matchesTerms(good, terms))
     .sort((a, b) => scoreGood(b, terms) - scoreGood(a, terms) || String(a.name ?? a.id).localeCompare(String(b.name ?? b.id)));
 
-  renderingFluidGrid = true;
   grid.innerHTML = matches.slice(0, MAX_RESULTS).map((good) => fluidCardMarkup(good)).join("");
-  renderingFluidGrid = false;
 
   if (matchSummary) {
     matchSummary.textContent = `${matches.length.toLocaleString("en-US")} fluid match${matches.length === 1 ? "" : "es"}${matches.length > MAX_RESULTS ? ` / showing first ${MAX_RESULTS}` : ""}`;
