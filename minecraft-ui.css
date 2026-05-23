@@ -49,6 +49,16 @@
   color: #ffffff;
 }
 
+.tree-recipe:not([open]) > summary .recipe-visual,
+.tree-recipe:not([open]) > summary .tree-cost-strip,
+.tree-recipe:not([open]) > summary .tree-recipe-choice {
+  display: none;
+}
+
+.tree-recipe:not([open]) > .tree-children {
+  display: none;
+}
+
 .tree-card-body {
   gap: 9px;
 }

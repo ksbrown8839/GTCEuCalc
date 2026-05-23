@@ -477,7 +477,6 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
   const recipeKindClass = node.recipe && isCraftingRecipe(node.recipe) ? " tree-crafting" : " tree-machine-node";
-  const open = depth < 2 ? " open" : "";
   const actions = treeActionButtons(repository, node);
 
   if (!hasChildren) {
@@ -495,7 +494,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
   }
 
   return `
-    <details class="tree-node tree-recipe${recipeKindClass}" style="--tree-depth:${depth}"${open}>
+    <details class="tree-node tree-recipe${recipeKindClass}" style="--tree-depth:${depth}">
       <summary class="tree-card-summary">
         <span class="tree-card-body">
           ${node.recipe ? machineRequirementBanner(node.recipe, type) : ""}
