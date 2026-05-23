@@ -1,7 +1,7 @@
 {
   "schema": "gtceu-planner-texture-atlas-v1",
-  "generatedAt": "2026-05-23T00:26:36.643Z",
-  "image": "data/texture-atlas.png?v=c65bccb8ced3",
+  "generatedAt": "2026-05-23T00:35:48.603Z",
+  "image": "data/texture-atlas.png?v=691484f60da0",
   "tileSize": 64,
   "columns": 128,
   "rows": 87,
