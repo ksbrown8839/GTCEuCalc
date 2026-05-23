@@ -2,15 +2,31 @@ import { readFile, writeFile } from "node:fs/promises";
 
 const DEFAULT_DATA_FILE = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_COLORS_FILE = "data/fluid-colors.local.json";
+const DEFAULT_OVERRIDES_FILE = "data/fluid-color-overrides.local.json";
 const DEFAULT_OUTPUT_FILE = "data/gtceu-modern-pack-1.14.5.fluid-colors.local.json";
+
+const BUILTIN_FLUID_COLOR_OVERRIDES = {
+  // Forge reports these as #FFFFFF in GTCEu Modern even though their in-game
+  // rendered colors are not neutral white. These values are intentionally kept
+  // here instead of in the exporter because the exporter reports what Forge
+  // exposes; this merge step controls the static web atlas approximation.
+  "gtceu:diesel": "#D97A00",
+  "gtceu:flowing_diesel": "#D97A00",
+  "gtceu:bio_diesel": "#A9D000",
+  "gtceu:flowing_bio_diesel": "#A9D000",
+  "gtceu:cetane_boosted_diesel": "#D6D000",
+  "gtceu:flowing_cetane_boosted_diesel": "#D6D000"
+};
 
 const args = parseArgs(process.argv.slice(2));
 const dataFile = args.data ?? DEFAULT_DATA_FILE;
 const colorsFile = args.colors ?? DEFAULT_COLORS_FILE;
+const overridesFile = args.overrides ?? DEFAULT_OVERRIDES_FILE;
 const outputFile = args.out ?? DEFAULT_OUTPUT_FILE;
 
 const packData = JSON.parse(await readFile(dataFile, "utf-8"));
 const fluidColorManifest = JSON.parse(await readFile(colorsFile, "utf-8"));
+const fluidColorOverrides = await loadFluidColorOverrides(overridesFile);
 
 if (fluidColorManifest.schema !== "gtceu-fluid-colors-v1") {
   throw new Error(`Unsupported fluid color manifest schema: ${fluidColorManifest.schema}`);
@@ -18,21 +34,28 @@ if (fluidColorManifest.schema !== "gtceu-fluid-colors-v1") {
 
 const fluidColors = fluidColorManifest.fluids ?? {};
 const colorById = buildFluidColorLookup(fluidColors);
+const overrideColorById = buildOverrideColorLookup({
+  ...BUILTIN_FLUID_COLOR_OVERRIDES,
+  ...fluidColorOverrides
+});
 let fluidGoods = 0;
 let coloredFluidGoods = 0;
+let overrideFluidGoods = 0;
 let missingFluidGoods = 0;
 
 const updatedGoods = (packData.goods ?? []).map((good) => {
   if (good.kind !== "fluid") return good;
 
   fluidGoods += 1;
-  const color = colorForGood(good, colorById);
+  const overrideColor = colorForGood(good, overrideColorById);
+  const color = overrideColor ?? colorForGood(good, colorById);
   if (!color) {
     missingFluidGoods += 1;
     return good;
   }
 
   coloredFluidGoods += 1;
+  if (overrideColor) overrideFluidGoods += 1;
   return {
     ...good,
     color
@@ -45,9 +68,11 @@ const updatedPackData = {
     ...(packData.metadata ?? {}),
     fluidColors: {
       source: colorsFile,
+      overrides: overridesFile,
       generatedAt: new Date().toISOString(),
       fluidGoods,
       coloredFluidGoods,
+      overrideFluidGoods,
       missingFluidGoods
     }
   },
@@ -58,6 +83,7 @@ await writeFile(outputFile, `${JSON.stringify(updatedPackData, null, 2)}\n`);
 console.log(`Wrote ${outputFile}`);
 console.log(`Fluid goods: ${fluidGoods}`);
 console.log(`Colored fluid goods: ${coloredFluidGoods}`);
+console.log(`Override fluid goods: ${overrideFluidGoods}`);
 console.log(`Missing fluid colors: ${missingFluidGoods}`);
 
 function parseArgs(argv) {
@@ -77,11 +103,46 @@ function parseArgs(argv) {
   return parsed;
 }
 
+async function loadFluidColorOverrides(path) {
+  try {
+    const parsed = JSON.parse(await readFile(path, "utf-8"));
+    if (parsed.schema === "gtceu-fluid-color-overrides-v1") {
+      return parsed.fluids ?? {};
+    }
+    return parsed;
+  } catch (error) {
+    if (error?.code === "ENOENT") return {};
+    throw error;
+  }
+}
+
 function buildFluidColorLookup(fluids) {
   const lookup = new Map();
 
   for (const [fluidId, entry] of Object.entries(fluids)) {
     const rgb = normalizeRgb(entry?.rgb ?? entry?.argb);
+    if (!rgb) continue;
+
+    addCandidate(lookup, fluidId, rgb);
+    const [namespace, path] = splitResource(fluidId);
+    if (!namespace || !path) continue;
+
+    addCandidate(lookup, `${namespace}:${stripFluidVariantPrefix(path)}`, rgb);
+    addCandidate(lookup, `${namespace}:${stripFluidVariantSuffix(path)}`, rgb);
+
+    if (path.startsWith("fluid.")) {
+      addCandidate(lookup, `${namespace}:${path.slice("fluid.".length).replaceAll(".", "_")}`, rgb);
+    }
+  }
+
+  return lookup;
+}
+
+function buildOverrideColorLookup(overrides) {
+  const lookup = new Map();
+
+  for (const [fluidId, color] of Object.entries(overrides)) {
+    const rgb = normalizeRgb(color?.rgb ?? color?.argb ?? color);
     if (!rgb) continue;
 
     addCandidate(lookup, fluidId, rgb);
