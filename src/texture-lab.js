@@ -217,11 +217,14 @@ function texturePreviewMarkup(goodsId, className, displaySize) {
 }
 
 function animatedStyle(animation, displaySize) {
+  const frames = Math.max(1, Number(animation.frames ?? animation.steps ?? 1));
+  const steps = Math.max(1, Number(animation.steps ?? frames));
   return [
     `--animation-url:url(${escapeHtml(animation.image)})`,
     `--animation-width:${displaySize}px`,
-    `--animation-distance:${-(animation.frames * displaySize)}px`,
-    `--animation-duration:${Math.max(80, animation.durationMs ?? animation.frames * 80)}ms`
+    `--animation-distance:${-(frames * displaySize)}px`,
+    `--animation-duration:${Math.max(80, Number(animation.durationMs ?? frames * 100))}ms`,
+    `--animation-steps:${steps}`
   ].join(";");
 }
 
