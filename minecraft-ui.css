@@ -15,6 +15,15 @@
   --minecraft-grid-rail: 4px;
   --minecraft-slot-bg: #909090;
   --minecraft-slot-empty: #909090;
+  --minecraft-crafting-gui-scale: 2;
+  --minecraft-crafting-gui-width: calc(176px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-gui-height: calc(83px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-slot-size: calc(18px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-slot-inner: calc(16px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-grid-left: calc(29px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-grid-top: calc(16px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-output-left: calc(123px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-output-top: calc(34px * var(--minecraft-crafting-gui-scale));
 }
 
 .tree-recipe,
@@ -350,52 +359,42 @@
 }
 
 .crafting-visual {
-  display: inline-grid;
-  grid-template-columns: max-content 64px var(--minecraft-slot-size);
-  align-items: center;
-  justify-content: start;
+  position: relative;
+  display: block;
   justify-self: start;
-  gap: 10px;
-  width: max-content;
+  width: var(--minecraft-crafting-gui-width);
   max-width: none;
-  min-height: 0;
+  height: var(--minecraft-crafting-gui-height);
+  min-height: var(--minecraft-crafting-gui-height);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background:
+    url("assets/gui/minecraft/crafting_table.png") 0 0 /
+      calc(256px * var(--minecraft-crafting-gui-scale))
+      calc(256px * var(--minecraft-crafting-gui-scale)) no-repeat;
+  box-shadow: none;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+
+.crafting-visual .crafting-grid {
+  position: absolute;
+  left: var(--minecraft-crafting-grid-left);
+  top: var(--minecraft-crafting-grid-top);
+  display: grid;
+  grid-template-columns: repeat(3, var(--minecraft-crafting-slot-size));
+  grid-template-rows: repeat(3, var(--minecraft-crafting-slot-size));
+  gap: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  image-rendering: pixelated;
-}
-
-.crafting-visual .crafting-grid {
-  display: grid;
-  grid-template-columns: repeat(3, var(--minecraft-slot-size));
-  grid-template-rows: repeat(3, var(--minecraft-slot-size));
-  gap: var(--minecraft-grid-rail);
-  padding: var(--minecraft-grid-rail);
-  border: 0;
-  border-radius: 0;
-  background: var(--minecraft-grid-line);
-  box-shadow: inset calc(-1 * var(--minecraft-grid-rail)) calc(-1 * var(--minecraft-grid-rail)) 0 var(--minecraft-grid-light);
 }
 
 .crafting-visual .recipe-arrow {
-  display: block;
-  width: 64px;
-  height: 42px;
-  color: transparent;
-  font-size: 0;
-  background: var(--minecraft-panel-mid);
-  clip-path: polygon(
-    0 43%,
-    58% 43%,
-    58% 20%,
-    100% 50%,
-    58% 80%,
-    58% 57%,
-    0 57%
-  );
-  filter: none;
+  display: none;
 }
 
 .crafting-visual .recipe-arrow::before,
@@ -508,11 +507,14 @@
 }
 
 .crafting-visual .recipe-output-stack {
+  position: absolute;
+  left: var(--minecraft-crafting-output-left);
+  top: var(--minecraft-crafting-output-top);
   display: grid;
-  place-items: center;
-  width: calc(var(--minecraft-slot-size) + 8px);
-  height: calc(var(--minecraft-slot-size) + 8px);
-  min-width: calc(var(--minecraft-slot-size) + 8px);
+  place-items: start;
+  width: var(--minecraft-crafting-slot-size);
+  height: var(--minecraft-crafting-slot-size);
+  min-width: var(--minecraft-crafting-slot-size);
   gap: 0;
   padding: 0;
   background: transparent;
@@ -523,13 +525,13 @@
 }
 
 .crafting-visual .recipe-slot {
-  width: var(--minecraft-slot-size);
-  height: var(--minecraft-slot-size);
-  min-height: var(--minecraft-slot-size);
-  padding: calc((var(--minecraft-slot-size) - var(--minecraft-slot-inner)) / 2);
+  width: var(--minecraft-crafting-slot-size);
+  height: var(--minecraft-crafting-slot-size);
+  min-height: var(--minecraft-crafting-slot-size);
+  padding: calc((var(--minecraft-crafting-slot-size) - var(--minecraft-crafting-slot-inner)) / 2);
   border: 0;
   border-radius: 0;
-  background: var(--minecraft-slot-bg);
+  background: transparent;
   box-shadow: none;
 }
 
@@ -545,14 +547,12 @@
 }
 
 .crafting-visual .recipe-output-stack .recipe-slot {
-  background: var(--minecraft-slot-bg);
-  box-shadow:
-    inset var(--minecraft-grid-rail) var(--minecraft-grid-rail) 0 var(--minecraft-grid-line),
-    inset calc(-1 * var(--minecraft-grid-rail)) calc(-1 * var(--minecraft-grid-rail)) 0 var(--minecraft-grid-light);
+  background: transparent;
+  box-shadow: none;
 }
 
 .crafting-visual .recipe-slot.empty {
-  background: var(--minecraft-slot-empty);
+  background: transparent;
   box-shadow: none;
 }
 
@@ -566,27 +566,43 @@
 
 .crafting-visual .slot-image,
 .tree-card-body .machine-visual .slot-image {
+  transform: none;
+}
+
+.crafting-visual .slot-image {
+  width: var(--minecraft-crafting-slot-inner);
+  height: var(--minecraft-crafting-slot-inner);
+}
+
+.tree-card-body .machine-visual .slot-image {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
-  transform: none;
 }
 
 .crafting-visual .slot-swatch,
 .tree-card-body .machine-visual .slot-swatch {
+  transform: none;
+}
+
+.crafting-visual .slot-swatch {
+  width: var(--minecraft-crafting-slot-inner);
+  height: var(--minecraft-crafting-slot-inner);
+}
+
+.tree-card-body .machine-visual .slot-swatch {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
-  transform: none;
 }
 
 .crafting-visual .slot-amount {
   right: 1px;
-  bottom: 0;
+  bottom: 1px;
   padding: 0;
   border-radius: 0;
   background: transparent;
   color: #ffffff;
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   line-height: 1;
   text-shadow:
@@ -625,14 +641,7 @@
   }
 
   .crafting-visual {
-    grid-template-columns: max-content 40px var(--minecraft-slot-size);
-    gap: 8px;
-    padding: 8px;
-  }
-
-  .crafting-visual .recipe-arrow {
-    width: 40px;
-    height: 24px;
+    --minecraft-crafting-gui-scale: 1.6;
   }
 
   .tree-recipe > summary {

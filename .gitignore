@@ -5,7 +5,10 @@ dist/
 GTNHcalc-main.zip
 reference/
 assets/textures/
-assets/gui/
+assets/gui/*
+!assets/gui/minecraft/
+assets/gui/minecraft/*
+!assets/gui/minecraft/crafting_table.png
 assets/animated-icons/
 data/texture-manifest.local.json
 

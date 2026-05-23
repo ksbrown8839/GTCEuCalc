@@ -34,18 +34,20 @@ Then open the URL printed by the server.
 
 In this Codex workspace, local `node` was not available from PATH, so I use the bundled runtime path when running checks.
 
-## Texture Atlas
+## Texture And GUI Assets
 
-The app uses a generated texture atlas for Minecraft/mod item icons. This follows the same general shape as the GTNH calculator: build icons once, assign goods to atlas positions, and let the browser render from one image.
+The app uses a generated texture atlas for Minecraft/mod item icons and a small set of extracted GUI textures for Minecraft-style recipe previews. This follows the same general shape as the GTNH calculator: build visual assets once, assign goods to atlas positions, and let the browser render from those files.
 
 ```bash
 node tools/extract-textures.mjs --instance "C:\Users\ksbro\curseforge\minecraft\Instances\GregTech Community Pack Modern"
+node tools/extract-gui-textures.mjs --instance "C:\Users\ksbro\curseforge\minecraft\Instances\GregTech Community Pack Modern"
 node tools/build-texture-atlas.mjs
 ```
 
 The extractor writes local build inputs:
 
 - `assets/textures/` - extracted PNGs
+- `assets/gui/minecraft/crafting_table.png` - extracted vanilla crafting table GUI used by recipe previews
 - `data/texture-manifest.local.json` - item-to-texture map
 
 The atlas builder writes committed app assets:
