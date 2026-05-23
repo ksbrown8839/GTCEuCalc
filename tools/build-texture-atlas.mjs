@@ -40,7 +40,8 @@ for (const good of packData.goods ?? []) {
   if (!descriptor.primary || !await exists(descriptor.primary)) continue;
 
   const renderMode = iconRenderMode(good, descriptor);
-  const renderKey = renderKeyForDescriptor(renderMode, descriptor);
+  const tintColor = fluidTintColor(good);
+  const renderKey = renderKeyForDescriptor(renderMode, descriptor, tintColor);
   let iconId = iconByRenderKey.get(renderKey);
   if (iconId === undefined) {
     iconId = entries.length;
@@ -49,6 +50,7 @@ for (const good of packData.goods ?? []) {
       iconId,
       primaryPath: descriptor.primary,
       renderMode,
+      tintColor,
       model: descriptor.model,
       modelDefinition: descriptor.modelDefinition,
       textures: descriptor.textures
@@ -166,9 +168,10 @@ function iconDescriptorForGood(good, manifest, definitions) {
   };
 }
 
-function renderKeyForDescriptor(renderMode, descriptor) {
+function renderKeyForDescriptor(renderMode, descriptor, tintColor) {
   return JSON.stringify({
     renderMode,
+    tintColor,
     model: renderMode === "model-json" ? descriptor.model : null,
     textures: Object.entries(descriptor.textures ?? {}).sort(([a], [b]) => a.localeCompare(b))
   });
@@ -194,10 +197,27 @@ async function readDecodedImage(texturePath) {
 
 function iconRenderMode(good, descriptor) {
   const idPath = good.id.includes(":") ? good.id.split(":")[1] : good.id;
+  if (descriptor.kind === "rendered") return "rendered";
   if (good.kind === "fluid") return "flat";
   if (canRenderModelDefinition(descriptor.modelDefinition) && isBlockLikeGood(idPath, descriptor.primary)) return "model-json";
   if (hasCubeModelTextures(descriptor.textures) && isBlockLikeGood(idPath, descriptor.primary)) return "model-cube";
   return "flat";
+}
+
+function fluidTintColor(good) {
+  if (good.kind !== "fluid" || typeof good.color !== "string") return null;
+  const match = good.color.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!match) return null;
+
+  const hex = match[1].length === 3
+    ? match[1].split("").map((digit) => digit + digit).join("")
+    : match[1];
+
+  return [
+    Number.parseInt(hex.slice(0, 2), 16),
+    Number.parseInt(hex.slice(2, 4), 16),
+    Number.parseInt(hex.slice(4, 6), 16)
+  ];
 }
 
 function isBlockLikeGood(idPath, texturePath) {
@@ -231,10 +251,10 @@ function drawIconToAtlas(entry, images, atlas, atlasWidth, tileSize, columns) {
     return;
   }
 
-  drawImageToAtlas(primaryImage, atlas, atlasWidth, entry.iconId, tileSize, columns);
+  drawImageToAtlas(primaryImage, atlas, atlasWidth, entry.iconId, tileSize, columns, { tintColor: entry.tintColor });
 }
 
-function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns) {
+function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns, options = {}) {
   const frame = firstFrameForImage(image);
   const column = iconId % columns;
   const row = Math.floor(iconId / columns);
@@ -252,10 +272,15 @@ function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns) {
       const sourceX = frame.x + Math.min(frame.width - 1, Math.floor(x / scale));
       const sourceOffset = (sourceY * image.width + sourceX) * 4;
       const targetOffset = ((offsetY + y) * atlasWidth + offsetX + x) * 4;
-      atlas[targetOffset] = image.pixels[sourceOffset];
-      atlas[targetOffset + 1] = image.pixels[sourceOffset + 1];
-      atlas[targetOffset + 2] = image.pixels[sourceOffset + 2];
-      atlas[targetOffset + 3] = image.pixels[sourceOffset + 3];
+      const red = image.pixels[sourceOffset];
+      const green = image.pixels[sourceOffset + 1];
+      const blue = image.pixels[sourceOffset + 2];
+      const alpha = image.pixels[sourceOffset + 3];
+      const tinted = options.tintColor ? tintPixel(red, green, blue, options.tintColor) : [red, green, blue];
+      atlas[targetOffset] = tinted[0];
+      atlas[targetOffset + 1] = tinted[1];
+      atlas[targetOffset + 2] = tinted[2];
+      atlas[targetOffset + 3] = alpha;
     }
   }
 }
@@ -265,6 +290,15 @@ function firstFrameForImage(image) {
     return { x: 0, y: 0, width: image.width, height: image.width };
   }
   return { x: 0, y: 0, width: image.width, height: image.height };
+}
+
+function tintPixel(red, green, blue, tintColor) {
+  const shade = Math.max(0, Math.min(1, ((red + green + blue) / 3) / 255));
+  return [
+    Math.round(tintColor[0] * shade),
+    Math.round(tintColor[1] * shade),
+    Math.round(tintColor[2] * shade)
+  ];
 }
 
 function drawCubeIcon(images, atlas, atlasWidth, iconId, tileSize, columns) {
