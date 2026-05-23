@@ -115,12 +115,17 @@ function fluidCardMarkup(good) {
 }
 
 function texturePreviewMarkup(good) {
+  const displaySize = Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue("--texture-size"), 10) || 96;
+  const animation = atlas?.animations?.[good.id];
+  if (animation) {
+    return `<span class="texture-preview animated-texture" style="${animatedStyle(animation, displaySize)}" aria-hidden="true"></span>`;
+  }
+
   const iconId = atlas?.icons?.[good.id];
   if (!atlas || iconId === undefined) {
     return `<span class="texture-preview missing" style="--swatch:${escapeHtml(good.color ?? "#7d8790")}">${escapeHtml(slotInitials(good.name ?? good.id))}</span>`;
   }
 
-  const displaySize = Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue("--texture-size"), 10) || 96;
   const column = iconId % atlas.columns;
   const row = Math.floor(iconId / atlas.columns);
   const style = [
@@ -131,6 +136,15 @@ function texturePreviewMarkup(good) {
   ].join(";");
 
   return `<span class="texture-preview" style="${style}" aria-hidden="true"></span>`;
+}
+
+function animatedStyle(animation, displaySize) {
+  return [
+    `--animation-url:url(${escapeHtml(animation.image)})`,
+    `--animation-width:${displaySize}px`,
+    `--animation-distance:${-(animation.frames * displaySize)}px`,
+    `--animation-duration:${Math.max(80, animation.durationMs ?? animation.frames * 80)}ms`
+  ].join(";");
 }
 
 function hasAtlasIcon(goodsId) {
