@@ -235,20 +235,21 @@ function drawIconToAtlas(entry, images, atlas, atlasWidth, tileSize, columns) {
 }
 
 function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns) {
+  const frame = firstFrameForImage(image);
   const column = iconId % columns;
   const row = Math.floor(iconId / columns);
   const targetX = column * tileSize;
   const targetY = row * tileSize;
-  const scale = Math.min(tileSize / image.width, tileSize / image.height);
-  const drawWidth = Math.max(1, Math.floor(image.width * scale));
-  const drawHeight = Math.max(1, Math.floor(image.height * scale));
+  const scale = Math.min(tileSize / frame.width, tileSize / frame.height);
+  const drawWidth = Math.max(1, Math.floor(frame.width * scale));
+  const drawHeight = Math.max(1, Math.floor(frame.height * scale));
   const offsetX = targetX + Math.floor((tileSize - drawWidth) / 2);
   const offsetY = targetY + Math.floor((tileSize - drawHeight) / 2);
 
   for (let y = 0; y < drawHeight; y += 1) {
-    const sourceY = Math.min(image.height - 1, Math.floor(y / scale));
+    const sourceY = frame.y + Math.min(frame.height - 1, Math.floor(y / scale));
     for (let x = 0; x < drawWidth; x += 1) {
-      const sourceX = Math.min(image.width - 1, Math.floor(x / scale));
+      const sourceX = frame.x + Math.min(frame.width - 1, Math.floor(x / scale));
       const sourceOffset = (sourceY * image.width + sourceX) * 4;
       const targetOffset = ((offsetY + y) * atlasWidth + offsetX + x) * 4;
       atlas[targetOffset] = image.pixels[sourceOffset];
@@ -257,6 +258,13 @@ function drawImageToAtlas(image, atlas, atlasWidth, iconId, tileSize, columns) {
       atlas[targetOffset + 3] = image.pixels[sourceOffset + 3];
     }
   }
+}
+
+function firstFrameForImage(image) {
+  if (image.width > 0 && image.height > image.width && image.height % image.width === 0) {
+    return { x: 0, y: 0, width: image.width, height: image.width };
+  }
+  return { x: 0, y: 0, width: image.width, height: image.height };
 }
 
 function drawCubeIcon(images, atlas, atlasWidth, iconId, tileSize, columns) {
