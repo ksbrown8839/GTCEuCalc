@@ -103,7 +103,7 @@
   background-image: var(--animation-url);
   background-position: 0 0;
   background-size: var(--animation-width) auto;
-  animation: texture-frame-scroll var(--animation-duration, 2560ms) steps(var(--animation-steps, 32)) infinite;
+  animation: texture-frame-scroll var(--animation-duration, 2560ms) steps(var(--animation-steps, 31), end) infinite alternate;
 }
 
 .texture-preview.missing {
