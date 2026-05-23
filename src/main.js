@@ -1096,6 +1096,20 @@ function setupEvents() {
     renderPlan();
   });
 
+  elements.treeViewControls?.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest("[data-action]");
+    if (!(target instanceof HTMLButtonElement)) return;
+
+    if (target.dataset.action === "collapse-tree") {
+      setTreeExpansion(false);
+    }
+
+    if (target.dataset.action === "expand-tree") {
+      setTreeExpansion(true);
+    }
+  });
+
   document.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLSelectElement) || target.dataset.action !== "choose-recipe") return;
@@ -1218,6 +1232,14 @@ function setupEvents() {
       renderInspector();
     }
   });
+}
+
+function setTreeExpansion(open) {
+  elements.craftingTree
+    .querySelectorAll("details.tree-recipe")
+    .forEach((node) => {
+      node.open = open;
+    });
 }
 
 async function main() {

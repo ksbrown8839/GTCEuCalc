@@ -412,7 +412,8 @@ select {
   gap: 6px;
 }
 
-.tree-view-controls label {
+.tree-view-controls label,
+.tree-view-controls button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -424,6 +425,10 @@ select {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.tree-view-controls button {
+  cursor: pointer;
 }
 
 .tree-view-controls input {

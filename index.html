@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=tree-controls-2026-05-23">
-    <link rel="stylesheet" href="minecraft-ui.css?v=branch-arrows-2026-05-23">
+    <link rel="stylesheet" href="styles.css?v=tree-expand-controls-2026-05-23">
+    <link rel="stylesheet" href="minecraft-ui.css?v=clean-branch-arrows-2026-05-23">
     <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
@@ -79,6 +79,8 @@
                     <input type="checkbox" data-action="toggle-tree-option" data-option="showInspectButtons">
                     <span>Inspect</span>
                   </label>
+                  <button type="button" data-action="collapse-tree">Collapse all</button>
+                  <button type="button" data-action="expand-tree">Expand all</button>
                 </div>
               </header>
               <div data-role="crafting-tree"></div>
@@ -118,6 +120,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=tree-controls-2026-05-23"></script>
+    <script type="module" src="src/main.js?v=tree-expand-controls-2026-05-23"></script>
   </body>
 </html>
