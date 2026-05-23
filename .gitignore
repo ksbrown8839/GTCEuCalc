@@ -6,3 +6,9 @@ GTNHcalc-main.zip
 reference/
 assets/textures/
 data/texture-manifest.local.json
+
+# Local Forge/Gradle outputs
+minecraft-icon-exporter/.gradle/
+minecraft-icon-exporter/build/
+minecraft-icon-exporter/run/
+minecraft-icon-exporter/rendered-icons/
