@@ -5,6 +5,10 @@ const DEFAULT_SOURCE_MANIFEST_FILE = "data/texture-manifest.rendered.local.json"
 const FALLBACK_SOURCE_MANIFEST_FILE = "data/texture-manifest.local.json";
 const DEFAULT_COLORS_FILE = "data/fluid-colors.local.json";
 const DEFAULT_OUTPUT_FILE = "data/gtceu-modern-pack-1.14.5.fluid-tints.local.json";
+const BUILTIN_FLUID_TINTS = {
+  "minecraft:water": "#3F76E4",
+  "minecraft:flowing_water": "#3F76E4"
+};
 
 const args = parseArgs(process.argv.slice(2));
 const dataFile = args.data ?? DEFAULT_DATA_FILE;
@@ -25,12 +29,14 @@ if (fluidColorManifest.schema !== "gtceu-fluid-colors-v1") {
 }
 
 const colorById = buildFluidColorLookup(fluidColorManifest.fluids ?? {});
+const builtinColorById = buildBuiltinFluidTintLookup(BUILTIN_FLUID_TINTS);
 let fluidGoods = 0;
 let bakedTextureFluidGoods = 0;
 let templateTextureFluidGoods = 0;
 let tintedTemplateFluidGoods = 0;
 let missingTemplateTints = 0;
 let whiteTemplateTints = 0;
+let builtinTemplateTints = 0;
 
 const updatedGoods = (packData.goods ?? []).map((good) => {
   if (good.kind !== "fluid") return good;
@@ -45,13 +51,18 @@ const updatedGoods = (packData.goods ?? []).map((good) => {
   }
 
   templateTextureFluidGoods += 1;
-  const color = colorForGood(good, colorById);
+  const exportedColor = colorForGood(good, colorById);
+  const builtinColor = colorForGood(good, builtinColorById);
+  const color = usableFluidColor(exportedColor) ?? builtinColor;
+
   if (!color) {
     missingTemplateTints += 1;
     return withoutColor;
   }
 
-  if (color === "#FFFFFF") {
+  if (exportedColor === "#FFFFFF" && builtinColor) {
+    builtinTemplateTints += 1;
+  } else if (exportedColor === "#FFFFFF") {
     whiteTemplateTints += 1;
     return withoutColor;
   }
@@ -76,7 +87,8 @@ const updatedPackData = {
       templateTextureFluidGoods,
       tintedTemplateFluidGoods,
       missingTemplateTints,
-      whiteTemplateTints
+      whiteTemplateTints,
+      builtinTemplateTints
     }
   },
   goods: updatedGoods
@@ -90,6 +102,7 @@ console.log(`Template texture fluids: ${templateTextureFluidGoods}`);
 console.log(`Tinted template fluids: ${tintedTemplateFluidGoods}`);
 console.log(`Missing template tints: ${missingTemplateTints}`);
 console.log(`White/no-op template tints: ${whiteTemplateTints}`);
+console.log(`Built-in fallback template tints: ${builtinTemplateTints}`);
 
 function parseArgs(argv) {
   const parsed = {};
@@ -126,12 +139,20 @@ function requiresFluidTint(texturePath) {
   if (typeof texturePath !== "string") return false;
   const normalized = texturePath.replaceAll("\\\\", "/");
 
+  if (isVanillaWaterTexture(normalized)) {
+    return true;
+  }
+
   if (normalized.includes("/block/fluids/") || normalized.includes("/block/fluid/")) {
     return false;
   }
 
   return normalized.includes("/block/material_sets/")
     && /\/(liquid|gas|molten|plasma)\.png$/i.test(normalized);
+}
+
+function isVanillaWaterTexture(texturePath) {
+  return /\/minecraft\/block\/water_(still|flow)\.png$/i.test(texturePath);
 }
 
 function removeFluidColor(good) {
@@ -162,6 +183,14 @@ function buildFluidColorLookup(fluids) {
   return lookup;
 }
 
+function buildBuiltinFluidTintLookup(colors) {
+  const lookup = new Map();
+  for (const [fluidId, color] of Object.entries(colors)) {
+    addCandidate(lookup, fluidId, normalizeRgb(color));
+  }
+  return lookup;
+}
+
 function colorForGood(good, colorById) {
   const candidates = goodIdCandidates(good.id);
   for (const candidate of candidates) {
@@ -169,6 +198,11 @@ function colorForGood(good, colorById) {
     if (color) return color;
   }
   return null;
+}
+
+function usableFluidColor(color) {
+  if (!color || color === "#FFFFFF") return null;
+  return color;
 }
 
 function goodIdCandidates(goodId) {
@@ -209,7 +243,7 @@ function stripFluidVariantSuffix(path) {
 }
 
 function addCandidate(lookup, id, color) {
-  if (!id || lookup.has(id)) return;
+  if (!id || !color || lookup.has(id)) return;
   lookup.set(id, color);
 }
 
