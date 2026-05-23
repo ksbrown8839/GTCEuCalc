@@ -192,6 +192,12 @@ function renderDetail() {
 
 function texturePreviewMarkup(goodsId, className, displaySize) {
   const atlas = state.atlas;
+  const animation = atlas?.animations?.[goodsId];
+  if (animation) {
+    const style = animatedStyle(animation, displaySize);
+    return `<span class="${className} animated-texture" style="${style}" aria-hidden="true"></span>`;
+  }
+
   const iconId = atlas?.icons?.[goodsId];
   if (!atlas || iconId === undefined) {
     const good = state.repository?.getGood(goodsId);
@@ -208,6 +214,15 @@ function texturePreviewMarkup(goodsId, className, displaySize) {
   ].join(";");
 
   return `<span class="${className}" style="${style}" aria-hidden="true"></span>`;
+}
+
+function animatedStyle(animation, displaySize) {
+  return [
+    `--animation-url:url(${escapeHtml(animation.image)})`,
+    `--animation-width:${displaySize}px`,
+    `--animation-distance:${-(animation.frames * displaySize)}px`,
+    `--animation-duration:${Math.max(80, animation.durationMs ?? animation.frames * 80)}ms`
+  ].join(";");
 }
 
 function slotInitials(label) {
