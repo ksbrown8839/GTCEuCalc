@@ -44,7 +44,6 @@ public final class GtceuCalcIconExporter {
     public static final String MOD_ID = "gtceucalc_icon_exporter";
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int DEFAULT_ICON_SIZE = 64;
-    private static final int BACKGROUND_RGB_THRESHOLD = 2;
 
     public GtceuCalcIconExporter() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -193,11 +192,28 @@ public final class GtceuCalcIconExporter {
     }
 
     private static void renderItemStackToPng(Minecraft minecraft, ItemStack stack, Path outputPath, int size) throws IOException {
-        RenderTarget mainTarget = minecraft.getMainRenderTarget();
-        TextureTarget exportTarget = new TextureTarget(size, size, true, Minecraft.ON_OSX);
+        NativeImage blackImage = renderItemStackToImage(minecraft, stack, size, 0.0F, 0.0F, 0.0F);
+        NativeImage whiteImage = renderItemStackToImage(minecraft, stack, size, 1.0F, 1.0F, 1.0F);
+        NativeImage outputImage = null;
 
         try {
-            exportTarget.setClearColor(0.0F, 0.0F, 0.0F, 0.0F);
+            outputImage = reconstructAlphaFromBlackAndWhiteRenders(blackImage, whiteImage);
+            outputImage.writeToFile(outputPath);
+        } finally {
+            blackImage.close();
+            whiteImage.close();
+            if (outputImage != null) outputImage.close();
+        }
+    }
+
+    private static NativeImage renderItemStackToImage(Minecraft minecraft, ItemStack stack, int size, float red, float green, float blue) {
+        RenderTarget mainTarget = minecraft.getMainRenderTarget();
+        TextureTarget exportTarget = new TextureTarget(size, size, true, Minecraft.ON_OSX);
+        boolean projectionBackedUp = false;
+        boolean modelViewPushed = false;
+
+        try {
+            exportTarget.setClearColor(red, green, blue, 1.0F);
             exportTarget.clear(Minecraft.ON_OSX);
             exportTarget.bindWrite(true);
 
@@ -211,10 +227,12 @@ public final class GtceuCalcIconExporter {
                 1000.0F, 3000.0F
             );
             RenderSystem.backupProjectionMatrix();
+            projectionBackedUp = true;
             RenderSystem.setProjectionMatrix(projection, VertexSorting.ORTHOGRAPHIC_Z);
 
             PoseStack modelView = RenderSystem.getModelViewStack();
             modelView.pushPose();
+            modelViewPushed = true;
             modelView.setIdentity();
             modelView.translate(0.0F, 0.0F, -2000.0F);
             RenderSystem.applyModelViewMatrix();
@@ -231,81 +249,80 @@ public final class GtceuCalcIconExporter {
             guiGraphics.flush();
             guiGraphics.pose().popPose();
 
-            NativeImage image = Screenshot.takeScreenshot(exportTarget);
-            try {
-                makeEdgeBackgroundTransparent(image);
-                image.writeToFile(outputPath);
-            } finally {
-                image.close();
-            }
-
-            modelView.popPose();
-            RenderSystem.applyModelViewMatrix();
-            RenderSystem.restoreProjectionMatrix();
+            return Screenshot.takeScreenshot(exportTarget);
         } finally {
+            PoseStack modelView = RenderSystem.getModelViewStack();
+            if (modelViewPushed) {
+                modelView.popPose();
+                RenderSystem.applyModelViewMatrix();
+            }
+            if (projectionBackedUp) {
+                RenderSystem.restoreProjectionMatrix();
+            }
             mainTarget.bindWrite(true);
             RenderSystem.viewport(0, 0, mainTarget.viewWidth, mainTarget.viewHeight);
             exportTarget.destroyBuffers();
         }
     }
 
-    private static void makeEdgeBackgroundTransparent(NativeImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        boolean[] visited = new boolean[width * height];
-        int[] queueX = new int[width * height];
-        int[] queueY = new int[width * height];
-        int head = 0;
-        int tail = 0;
-
-        for (int x = 0; x < width; x += 1) {
-            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, 0);
-            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, height - 1);
-        }
+    private static NativeImage reconstructAlphaFromBlackAndWhiteRenders(NativeImage blackImage, NativeImage whiteImage) {
+        int width = blackImage.getWidth();
+        int height = blackImage.getHeight();
+        NativeImage outputImage = new NativeImage(width, height, false);
 
         for (int y = 0; y < height; y += 1) {
-            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, 0, y);
-            tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, width - 1, y);
+            for (int x = 0; x < width; x += 1) {
+                int black = blackImage.getPixelRGBA(x, y);
+                int white = whiteImage.getPixelRGBA(x, y);
+
+                int blackRed = red(black);
+                int blackGreen = green(black);
+                int blackBlue = blue(black);
+                int whiteRed = red(white);
+                int whiteGreen = green(white);
+                int whiteBlue = blue(white);
+
+                int diffRed = clamp(whiteRed - blackRed, 0, 255);
+                int diffGreen = clamp(whiteGreen - blackGreen, 0, 255);
+                int diffBlue = clamp(whiteBlue - blackBlue, 0, 255);
+                int backgroundInfluence = Math.max(diffRed, Math.max(diffGreen, diffBlue));
+                int alpha = 255 - backgroundInfluence;
+
+                if (alpha <= 0) {
+                    outputImage.setPixelRGBA(x, y, rgba(0, 0, 0, 0));
+                } else {
+                    int red = clamp((blackRed * 255 + alpha / 2) / alpha, 0, 255);
+                    int green = clamp((blackGreen * 255 + alpha / 2) / alpha, 0, 255);
+                    int blue = clamp((blackBlue * 255 + alpha / 2) / alpha, 0, 255);
+                    outputImage.setPixelRGBA(x, y, rgba(red, green, blue, alpha));
+                }
+            }
         }
 
-        while (head < tail) {
-            int x = queueX[head];
-            int y = queueY[head];
-            head += 1;
-
-            int color = image.getPixelRGBA(x, y);
-            image.setPixelRGBA(x, y, color & 0x00FFFFFF);
-
-            if (x > 0) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x - 1, y);
-            if (x + 1 < width) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x + 1, y);
-            if (y > 0) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, y - 1);
-            if (y + 1 < height) tail = enqueueBackgroundPixel(image, visited, queueX, queueY, tail, x, y + 1);
-        }
+        return outputImage;
     }
 
-    private static int enqueueBackgroundPixel(NativeImage image, boolean[] visited, int[] queueX, int[] queueY, int tail, int x, int y) {
-        int width = image.getWidth();
-        int index = y * width + x;
-        if (visited[index]) return tail;
-        visited[index] = true;
-
-        if (!isBlackBackgroundPixel(image.getPixelRGBA(x, y))) return tail;
-
-        queueX[tail] = x;
-        queueY[tail] = y;
-        return tail + 1;
+    private static int red(int color) {
+        return color & 0xFF;
     }
 
-    private static boolean isBlackBackgroundPixel(int color) {
-        int red = color & 0xFF;
-        int green = (color >>> 8) & 0xFF;
-        int blue = (color >>> 16) & 0xFF;
-        int alpha = (color >>> 24) & 0xFF;
+    private static int green(int color) {
+        return (color >>> 8) & 0xFF;
+    }
 
-        return alpha > 0
-            && red <= BACKGROUND_RGB_THRESHOLD
-            && green <= BACKGROUND_RGB_THRESHOLD
-            && blue <= BACKGROUND_RGB_THRESHOLD;
+    private static int blue(int color) {
+        return (color >>> 16) & 0xFF;
+    }
+
+    private static int rgba(int red, int green, int blue, int alpha) {
+        return ((alpha & 0xFF) << 24)
+            | ((blue & 0xFF) << 16)
+            | ((green & 0xFF) << 8)
+            | (red & 0xFF);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private static List<IconEntry> collectItemEntries() {
