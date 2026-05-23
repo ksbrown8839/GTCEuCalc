@@ -4,9 +4,11 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
@@ -43,7 +45,7 @@ public final class FluidColorExporter {
 
         try {
             Files.createDirectories(outputRoot);
-            List<FluidColorEntry> entries = collectFluidColorEntries();
+            List<FluidColorEntry> entries = collectFluidColorEntries(minecraft);
             Files.writeString(outputPath, buildManifest(entries), StandardCharsets.UTF_8);
             source.sendSuccess(() -> Component.literal("Exported " + entries.size() + " fluid colors to " + outputPath), false);
             LOGGER.info("Exported {} fluid colors to {}", entries.size(), outputPath);
@@ -55,7 +57,7 @@ public final class FluidColorExporter {
         }
     }
 
-    private static List<FluidColorEntry> collectFluidColorEntries() {
+    private static List<FluidColorEntry> collectFluidColorEntries(Minecraft minecraft) {
         List<FluidColorEntry> entries = new ArrayList<>();
 
         for (Fluid fluid : ForgeRegistries.FLUIDS.getValues()) {
@@ -63,7 +65,9 @@ public final class FluidColorExporter {
             if (id == null || fluid == Fluids.EMPTY) continue;
 
             IClientFluidTypeExtensions clientExtensions = IClientFluidTypeExtensions.of(fluid);
-            int argb = clientExtensions.getTintColor();
+            int defaultArgb = clientExtensions.getTintColor();
+            int contextualArgb = contextualTintColor(minecraft, fluid, clientExtensions, defaultArgb);
+            int argb = chooseTintColor(defaultArgb, contextualArgb);
             ResourceLocation stillTexture = clientExtensions.getStillTexture();
             ResourceLocation flowingTexture = clientExtensions.getFlowingTexture();
             ResourceLocation overlayTexture = clientExtensions.getOverlayTexture();
@@ -73,6 +77,8 @@ public final class FluidColorExporter {
                 toArgbHex(argb),
                 toRgbHex(argb),
                 (argb >>> 24) & 0xFF,
+                toArgbHex(defaultArgb),
+                toArgbHex(contextualArgb),
                 stillTexture == null ? null : stillTexture.toString(),
                 flowingTexture == null ? null : flowingTexture.toString(),
                 overlayTexture == null ? null : overlayTexture.toString()
@@ -81,6 +87,26 @@ public final class FluidColorExporter {
 
         entries.sort(Comparator.comparing(FluidColorEntry::id));
         return entries;
+    }
+
+    private static int contextualTintColor(Minecraft minecraft, Fluid fluid, IClientFluidTypeExtensions clientExtensions, int fallbackArgb) {
+        if (minecraft.level == null) return fallbackArgb;
+
+        try {
+            FluidState fluidState = fluid.defaultFluidState();
+            BlockPos position = minecraft.player == null ? BlockPos.ZERO : minecraft.player.blockPosition();
+            return clientExtensions.getTintColor(fluidState, minecraft.level, position);
+        } catch (RuntimeException error) {
+            LOGGER.debug("Falling back to default fluid tint for {}", ForgeRegistries.FLUIDS.getKey(fluid), error);
+            return fallbackArgb;
+        }
+    }
+
+    private static int chooseTintColor(int defaultArgb, int contextualArgb) {
+        if ((defaultArgb & 0x00FFFFFF) == 0x00FFFFFF && (contextualArgb & 0x00FFFFFF) != 0x00FFFFFF) {
+            return contextualArgb;
+        }
+        return defaultArgb;
     }
 
     private static String buildManifest(List<FluidColorEntry> entries) {
@@ -96,6 +122,8 @@ public final class FluidColorExporter {
             builder.append("\"argb\": \"").append(entry.argb()).append("\", ");
             builder.append("\"rgb\": \"").append(entry.rgb()).append("\", ");
             builder.append("\"alpha\": ").append(entry.alpha());
+            builder.append(", \"defaultArgb\": \"").append(entry.defaultArgb()).append("\"");
+            builder.append(", \"contextualArgb\": \"").append(entry.contextualArgb()).append("\"");
             appendOptionalString(builder, "stillTexture", entry.stillTexture());
             appendOptionalString(builder, "flowingTexture", entry.flowingTexture());
             appendOptionalString(builder, "overlayTexture", entry.overlayTexture());
@@ -138,6 +166,8 @@ public final class FluidColorExporter {
         String argb,
         String rgb,
         int alpha,
+        String defaultArgb,
+        String contextualArgb,
         String stillTexture,
         String flowingTexture,
         String overlayTexture
