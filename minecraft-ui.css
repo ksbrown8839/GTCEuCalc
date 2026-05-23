@@ -6,6 +6,139 @@
   --minecraft-panel-mid: #8b8b8b;
   --minecraft-panel-dark: #373737;
   --minecraft-panel-shadow: #555555;
+  --minecraft-highlight: #ffffa0;
+}
+
+.tree-recipe,
+.tree-leaf-card {
+  border: 0;
+  border-radius: 0;
+  background: var(--minecraft-panel);
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 var(--minecraft-panel-light),
+    inset -2px -2px 0 var(--minecraft-panel-shadow);
+  image-rendering: pixelated;
+}
+
+.tree-recipe > summary {
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px;
+}
+
+.tree-recipe > summary::before {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 0;
+  background: var(--minecraft-panel-mid);
+  box-shadow:
+    inset 2px 2px 0 var(--minecraft-panel-dark),
+    inset -2px -2px 0 var(--minecraft-panel-light);
+  color: var(--minecraft-highlight);
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 16px;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.tree-recipe[open] > summary::before {
+  color: #ffffff;
+}
+
+.tree-card-body {
+  gap: 9px;
+}
+
+.tree-node-header {
+  gap: 6px;
+}
+
+.tree-node-header .good-chip,
+.tree-cost-strip .good-chip,
+.tree-leaf-card .good-chip {
+  border-radius: 0;
+  background: #eeeeee;
+  border-color: #5f5f5f;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9a9a;
+}
+
+.tree-machine,
+.tree-badge,
+.tree-run-rate,
+.tree-stat,
+.tree-cost-label,
+.tree-cost-more {
+  border: 0;
+  border-radius: 0;
+  padding: 4px 7px;
+  background: var(--minecraft-panel-mid);
+  box-shadow:
+    inset 1px 1px 0 #b8b8b8,
+    inset -1px -1px 0 var(--minecraft-panel-dark);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-shadow: 1px 1px 0 #000000;
+  text-transform: uppercase;
+}
+
+.tree-run-rate {
+  color: var(--minecraft-highlight);
+  margin-top: 0;
+}
+
+.tree-stat {
+  background: #6f7f86;
+}
+
+.tree-cost-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.tree-cost-label {
+  background: #5f6b5d;
+}
+
+.tree-cost-more {
+  background: #6b6258;
+}
+
+.tree-children {
+  margin: 0 10px 10px 28px;
+  padding-left: 18px;
+  border-left: 3px solid var(--minecraft-panel-mid);
+}
+
+.tree-children > .tree-node::before {
+  left: -18px;
+  top: 24px;
+  width: 16px;
+  border-top: 3px solid var(--minecraft-panel-mid);
+}
+
+.tree-leaf-card {
+  padding: 9px;
+  background: #d2d2d2;
+}
+
+.tree-leaf.external .tree-badge {
+  color: #b6ffb6;
+}
+
+.tree-leaf.cycle .tree-badge,
+.tree-leaf.depth .tree-badge,
+.tree-leaf.invalid .tree-badge,
+.tree-leaf.unresolved .tree-badge {
+  color: #ffb8b8;
 }
 
 .crafting-visual {
@@ -69,6 +202,91 @@
   content: none;
 }
 
+.tree-card-body .machine-visual {
+  display: inline-grid;
+  grid-template-columns: minmax(84px, max-content) 104px 30px minmax(var(--minecraft-slot-size), max-content);
+  align-items: center;
+  justify-content: start;
+  justify-self: start;
+  gap: 9px;
+  width: max-content;
+  max-width: 100%;
+  padding: 10px;
+  border-radius: 0;
+  background: var(--minecraft-panel);
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 var(--minecraft-panel-light),
+    inset -2px -2px 0 var(--minecraft-panel-shadow),
+    inset 4px 4px 0 #d9d9d9,
+    inset -4px -4px 0 var(--minecraft-panel-mid);
+  overflow-x: auto;
+  image-rendering: pixelated;
+}
+
+.tree-card-body .machine-inputs,
+.tree-card-body .machine-visual .recipe-output-stack {
+  display: grid;
+  grid-template-columns: repeat(2, var(--minecraft-slot-size));
+  align-items: start;
+  gap: 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tree-card-body .machine-visual .recipe-output-stack {
+  grid-template-columns: var(--minecraft-slot-size);
+  width: auto;
+  height: auto;
+}
+
+.tree-card-body .machine-stage {
+  min-height: 50px;
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: #aebfc8;
+  box-shadow:
+    inset 2px 2px 0 #dbe8ee,
+    inset -2px -2px 0 #5e7078;
+  color: #263b46;
+  font-size: 12px;
+  text-shadow: none;
+}
+
+.tree-card-body .machine-stage span {
+  overflow-wrap: anywhere;
+}
+
+.tree-card-body .machine-stage strong {
+  color: #2f4149;
+}
+
+.tree-card-body .machine-visual .recipe-arrow {
+  display: block;
+  width: 30px;
+  height: 22px;
+  color: transparent;
+  font-size: 0;
+  background: var(--minecraft-panel-mid);
+  clip-path: polygon(
+    0 36%,
+    44% 36%,
+    44% 8%,
+    100% 50%,
+    44% 92%,
+    44% 64%,
+    0 64%
+  );
+  filter:
+    drop-shadow(1px 1px 0 var(--minecraft-panel-light))
+    drop-shadow(-1px -1px 0 var(--minecraft-panel-shadow));
+}
+
 .crafting-visual .recipe-output-stack {
   display: grid;
   place-items: center;
@@ -83,6 +301,21 @@
 }
 
 .crafting-visual .recipe-slot {
+  width: var(--minecraft-slot-size);
+  height: var(--minecraft-slot-size);
+  min-height: var(--minecraft-slot-size);
+  padding: calc((var(--minecraft-slot-size) - var(--minecraft-slot-inner)) / 2);
+  border: 0;
+  border-radius: 0;
+  background: var(--minecraft-panel-mid);
+  box-shadow:
+    inset 2px 2px 0 var(--minecraft-panel-dark),
+    inset -2px -2px 0 var(--minecraft-panel-light),
+    inset 5px 5px 0 var(--minecraft-panel-mid),
+    inset -6px -6px 0 #b8b8b8;
+}
+
+.tree-card-body .machine-visual .recipe-slot {
   width: var(--minecraft-slot-size);
   height: var(--minecraft-slot-size);
   min-height: var(--minecraft-slot-size);
@@ -116,18 +349,22 @@
 }
 
 .crafting-visual button.recipe-slot:hover,
-.crafting-visual button.recipe-slot:focus-visible {
-  outline: 2px solid #ffffa0;
+.crafting-visual button.recipe-slot:focus-visible,
+.tree-card-body .machine-visual button.recipe-slot:hover,
+.tree-card-body .machine-visual button.recipe-slot:focus-visible {
+  outline: 2px solid var(--minecraft-highlight);
   outline-offset: -3px;
 }
 
-.crafting-visual .slot-image {
+.crafting-visual .slot-image,
+.tree-card-body .machine-visual .slot-image {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
   transform: none;
 }
 
-.crafting-visual .slot-swatch {
+.crafting-visual .slot-swatch,
+.tree-card-body .machine-visual .slot-swatch {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
   transform: none;
@@ -161,5 +398,19 @@
   .crafting-visual .recipe-arrow {
     width: 40px;
     height: 24px;
+  }
+
+  .tree-recipe > summary {
+    grid-template-columns: 1fr;
+  }
+
+  .tree-recipe > summary::before {
+    display: none;
+  }
+
+  .tree-card-body .machine-visual {
+    grid-template-columns: max-content 90px 28px max-content;
+    gap: 7px;
+    padding: 8px;
   }
 }

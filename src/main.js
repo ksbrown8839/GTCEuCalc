@@ -422,6 +422,7 @@ function renderPlan() {
 function craftingTreeNode(repository, node, depth) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
+  const recipeKindClass = node.recipe && isCraftingRecipe(node.recipe) ? " tree-crafting" : " tree-machine-node";
   const open = depth < 2 ? " open" : "";
   const actions = treeActionButtons(repository, node);
 
@@ -440,15 +441,18 @@ function craftingTreeNode(repository, node, depth) {
   }
 
   return `
-    <details class="tree-node tree-recipe" style="--tree-depth:${depth}"${open}>
+    <details class="tree-node tree-recipe${recipeKindClass}" style="--tree-depth:${depth}"${open}>
       <summary class="tree-card-summary">
         <span class="tree-card-body">
           <span class="tree-node-header">
             ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
             <span class="tree-machine">${escapeHtml(type?.name ?? "Recipe")}</span>
+            ${node.recipe?.durationTicks ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
+            ${node.recipe?.eut ? `<span class="tree-stat">${formatAverageEut(node.recipe, node.runsPerMinute)}</span>` : ""}
             ${actions}
           </span>
           ${recipeVisual(repository, node.recipe)}
+          ${treeCostStrip(repository, node)}
         </span>
         <span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>
       </summary>
@@ -456,6 +460,20 @@ function craftingTreeNode(repository, node, depth) {
         ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1)).join("")}
       </div>
     </details>
+  `;
+}
+
+function treeCostStrip(repository, node) {
+  if (!node.children.length) return "";
+  const visibleChildren = node.children.slice(0, 6);
+  const hiddenCount = Math.max(0, node.children.length - visibleChildren.length);
+
+  return `
+    <span class="tree-cost-strip">
+      <span class="tree-cost-label">Needs</span>
+      ${visibleChildren.map((child) => goodChip(repository, child.goodsId, formatRate(child.amountPerMinute))).join("")}
+      ${hiddenCount ? `<span class="tree-cost-more">+${formatAmount(hiddenCount)} more</span>` : ""}
+    </span>
   `;
 }
 
