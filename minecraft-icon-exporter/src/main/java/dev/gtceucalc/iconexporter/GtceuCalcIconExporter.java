@@ -25,6 +25,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
@@ -44,6 +45,8 @@ public final class GtceuCalcIconExporter {
     public static final String MOD_ID = "gtceucalc_icon_exporter";
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int DEFAULT_ICON_SIZE = 64;
+    private static final int ICONS_PER_CLIENT_TICK = 12;
+    private static ExportJob activeExportJob = null;
 
     public GtceuCalcIconExporter() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -65,13 +68,57 @@ public final class GtceuCalcIconExporter {
 
         dispatcher.register(Commands.literal("gtceucalc_export_icons_sample")
             .then(Commands.argument("count", IntegerArgumentType.integer(1, 1000))
-                .executes(context -> exportIconBatch(
+                .executes(context -> scheduleIconBatch(
                     context.getSource(),
-                    IntegerArgumentType.getInteger(context, "count")
+                    collectItemExportEntries(),
+                    IntegerArgumentType.getInteger(context, "count"),
+                    "sample"
                 ))));
 
         dispatcher.register(Commands.literal("gtceucalc_export_icons_all")
-            .executes(context -> exportIconBatch(context.getSource(), Integer.MAX_VALUE)));
+            .executes(context -> {
+                List<ItemExportEntry> entries = collectItemExportEntries();
+                return scheduleIconBatch(context.getSource(), entries, entries.size(), "all");
+            }));
+    }
+
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || activeExportJob == null) return;
+
+        Minecraft minecraft = Minecraft.getInstance();
+        ExportJob job = activeExportJob;
+        int processedThisTick = 0;
+
+        while (processedThisTick < ICONS_PER_CLIENT_TICK && job.index() < job.entries().size()) {
+            ItemExportEntry entry = job.entries().get(job.index());
+            job.advanceIndex();
+            processedThisTick += 1;
+
+            ItemStack stack = new ItemStack(entry.item());
+            if (stack.isEmpty()) continue;
+
+            Path outputPath = outputPathForItem(minecraft, entry.id());
+            try {
+                Files.createDirectories(outputPath.getParent());
+                renderItemStackToPng(minecraft, stack, outputPath, DEFAULT_ICON_SIZE);
+                job.incrementExported();
+            } catch (Exception error) {
+                job.incrementFailed();
+                LOGGER.warn("Failed to export icon for {}", entry.id(), error);
+            }
+        }
+
+        if (job.index() % 250 == 0 || job.index() >= job.entries().size()) {
+            sendClientMessage("GTCEuCalc icon export progress: " + job.index() + " / " + job.entries().size()
+                + " exported=" + job.exported() + " failed=" + job.failed());
+        }
+
+        if (job.index() >= job.entries().size()) {
+            sendClientMessage("Finished GTCEuCalc icon export (" + job.label() + "): exported="
+                + job.exported() + " failed=" + job.failed());
+            activeExportJob = null;
+        }
     }
 
     private static int exportIconManifest(CommandSourceStack source) {
@@ -121,50 +168,20 @@ public final class GtceuCalcIconExporter {
         }
     }
 
-    private static int exportIconBatch(CommandSourceStack source, int requestedLimit) {
-        Minecraft minecraft = Minecraft.getInstance();
-        List<ItemExportEntry> entries = collectItemExportEntries();
-        int limit = Math.min(requestedLimit, entries.size());
-        int exported = 0;
-        int failed = 0;
-
-        source.sendSuccess(() -> Component.literal("Starting GTCEuCalc icon export: " + limit + " / " + entries.size() + " items"), false);
-        LOGGER.info("Starting GTCEuCalc icon export: {} / {} items", limit, entries.size());
-
-        for (int index = 0; index < limit; index += 1) {
-            ItemExportEntry entry = entries.get(index);
-            ItemStack stack = new ItemStack(entry.item());
-            if (stack.isEmpty()) continue;
-
-            Path outputPath = outputPathForItem(minecraft, entry.id());
-            try {
-                Files.createDirectories(outputPath.getParent());
-                renderItemStackToPng(minecraft, stack, outputPath, DEFAULT_ICON_SIZE);
-                exported += 1;
-            } catch (Exception error) {
-                failed += 1;
-                LOGGER.warn("Failed to export icon for {}", entry.id(), error);
-            }
-
-            int completed = index + 1;
-            if (completed % 100 == 0 || completed == limit) {
-                int exportedNow = exported;
-                int failedNow = failed;
-                source.sendSuccess(() -> Component.literal(
-                    "GTCEuCalc icon export progress: " + completed + " / " + limit
-                        + " exported=" + exportedNow + " failed=" + failedNow
-                ), false);
-                LOGGER.info("GTCEuCalc icon export progress: {} / {} exported={} failed={}", completed, limit, exported, failed);
-            }
+    private static int scheduleIconBatch(CommandSourceStack source, List<ItemExportEntry> entries, int requestedLimit, String label) {
+        if (activeExportJob != null) {
+            source.sendFailure(Component.literal("A GTCEuCalc icon export is already running."));
+            return 0;
         }
 
-        int exportedFinal = exported;
-        int failedFinal = failed;
-        source.sendSuccess(() -> Component.literal(
-            "Finished GTCEuCalc icon export: exported=" + exportedFinal + " failed=" + failedFinal
-        ), false);
-        LOGGER.info("Finished GTCEuCalc icon export: exported={} failed={}", exported, failed);
-        return exported;
+        int limit = Math.min(requestedLimit, entries.size());
+        List<ItemExportEntry> limitedEntries = new ArrayList<>(entries.subList(0, limit));
+        activeExportJob = new ExportJob(label, limitedEntries);
+
+        source.sendSuccess(() -> Component.literal("Scheduled GTCEuCalc icon export (" + label + "): "
+            + limitedEntries.size() + " items at " + ICONS_PER_CLIENT_TICK + " icons/client tick"), false);
+        LOGGER.info("Scheduled GTCEuCalc icon export ({}): {} items", label, limitedEntries.size());
+        return limitedEntries.size();
     }
 
     private static Item itemForId(CommandSourceStack source, ResourceLocation itemId) {
@@ -189,6 +206,14 @@ public final class GtceuCalcIconExporter {
             .resolve("items")
             .resolve(itemId.getNamespace())
             .resolve(itemId.getPath() + ".png");
+    }
+
+    private static void sendClientMessage(String message) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null) {
+            minecraft.player.displayClientMessage(Component.literal(message), false);
+        }
+        LOGGER.info(message);
     }
 
     private static void renderItemStackToPng(Minecraft minecraft, ItemStack stack, Path outputPath, int size) throws IOException {
@@ -388,4 +413,26 @@ public final class GtceuCalcIconExporter {
     private record IconEntry(String goodsId, String path) {}
 
     private record ItemExportEntry(ResourceLocation id, Item item) {}
+
+    private static final class ExportJob {
+        private final String label;
+        private final List<ItemExportEntry> entries;
+        private int index = 0;
+        private int exported = 0;
+        private int failed = 0;
+
+        private ExportJob(String label, List<ItemExportEntry> entries) {
+            this.label = label;
+            this.entries = entries;
+        }
+
+        private String label() { return label; }
+        private List<ItemExportEntry> entries() { return entries; }
+        private int index() { return index; }
+        private int exported() { return exported; }
+        private int failed() { return failed; }
+        private void advanceIndex() { index += 1; }
+        private void incrementExported() { exported += 1; }
+        private void incrementFailed() { failed += 1; }
+    }
 }
