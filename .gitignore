@@ -5,6 +5,8 @@ dist/
 GTNHcalc-main.zip
 reference/
 assets/textures/
+assets/gui/
+assets/animated-icons/
 data/texture-manifest.local.json
 
 # Local Forge/Gradle outputs
