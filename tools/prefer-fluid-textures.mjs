@@ -1,4 +1,5 @@
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, readdir, readFile, writeFile } from "node:fs/promises";
+import { basename, join, relative, sep } from "node:path";
 
 const DEFAULT_DATA_FILE = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_MANIFEST_FILE = "data/texture-manifest.local.json";
@@ -13,6 +14,7 @@ const textureRoot = args.textures ?? DEFAULT_TEXTURE_ROOT;
 
 const packData = JSON.parse(await readFile(dataFile, "utf-8"));
 const manifest = JSON.parse(await readFile(manifestFile, "utf-8"));
+const fluidTextureIndex = await buildFluidTextureIndex(textureRoot);
 
 if (manifest.schema !== "gtceu-planner-texture-manifest-v1") {
   throw new Error(`Unsupported texture manifest schema: ${manifest.schema}`);
@@ -30,7 +32,7 @@ for (const good of packData.goods ?? []) {
   if (good.kind !== "fluid") continue;
 
   fluidGoods += 1;
-  const preferred = await findPreferredFluidTexture(good.id, textureRoot);
+  const preferred = findPreferredFluidTexture(good.id, fluidTextureIndex);
   if (!preferred) {
     missingFluidTextures += 1;
     continue;
@@ -51,6 +53,7 @@ for (const good of packData.goods ?? []) {
 manifest.generatedAt = new Date().toISOString();
 manifest.source.fluidTexturePreference = {
   textureRoot,
+  fluidDirectoryTexturesIndexed: fluidTextureIndex.entries.length,
   fluidGoods,
   preferredFluidTextures,
   missingFluidTextures
@@ -58,6 +61,7 @@ manifest.source.fluidTexturePreference = {
 
 await writeFile(outputFile, `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`Wrote ${outputFile}`);
+console.log(`Fluid directory textures indexed: ${fluidTextureIndex.entries.length}`);
 console.log(`Fluid goods scanned: ${fluidGoods}`);
 console.log(`Preferred fluid textures: ${preferredFluidTextures}`);
 console.log(`Missing preferred fluid textures: ${missingFluidTextures}`);
@@ -79,26 +83,68 @@ function parseArgs(argv) {
   return parsed;
 }
 
-async function findPreferredFluidTexture(goodId, textureRoot) {
+async function buildFluidTextureIndex(textureRoot) {
+  const entries = [];
+  const byExactPath = new Map();
+  const byNormalizedName = new Map();
+
+  if (!await exists(textureRoot)) {
+    return { entries, byExactPath, byNormalizedName };
+  }
+
+  const files = await filesUnder(textureRoot);
+  for (const filePath of files) {
+    const webPath = toWebPath(relative(".", filePath));
+    if (!/\/block\/fluids?\//.test(webPath)) continue;
+    if (!webPath.toLowerCase().endsWith(".png")) continue;
+
+    const normalizedName = normalizeFluidName(basename(webPath, ".png"));
+    const entry = { webPath, normalizedName };
+    entries.push(entry);
+
+    addIndexValue(byNormalizedName, normalizedName, entry);
+    addIndexValue(byExactPath, webPath, entry);
+  }
+
+  entries.sort((a, b) => a.webPath.localeCompare(b.webPath));
+  return { entries, byExactPath, byNormalizedName };
+}
+
+function findPreferredFluidTexture(goodId, index) {
   const [namespace, path] = splitResource(goodId);
   if (!namespace || !path) return null;
 
-  const candidates = fluidTextureCandidates(namespace, path).map((textureRef) => ({
-    textureRef,
-    webPath: textureRefToWebPath(textureRef, textureRoot)
-  }));
-
-  for (const candidate of candidates) {
-    if (await exists(candidate.webPath)) return candidate.webPath;
+  const exactCandidates = fluidTextureCandidates(namespace, path).map(textureRefToWebPath);
+  for (const candidate of exactCandidates) {
+    const entry = index.byExactPath.get(candidate)?.[0];
+    if (entry) return entry.webPath;
   }
 
-  return null;
+  const normalizedCandidates = fluidNameCandidates(path).map(normalizeFluidName);
+  for (const candidate of normalizedCandidates) {
+    const entry = firstNamespaceMatch(index.byNormalizedName.get(candidate), namespace);
+    if (entry) return entry.webPath;
+  }
+
+  const loose = index.entries.find((entry) => {
+    if (!entry.webPath.includes(`/${namespace}/`)) return false;
+    return normalizedCandidates.some((candidate) => entry.normalizedName.includes(candidate));
+  });
+
+  return loose?.webPath ?? null;
+}
+
+function firstNamespaceMatch(entries, namespace) {
+  if (!entries?.length) return null;
+  return entries.find((entry) => entry.webPath.includes(`/${namespace}/`)) ?? entries[0];
 }
 
 function fluidTextureCandidates(namespace, path) {
   const candidates = [
     `${namespace}:block/fluids/fluid.${path}`,
+    `${namespace}:block/fluids/fluid.${path.replaceAll("_", ".")}`,
     `${namespace}:block/fluids/${path}`,
+    `${namespace}:block/fluids/${path.replaceAll("_", ".")}`,
     `${namespace}:block/fluid/${path}`,
     `${namespace}:block/${path}_still`,
     `${namespace}:block/${path}`
@@ -111,7 +157,31 @@ function fluidTextureCandidates(namespace, path) {
   return [...new Set(candidates)];
 }
 
-function textureRefToWebPath(textureRef, textureRoot) {
+function fluidNameCandidates(path) {
+  return [
+    path,
+    path.replaceAll("_", "."),
+    `fluid.${path}`,
+    `fluid.${path.replaceAll("_", ".")}`,
+    `${path}.still`,
+    `${path}_still`,
+    `fluid.${path}.still`,
+    `fluid.${path.replaceAll("_", ".")}.still`
+  ];
+}
+
+function normalizeFluidName(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/\.png$/, "")
+    .replace(/^fluid[._-]/, "")
+    .replace(/[._-]still$/, "")
+    .replace(/[._-]flowing$/, "")
+    .replace(/[._-]flow$/, "")
+    .replace(/[._-]/g, "");
+}
+
+function textureRefToWebPath(textureRef) {
   const [namespace, texturePath] = splitResource(textureRef);
   return `${textureRoot}/${namespace}/${texturePath}.png`;
 }
@@ -120,6 +190,34 @@ function splitResource(value) {
   const separator = String(value).indexOf(":");
   if (separator === -1) return [null, null];
   return [String(value).slice(0, separator), String(value).slice(separator + 1)];
+}
+
+function addIndexValue(map, key, value) {
+  const values = map.get(key) ?? [];
+  values.push(value);
+  map.set(key, values);
+}
+
+async function filesUnder(folder) {
+  if (!await exists(folder)) return [];
+
+  const entries = await readdir(folder, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const entryPath = join(folder, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await filesUnder(entryPath));
+    } else if (entry.isFile()) {
+      files.push(entryPath);
+    }
+  }
+
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
+function toWebPath(path) {
+  return path.split(sep).join("/");
 }
 
 async function exists(path) {
