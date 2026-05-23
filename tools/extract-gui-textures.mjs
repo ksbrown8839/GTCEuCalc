@@ -4,12 +4,71 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 
 const DEFAULT_DATA_FILE = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_OUTPUT_DIR = "assets/gui";
+const DEFAULT_FONT_OUTPUT_DIR = "assets/fonts";
 
 const GUI_TEXTURES = [
   {
     id: "minecraft:crafting_table",
     source: "assets/minecraft/textures/gui/container/crafting_table.png",
     output: "minecraft/crafting_table.png"
+  },
+  {
+    id: "minecraft:widgets",
+    source: "assets/minecraft/textures/gui/widgets.png",
+    output: "minecraft/widgets.png"
+  },
+  {
+    id: "minecraft:checkbox",
+    source: "assets/minecraft/textures/gui/checkbox.png",
+    output: "minecraft/checkbox.png"
+  },
+  {
+    id: "minecraft:slider",
+    source: "assets/minecraft/textures/gui/slider.png",
+    output: "minecraft/slider.png"
+  },
+  {
+    id: "minecraft:options_background",
+    source: "assets/minecraft/textures/gui/options_background.png",
+    output: "minecraft/options_background.png"
+  },
+  {
+    id: "minecraft:light_dirt_background",
+    source: "assets/minecraft/textures/gui/light_dirt_background.png",
+    output: "minecraft/light_dirt_background.png"
+  },
+  {
+    id: "minecraft:generic_54",
+    source: "assets/minecraft/textures/gui/container/generic_54.png",
+    output: "minecraft/generic_54.png"
+  },
+  {
+    id: "minecraft:inventory",
+    source: "assets/minecraft/textures/gui/container/inventory.png",
+    output: "minecraft/inventory.png"
+  },
+  {
+    id: "minecraft:furnace",
+    source: "assets/minecraft/textures/gui/container/furnace.png",
+    output: "minecraft/furnace.png"
+  }
+];
+
+const FONT_ASSETS = [
+  {
+    id: "minecraft:font/default",
+    source: "assets/minecraft/font/default.json",
+    output: "minecraft/default.json"
+  },
+  {
+    id: "minecraft:font/include/default",
+    source: "assets/minecraft/font/include/default.json",
+    output: "minecraft/include-default.json"
+  },
+  {
+    id: "minecraft:font/ascii",
+    source: "assets/minecraft/textures/font/ascii.png",
+    output: "minecraft/ascii.png"
   }
 ];
 
@@ -17,6 +76,7 @@ const args = parseArgs(process.argv.slice(2));
 const instanceRoot = args.instance ? resolve(args.instance) : null;
 const dataFile = args.data ?? DEFAULT_DATA_FILE;
 const outputDir = args.out ?? DEFAULT_OUTPUT_DIR;
+const fontOutputDir = args["font-out"] ?? DEFAULT_FONT_OUTPUT_DIR;
 
 if (!instanceRoot) {
   console.error("Usage: node tools/extract-gui-textures.mjs --instance <modpack instance path>");
@@ -29,20 +89,30 @@ const archives = await discoverArchives(instanceRoot, minecraftVersion);
 let extracted = 0;
 
 for (const texture of GUI_TEXTURES) {
-  const entry = await findZipEntry(archives, texture.source);
-  if (!entry) {
-    console.warn(`Missing GUI texture: ${texture.source}`);
-    continue;
-  }
-
-  const outputPath = join(outputDir, texture.output);
-  await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, entry.data);
-  extracted += 1;
-  console.log(`${texture.id} -> ${toWebPath(relative(".", outputPath))}`);
+  extracted += await extractAsset(archives, texture, outputDir, "GUI texture");
 }
 
-console.log(`Extracted ${extracted} GUI texture${extracted === 1 ? "" : "s"}.`);
+let extractedFonts = 0;
+
+for (const asset of FONT_ASSETS) {
+  extractedFonts += await extractAsset(archives, asset, fontOutputDir, "font asset");
+}
+
+console.log(`Extracted ${extracted} GUI texture${extracted === 1 ? "" : "s"} and ${extractedFonts} font asset${extractedFonts === 1 ? "" : "s"}.`);
+
+async function extractAsset(archives, asset, outputRoot, label) {
+  const entry = await findZipEntry(archives, asset.source);
+  if (!entry) {
+    console.warn(`Missing ${label}: ${asset.source}`);
+    return 0;
+  }
+
+  const outputPath = join(outputRoot, asset.output);
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, entry.data);
+  console.log(`${asset.id} -> ${toWebPath(relative(".", outputPath))}`);
+  return 1;
+}
 
 function parseArgs(argv) {
   const parsed = {};

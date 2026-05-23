@@ -47,7 +47,9 @@ node tools/build-texture-atlas.mjs
 The extractor writes local build inputs:
 
 - `assets/textures/` - extracted PNGs
-- `assets/gui/minecraft/crafting_table.png` - extracted vanilla crafting table GUI used by recipe previews
+- `assets/gui/minecraft/` - selected extracted vanilla GUI textures used by planner panels, controls, and recipe previews
+- `assets/fonts/minecraft/` - extracted vanilla bitmap font source files
+- `assets/fonts/F77MinecraftRegular-0VYv.ttf` - browser-renderable Minecraft-style UI font
 - `data/texture-manifest.local.json` - item-to-texture map
 
 The atlas builder writes committed app assets:

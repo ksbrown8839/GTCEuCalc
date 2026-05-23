@@ -9,6 +9,14 @@ assets/gui/*
 !assets/gui/minecraft/
 assets/gui/minecraft/*
 !assets/gui/minecraft/crafting_table.png
+!assets/gui/minecraft/widgets.png
+!assets/gui/minecraft/checkbox.png
+!assets/gui/minecraft/slider.png
+!assets/gui/minecraft/options_background.png
+!assets/gui/minecraft/light_dirt_background.png
+!assets/gui/minecraft/generic_54.png
+!assets/gui/minecraft/inventory.png
+!assets/gui/minecraft/furnace.png
 assets/animated-icons/
 data/texture-manifest.local.json
 

@@ -1,5 +1,12 @@
+@font-face {
+  font-family: "MinecraftF77";
+  src: url("assets/fonts/F77MinecraftRegular-0VYv.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
-  --minecraft-slot-size: 42px;
+  --minecraft-font: "MinecraftF77", "Cascadia Mono", "Consolas", monospace;
+  --minecraft-slot-size: 36px;
   --minecraft-slot-inner: 32px;
   --minecraft-panel: #c6c6c6;
   --minecraft-panel-light: #ffffff;
@@ -24,6 +31,239 @@
   --minecraft-crafting-grid-top: calc(16px * var(--minecraft-crafting-gui-scale));
   --minecraft-crafting-output-left: calc(123px * var(--minecraft-crafting-gui-scale));
   --minecraft-crafting-output-top: calc(34px * var(--minecraft-crafting-gui-scale));
+}
+
+body {
+  background-color: #3b3027;
+  background-image: url("assets/gui/minecraft/options_background.png");
+  background-size: 64px 64px;
+  color: #202020;
+  font-family: var(--minecraft-font);
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  image-rendering: pixelated;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--minecraft-font);
+}
+
+.workspace,
+.texture-lab-main {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.sidebar,
+.texture-lab-sidebar,
+.section-band,
+.status-band,
+.help-panel,
+.assumption-panel,
+.inspector-drawer,
+.recipe-row,
+.recipe-choice-list,
+.browser-row,
+.texture-card,
+.texture-detail-preview,
+.texture-preview-box {
+  border: 0;
+  border-radius: 0;
+  background: var(--minecraft-panel);
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 var(--minecraft-panel-light),
+    inset -2px -2px 0 var(--minecraft-panel-shadow);
+  image-rendering: pixelated;
+}
+
+.sidebar,
+.texture-lab-sidebar {
+  border-width: 0;
+}
+
+.brand-block h1,
+.status-band h2,
+.section-band h2,
+.panel h2,
+.browser h2,
+.inspector-drawer h2 {
+  color: #202020;
+  font-family: var(--minecraft-font);
+  font-weight: 900;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.brand-block p,
+.muted-text,
+.match-summary,
+.boundary-summary,
+.external-group h3,
+.external-group header span,
+.inspector-id,
+.inspector-drawer-header p,
+.texture-card-title span,
+.texture-detail-meta span {
+  color: #4f4f4f;
+}
+
+button,
+.secondary-button,
+.primary-button,
+.lab-nav-link,
+.tree-view-controls label {
+  border: 0;
+  border-radius: 0;
+  background: #8b8b8b;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #373737;
+  color: #ffffff;
+  font-weight: 900;
+  text-decoration: none;
+  text-shadow: 2px 2px 0 #2f2f2f;
+}
+
+button:hover,
+.secondary-button:hover,
+.primary-button:hover,
+.lab-nav-link:hover,
+.tree-view-controls label:hover {
+  background: #9f9f9f;
+  border-color: transparent;
+}
+
+button:focus-visible,
+.secondary-button:focus-visible,
+.primary-button:focus-visible,
+.lab-nav-link:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--minecraft-highlight);
+  outline-offset: 2px;
+}
+
+.primary-button {
+  background: #5f8f5f;
+}
+
+.icon-button {
+  color: #ffaaaa;
+}
+
+input:not([type="checkbox"]):not([type="range"]),
+select {
+  border: 0;
+  border-radius: 0;
+  background: #151515;
+  box-shadow:
+    inset 2px 2px 0 #373737,
+    inset -2px -2px 0 #ffffff;
+  color: #ffffff;
+}
+
+input::placeholder {
+  color: #9a9a9a;
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: url("assets/gui/minecraft/checkbox.png") 0 0 / 32px 32px no-repeat;
+  image-rendering: pixelated;
+}
+
+input[type="checkbox"]:checked {
+  background-position: 0 -16px;
+}
+
+input[type="range"] {
+  accent-color: #8b8b8b;
+}
+
+.plan-metric,
+.power-readout,
+.target-row,
+.boundary-toggle,
+.good-chip,
+.recipe-meta span,
+.inspector-meta span,
+.preferred-pill {
+  border: 0;
+  border-radius: 0;
+  background: #eeeeee;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8b8b8b;
+}
+
+.power-readout {
+  background: #b1b1b1;
+}
+
+.plan-metric strong,
+.power-readout strong,
+.good-chip strong {
+  color: #2b5f9f;
+}
+
+.texture-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.texture-card {
+  min-height: 190px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.texture-card:hover,
+.texture-card.selected {
+  box-shadow:
+    0 0 0 2px var(--minecraft-highlight),
+    inset 2px 2px 0 var(--minecraft-panel-light),
+    inset -2px -2px 0 var(--minecraft-panel-shadow);
+}
+
+.texture-preview-box {
+  min-height: calc(var(--texture-size, 96px) + 12px);
+}
+
+.texture-card-title {
+  gap: 2px;
+}
+
+.texture-card-title strong {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 28px;
+  color: #202020;
+  font-size: 12px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.texture-card-title span {
+  overflow: hidden;
+  color: #4f4f4f;
+  font-size: 10px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tree-recipe,
@@ -54,7 +294,7 @@
     inset 2px 2px 0 var(--minecraft-panel-dark),
     inset -2px -2px 0 var(--minecraft-panel-light);
   color: var(--minecraft-highlight);
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: var(--minecraft-font);
   font-size: 16px;
   text-shadow: 1px 1px 0 #000000;
 }
@@ -325,7 +565,7 @@
     inset -1px -1px 0 rgba(48, 0, 92, 0.95),
     3px 3px 0 rgba(0, 0, 0, 0.45);
   color: #ffffff;
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: var(--minecraft-font);
   font-size: 12px;
   line-height: 1.25;
   pointer-events: none;
@@ -404,7 +644,7 @@
 
 .tree-card-body .machine-visual {
   display: inline-grid;
-  grid-template-columns: minmax(84px, max-content) 104px 30px minmax(var(--minecraft-slot-size), max-content);
+  grid-template-columns: minmax(72px, max-content) 112px 30px minmax(var(--minecraft-slot-size), max-content);
   align-items: center;
   justify-content: start;
   justify-self: start;
@@ -429,13 +669,13 @@
   display: grid;
   grid-template-columns: repeat(2, var(--minecraft-slot-size));
   align-items: start;
-  gap: var(--minecraft-grid-rail);
+  gap: 0;
   min-width: 0;
-  padding: var(--minecraft-grid-rail);
+  padding: 0;
   border: 0;
   border-radius: 0;
-  background: var(--minecraft-grid-line);
-  box-shadow: inset calc(-1 * var(--minecraft-grid-rail)) calc(-1 * var(--minecraft-grid-rail)) 0 var(--minecraft-grid-light);
+  background: transparent;
+  box-shadow: none;
 }
 
 .tree-card-body .machine-visual .recipe-output-stack {
@@ -539,10 +779,10 @@
   width: var(--minecraft-slot-size);
   height: var(--minecraft-slot-size);
   min-height: var(--minecraft-slot-size);
-  padding: calc((var(--minecraft-slot-size) - var(--minecraft-slot-inner)) / 2);
+  padding: 2px;
   border: 0;
   border-radius: 0;
-  background: var(--minecraft-slot-bg);
+  background: url("assets/gui/minecraft/generic_54.png") -14px -34px / 512px 512px no-repeat;
   box-shadow: none;
 }
 
@@ -601,7 +841,7 @@
   border-radius: 0;
   background: transparent;
   color: #ffffff;
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: var(--minecraft-font);
   font-size: 14px;
   font-weight: 900;
   line-height: 1;
@@ -618,7 +858,7 @@
   border-radius: 0;
   background: transparent;
   color: #ffffff;
-  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-family: var(--minecraft-font);
   font-size: 13px;
   font-weight: 900;
   line-height: 1;
