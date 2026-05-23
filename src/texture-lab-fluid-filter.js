@@ -1,6 +1,5 @@
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
-const MAX_RESULTS = 240;
 
 const checkbox = document.querySelector('[data-role="texture-fluids-only"]');
 const search = document.querySelector('[data-role="texture-search"]');
@@ -66,10 +65,10 @@ function renderFluidGridIfEnabled() {
     .filter((good) => matchesTerms(good, terms))
     .sort((a, b) => scoreGood(b, terms) - scoreGood(a, terms) || String(a.name ?? a.id).localeCompare(String(b.name ?? b.id)));
 
-  grid.innerHTML = matches.slice(0, MAX_RESULTS).map((good) => fluidCardMarkup(good)).join("");
+  grid.innerHTML = matches.map((good) => fluidCardMarkup(good)).join("");
 
   if (matchSummary) {
-    matchSummary.textContent = `${matches.length.toLocaleString("en-US")} fluid match${matches.length === 1 ? "" : "es"}${matches.length > MAX_RESULTS ? ` / showing first ${MAX_RESULTS}` : ""}`;
+    matchSummary.textContent = `${matches.length.toLocaleString("en-US")} fluid match${matches.length === 1 ? "" : "es"}`;
   }
 }
 
