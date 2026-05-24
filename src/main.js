@@ -428,24 +428,7 @@ function renderPlan() {
     : "";
 
   elements.status.innerHTML = `
-    <div class="plan-overview">
-      <div class="plan-metric">
-        <strong>${formatAmount(plan.recipeRows.length)}</strong>
-        <span>Tree recipes</span>
-      </div>
-      <div class="plan-metric">
-        <strong>${formatAmount(plan.externalRows.length)}</strong>
-        <span>External inputs</span>
-      </div>
-      <div class="plan-metric">
-        <strong>${formatAmount(plan.byproductRows.length)}</strong>
-        <span>Byproducts</span>
-      </div>
-      <div class="plan-metric">
-        <strong>${formatAmount(assumptionCount)}</strong>
-        <span>Assumptions</span>
-      </div>
-    </div>
+    ${neededInputsOverview(repository, plan, assumptionCount)}
     ${assumptionHtml}
   `;
 
@@ -466,6 +449,43 @@ function renderPlan() {
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
     : `<div class="empty-state">No byproducts in this chain.</div>`;
+}
+
+function neededInputsOverview(repository, plan, assumptionCount) {
+  const summary = [
+    planCountText(plan.externalRows.length, "supplied input"),
+    planCountText(plan.recipeRows.length, "tree recipe")
+  ];
+
+  if (plan.byproductRows.length) {
+    summary.push(planCountText(plan.byproductRows.length, "byproduct"));
+  }
+
+  if (assumptionCount) {
+    summary.push(planCountText(assumptionCount, "assumption"));
+  }
+
+  const chips = plan.externalRows.length
+    ? plan.externalRows
+        .map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute)))
+        .join("")
+    : `<span class="needed-empty">No supplied inputs needed</span>`;
+
+  return `
+    <div class="needed-overview">
+      <div class="needed-overview-header">
+        <strong>Needed Inputs</strong>
+        <span>${escapeHtml(summary.join(" · "))}</span>
+      </div>
+      <div class="needed-input-list">
+        ${chips}
+      </div>
+    </div>
+  `;
+}
+
+function planCountText(count, singular) {
+  return `${formatAmount(count)} ${singular}${count === 1 ? "" : "s"}`;
 }
 
 function renderTreeViewControls() {

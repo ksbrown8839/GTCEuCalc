@@ -307,6 +307,55 @@ select {
   text-transform: uppercase;
 }
 
+.needed-overview {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.needed-overview-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.needed-overview-header strong {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.needed-overview-header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.needed-input-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 90px;
+  min-width: 0;
+  overflow: auto;
+  padding: 2px;
+  scrollbar-gutter: stable;
+}
+
+.needed-input-list .good-chip {
+  max-width: 230px;
+}
+
+.needed-empty {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .power-readout {
   min-width: 190px;
   padding: 14px;

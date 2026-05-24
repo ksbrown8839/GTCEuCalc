@@ -192,6 +192,7 @@ input[type="range"] {
 }
 
 .plan-metric,
+.needed-input-list,
 .power-readout,
 .target-row,
 .boundary-toggle,
@@ -209,6 +210,43 @@ input[type="range"] {
 
 .power-readout {
   background: #b1b1b1;
+}
+
+.needed-overview-header strong {
+  color: #202020;
+  font-weight: 900;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.needed-overview-header span {
+  color: #3f3f3f;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #e8e8e8;
+  text-transform: uppercase;
+}
+
+.needed-input-list {
+  max-height: 96px;
+  padding: 6px;
+  background: #b1b1b1;
+  box-shadow:
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #676767;
+  image-rendering: pixelated;
+}
+
+.needed-input-list .good-chip {
+  background: #eeeeee;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8b8b8b;
+}
+
+.needed-empty {
+  color: #3f3f3f;
+  text-shadow: 1px 1px 0 #e8e8e8;
+  text-transform: uppercase;
 }
 
 .plan-metric strong,
