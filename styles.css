@@ -195,8 +195,128 @@ select {
 
 .target-picker {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  padding-top: 9px;
+}
+
+.target-browser-panel {
   margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf8;
+}
+
+.target-browser-panel summary {
+  padding: 10px 11px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.target-browser-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.target-browser-panel summary::before {
+  content: "+";
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.target-browser-panel[open] summary::before {
+  content: "-";
+}
+
+.target-browser-panel .target-picker {
+  padding: 0 10px 10px;
+}
+
+.target-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  gap: 6px;
+}
+
+.target-clear {
+  min-width: 36px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.target-results {
+  display: grid;
+  gap: 7px;
+  max-height: 360px;
+  overflow: auto;
+  padding: 2px;
+  scrollbar-gutter: stable;
+}
+
+.target-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 6px;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.target-card.selected {
+  border-color: var(--accent-3);
+  background: #f4f8fb;
+}
+
+.target-card-main {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.target-card-main:hover {
+  background: #f3f6f1;
+}
+
+.target-card-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.target-card-text strong,
+.target-card-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-card-text strong {
+  font-size: 12px;
+}
+
+.target-card-text span,
+.target-card-text em {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.target-card-add {
+  align-self: stretch;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  color: var(--accent);
 }
 
 .match-summary {

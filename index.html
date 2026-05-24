@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=tree-expand-controls-2026-05-23">
-    <link rel="stylesheet" href="minecraft-ui.css?v=minecraft-gui-system-2026-05-23">
+    <link rel="stylesheet" href="styles.css?v=target-browser-2026-05-24">
+    <link rel="stylesheet" href="minecraft-ui.css?v=target-browser-2026-05-24">
     <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
@@ -32,14 +32,17 @@
         <section class="panel">
           <h2>Targets</h2>
           <div data-role="product-list"></div>
-          <div class="target-picker">
-            <input data-role="target-search" type="search" placeholder="Search targets">
-            <p class="match-summary" data-role="target-match-summary"></p>
-          </div>
-          <div class="add-target">
-            <select data-role="product-select" aria-label="Product"></select>
-            <button class="primary-button" data-action="add-product" aria-label="Add product">+</button>
-          </div>
+          <details class="target-browser-panel" open>
+            <summary>Choose Target</summary>
+            <div class="target-picker">
+              <div class="target-search-row">
+                <input data-role="target-search" type="search" placeholder="Search targets">
+                <button class="secondary-button target-clear" type="button" data-action="clear-target-search" aria-label="Clear target search">x</button>
+              </div>
+              <p class="match-summary" data-role="target-match-summary"></p>
+              <div class="target-results" data-role="target-results"></div>
+            </div>
+          </details>
         </section>
 
         <section class="panel">
@@ -78,6 +81,10 @@
                   <label>
                     <input type="checkbox" data-action="toggle-tree-option" data-option="showInspectButtons">
                     <span>Inspect</span>
+                  </label>
+                  <label>
+                    <input type="checkbox" data-action="toggle-tree-option" data-option="showRates">
+                    <span>Rates</span>
                   </label>
                   <button type="button" data-action="collapse-tree">Collapse all</button>
                   <button type="button" data-action="expand-tree">Expand all</button>
@@ -120,6 +127,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=make-expands-tree-2026-05-23"></script>
+    <script type="module" src="src/main.js?v=target-browser-2026-05-24"></script>
   </body>
 </html>

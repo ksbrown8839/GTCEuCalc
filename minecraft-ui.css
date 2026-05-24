@@ -63,6 +63,7 @@ textarea {
 .section-band,
 .status-band,
 .help-panel,
+.target-browser-panel,
 .assumption-panel,
 .inspector-drawer,
 .recipe-row,
@@ -195,6 +196,7 @@ input[type="range"] {
 .needed-input-list,
 .power-readout,
 .target-row,
+.target-card,
 .boundary-toggle,
 .good-chip,
 .recipe-meta span,
@@ -210,6 +212,68 @@ input[type="range"] {
 
 .power-readout {
   background: #b1b1b1;
+}
+
+.target-browser-panel summary {
+  color: #202020;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.target-browser-panel summary::before {
+  color: #2f5f3d;
+  text-shadow: none;
+}
+
+.target-results {
+  max-height: 350px;
+  padding: 3px;
+}
+
+.target-card {
+  border: 0;
+  border-radius: 0;
+  background: #eeeeee;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8b8b8b;
+}
+
+.target-card.selected {
+  background: #d5e4ee;
+  box-shadow:
+    0 0 0 2px #ffffa0,
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #6b8796;
+}
+
+.target-card-main {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #202020;
+  text-shadow: none;
+}
+
+.target-card-main:hover,
+.target-card-main:focus-visible {
+  background: #d8d8d8;
+  box-shadow: none;
+}
+
+.target-card-text strong {
+  color: #202020;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.target-card-text span,
+.target-card-text em {
+  color: #4f4f4f;
+}
+
+.target-card-add {
+  min-height: 100%;
 }
 
 .needed-overview-header strong {

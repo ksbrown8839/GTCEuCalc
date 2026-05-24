@@ -21,7 +21,8 @@ const state = {
   treeView: {
     showRecipeChoices: false,
     showRecipePreviews: true,
-    showInspectButtons: false
+    showInspectButtons: false,
+    showRates: false
   },
   expandedTreeGoods: new Set(),
   dataUrl: DEFAULT_DATA_URL
@@ -38,13 +39,15 @@ const EXTERNAL_INPUT_GROUPS = [
   { id: "unresolved", label: "Unresolved" }
 ];
 
+const TARGET_BROWSER_LIMIT = 72;
+
 const elements = {
   status: document.querySelector("[data-role='status']"),
   productList: document.querySelector("[data-role='product-list']"),
-  productSelect: document.querySelector("[data-role='product-select']"),
   targetSearchInput: document.querySelector("[data-role='target-search']"),
   targetMatchSummary: document.querySelector("[data-role='target-match-summary']"),
-  addProduct: document.querySelector("[data-action='add-product']"),
+  targetResults: document.querySelector("[data-role='target-results']"),
+  targetSearchClear: document.querySelector("[data-action='clear-target-search']"),
   craftingTree: document.querySelector("[data-role='crafting-tree']"),
   treeViewControls: document.querySelector("[data-role='tree-view-controls']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
@@ -363,24 +366,76 @@ function renderBoundaryPresets() {
 
 function renderTargetPicker() {
   const repository = state.repository;
-  const matches = repository.searchGoods(state.targetSearch, 120);
+  const matches = targetBrowserMatches(repository);
 
-  elements.productSelect.innerHTML = matches
-    .map((good) => {
-      const kind = good.kind === "fluid" ? "fluid" : good.mod;
-      return `<option value="${escapeHtml(good.id)}">${escapeHtml(`${good.name} · ${kind}`)}</option>`;
-    })
-    .join("");
-
-  elements.addProduct.disabled = matches.length === 0;
+  elements.targetResults.innerHTML = matches.length
+    ? matches.map((match) => targetBrowserCard(repository, match)).join("")
+    : `<div class="empty-state">No target matches.</div>`;
 
   if (state.targetSearch.trim()) {
     elements.targetMatchSummary.textContent = matches.length
       ? `${formatAmount(matches.length)} matches shown`
       : "No matches";
   } else {
-    elements.targetMatchSummary.textContent = `Showing ${formatAmount(matches.length)} of ${formatAmount(repository.goods.size)} goods`;
+    elements.targetMatchSummary.textContent = `Showing ${formatAmount(matches.length)} craftable suggestions`;
   }
+}
+
+function targetBrowserMatches(repository) {
+  const query = state.targetSearch.trim();
+  const source = query
+    ? repository.searchGoods(query, TARGET_BROWSER_LIMIT * 4)
+    : [...repository.goods.values()];
+
+  return source
+    .map((good, index) => {
+      const recipeCount = repository.findRecipesProducing(good.id).length;
+      return {
+        good,
+        index,
+        recipeCount,
+        score: targetBrowserScore(good, recipeCount)
+      };
+    })
+    .filter((match) => query || match.recipeCount > 0)
+    .sort((a, b) => {
+      if (query) return b.score - a.score || a.index - b.index;
+      return b.score - a.score || a.good.name.localeCompare(b.good.name) || a.good.id.localeCompare(b.good.id);
+    })
+    .slice(0, TARGET_BROWSER_LIMIT);
+}
+
+function targetBrowserScore(good, recipeCount) {
+  let score = 0;
+  if (state.products.some((product) => product.goodsId === good.id)) score += 10000;
+  if (recipeCount) score += 1000 + Math.min(recipeCount, 99);
+  if (state.textureAtlas?.icons?.[good.id] !== undefined) score += 100;
+  if (good.kind === "item") score += 20;
+  if (good.mod === "gtceu") score += 10;
+  return score;
+}
+
+function targetBrowserCard(repository, match) {
+  const { good, recipeCount } = match;
+  const selected = state.products.some((product) => product.goodsId === good.id) ? " selected" : "";
+  const kindLabel = good.kind === "fluid" ? "fluid" : good.mod;
+  const recipeText = recipeCount
+    ? planCountText(recipeCount, "recipe")
+    : "no exported recipe";
+
+  return `
+    <article class="target-card${selected}">
+      <button class="target-card-main" type="button" data-action="set-target" data-id="${escapeHtml(good.id)}" aria-label="Set ${escapeHtml(good.name)} as target">
+        ${goodIconMarkup(repository, good.id)}
+        <span class="target-card-text">
+          <strong title="${escapeHtml(good.name)}">${escapeHtml(good.name)}</strong>
+          <span>${escapeHtml(good.id)}</span>
+          <em>${escapeHtml(`${recipeText} · ${kindLabel}`)}</em>
+        </span>
+      </button>
+      <button class="target-card-add" type="button" data-action="add-target-card" data-id="${escapeHtml(good.id)}" aria-label="Add ${escapeHtml(good.name)} target">+</button>
+    </article>
+  `;
 }
 
 function renderProductControls() {
@@ -393,7 +448,7 @@ function renderProductControls() {
         <div class="target-row">
           ${goodChip(repository, product.goodsId)}
           <label>
-            <span>per minute</span>
+            <span>Target rate</span>
             <input type="number" min="0" step="0.1" value="${product.amountPerMinute}" data-action="update-product" data-index="${index}">
           </label>
           <button class="icon-button" data-action="remove-product" data-index="${index}" aria-label="Remove target">x</button>
@@ -467,7 +522,7 @@ function neededInputsOverview(repository, plan, assumptionCount) {
 
   const chips = plan.externalRows.length
     ? plan.externalRows
-        .map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute)))
+        .map((row) => goodChip(repository, row.goodsId, visibleRate(row.amountPerMinute)))
         .join("")
     : `<span class="needed-empty">No supplied inputs needed</span>`;
 
@@ -486,6 +541,10 @@ function neededInputsOverview(repository, plan, assumptionCount) {
 
 function planCountText(count, singular) {
   return `${formatAmount(count)} ${singular}${count === 1 ? "" : "s"}`;
+}
+
+function visibleRate(amountPerMinute) {
+  return state.treeView.showRates ? formatRate(amountPerMinute) : "";
 }
 
 function renderTreeViewControls() {
@@ -507,7 +566,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
       <div class="tree-node tree-leaf ${escapeHtml(node.reason ?? "external")}">
         <div class="tree-leaf-card">
           <div class="tree-node-header">
-            ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+            ${goodChip(repository, node.goodsId, visibleRate(node.amountPerMinute))}
             <span class="tree-badge">${escapeHtml(treeReasonLabel(node.reason))}</span>
             ${actions}
           </div>
@@ -522,7 +581,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
         <span class="tree-card-body">
           ${node.recipe ? machineRequirementBanner(node.recipe, type) : ""}
           <span class="tree-node-header">
-            ${goodChip(repository, node.goodsId, formatRate(node.amountPerMinute))}
+            ${goodChip(repository, node.goodsId, visibleRate(node.amountPerMinute))}
             ${node.recipe?.durationTicks && !state.treeView.showRecipePreviews ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
             ${node.recipe?.eut ? `<span class="tree-stat">${formatAverageEut(node.recipe, node.runsPerMinute)}</span>` : ""}
             ${actions}
@@ -531,7 +590,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
           ${state.treeView.showRecipePreviews ? recipeVisual(repository, node.recipe, { compactMachineStage: true }) : ""}
           ${treeCostStrip(repository, node)}
         </span>
-        <span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>
+        ${state.treeView.showRates ? `<span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>` : ""}
       </summary>
       <div class="tree-children">
         ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1, externalGoods)).join("")}
@@ -600,7 +659,7 @@ function treeCostStrip(repository, node) {
   return `
     <span class="tree-cost-strip">
       <span class="tree-cost-label">Needs</span>
-      ${visibleChildren.map((child) => goodChip(repository, child.goodsId, formatRate(child.amountPerMinute))).join("")}
+      ${visibleChildren.map((child) => goodChip(repository, child.goodsId, visibleRate(child.amountPerMinute))).join("")}
       ${hiddenCount ? `<span class="tree-cost-more">+${formatAmount(hiddenCount)} more</span>` : ""}
     </span>
   `;
@@ -1089,12 +1148,6 @@ function positionMinecraftTooltip(clientX, clientY) {
 function setupEvents() {
   setupMinecraftTooltips();
 
-  elements.addProduct.addEventListener("click", () => {
-    const goodsId = elements.productSelect.value;
-    addTarget(goodsId);
-    renderAll();
-  });
-
   elements.productList.addEventListener("input", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.dataset.action !== "update-product") return;
@@ -1185,6 +1238,41 @@ function setupEvents() {
   elements.targetSearchInput.addEventListener("input", () => {
     state.targetSearch = elements.targetSearchInput.value;
     renderTargetPicker();
+  });
+
+  elements.targetSearchInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    const firstMatch = targetBrowserMatches(state.repository)[0];
+    if (!firstMatch) return;
+    event.preventDefault();
+    setSingleTarget(firstMatch.good.id);
+    renderAll();
+  });
+
+  elements.targetSearchClear.addEventListener("click", () => {
+    state.targetSearch = "";
+    elements.targetSearchInput.value = "";
+    renderTargetPicker();
+  });
+
+  elements.targetResults.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest("[data-action]");
+    if (!(target instanceof HTMLElement)) return;
+    const goodsId = target.dataset.id;
+    if (!goodsId) return;
+
+    if (target.dataset.action === "set-target") {
+      event.preventDefault();
+      setSingleTarget(goodsId);
+      renderAll();
+    }
+
+    if (target.dataset.action === "add-target-card") {
+      event.preventDefault();
+      addTarget(goodsId);
+      renderAll();
+    }
   });
 
   elements.inspectSearchInput.addEventListener("input", () => {
