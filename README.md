@@ -48,6 +48,7 @@ The extractor writes local build inputs:
 
 - `assets/textures/` - extracted PNGs
 - `assets/gui/minecraft/` - selected extracted vanilla GUI textures used by planner panels, controls, and recipe previews
+- `assets/gtnh-ui/` - small GTNH calculator reference UI images used for dynamic slots and arrows
 - `assets/fonts/minecraft/` - extracted vanilla bitmap font source files
 - `assets/fonts/F77MinecraftRegular-0VYv.ttf` - browser-renderable Minecraft-style UI font
 - `data/texture-manifest.local.json` - item-to-texture map
