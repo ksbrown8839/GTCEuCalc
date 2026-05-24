@@ -833,19 +833,19 @@ input[type="range"] {
 }
 
 .recipe-slot .slot-amount {
-  right: -1px;
-  bottom: -2px;
+  right: -2px;
+  bottom: -1px;
   padding: 0;
   border-radius: 0;
   background: transparent;
   color: #ffffff;
   font-family: var(--minecraft-font);
-  font-size: 11px;
+  font-size: 19px;
   font-weight: 400;
   letter-spacing: 0;
-  line-height: 10px;
+  line-height: 18px;
   pointer-events: none;
-  text-shadow: 1px 1px 0 #342c34;
+  text-shadow: 2px 2px 0 #342c34;
   white-space: nowrap;
 }
 
