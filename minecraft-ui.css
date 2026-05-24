@@ -329,18 +329,81 @@ input[type="range"] {
 
 .tree-view-controls label,
 .tree-view-controls button {
+  min-height: 34px;
+  padding: 6px 9px;
   border: 0;
   border-radius: 0;
-  background: #c6c6c6;
+  background: #727272;
   box-shadow:
-    inset 2px 2px 0 #ffffff,
-    inset -2px -2px 0 #6f6f6f;
-  color: #303030;
+    0 0 0 2px #000000,
+    inset 2px 2px 0 #a8a8a8,
+    inset -2px -3px 0 #565656;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  text-shadow: 2px 2px 0 #342c34;
   text-transform: uppercase;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tree-view-controls label {
+  cursor: pointer;
+}
+
+.tree-view-controls label:has(input:checked) {
+  background: #315a73;
+  box-shadow:
+    0 0 0 2px #000000,
+    inset 2px 2px 0 #7fa7bd,
+    inset -2px -3px 0 #1d3443;
+  color: #ffffa0;
+}
+
+.tree-view-controls label:hover,
+.tree-view-controls button:hover,
+.tree-view-controls label:has(input:focus-visible),
+.tree-view-controls button:focus-visible {
+  background: #8b8b8b;
+  box-shadow:
+    0 0 0 2px #ffffff,
+    inset 2px 2px 0 #cfcfcf,
+    inset -2px -3px 0 #565656;
+}
+
+.tree-view-controls label:has(input:checked):hover,
+.tree-view-controls label:has(input:checked):has(input:focus-visible) {
+  background: #3f718f;
+  box-shadow:
+    0 0 0 2px #ffffa0,
+    inset 2px 2px 0 #93c4dc,
+    inset -2px -3px 0 #1d3443;
+}
+
+.tree-view-controls button:active {
+  padding: 7px 8px 5px 10px;
+  box-shadow:
+    0 0 0 2px #000000,
+    inset 2px 2px 0 #565656,
+    inset -2px -2px 0 #a8a8a8;
 }
 
 .tree-view-controls input {
-  accent-color: #355a70;
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  min-height: 14px;
+  background-size: 28px 28px;
+  filter: drop-shadow(1px 1px 0 #342c34);
+}
+
+.tree-view-controls input:checked {
+  background-position: 0 -14px;
+}
+
+.tree-view-controls span {
+  display: inline-block;
+  padding-top: 1px;
 }
 
 .tree-node-header .good-chip,
