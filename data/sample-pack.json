@@ -51,9 +51,9 @@
     { "id": "gtceu:wiremill", "name": "Wiremill", "category": "gtceu", "itemInputs": 1, "fluidInputs": 0, "itemOutputs": 1, "fluidOutputs": 0 }
   ],
   "machines": [
-    { "id": "gtceu:mv_assembler", "name": "MV Assembler", "recipeType": "gtceu:assembler", "voltageTier": "mv", "parallel": 1 },
-    { "id": "gtceu:lv_bender", "name": "LV Bender", "recipeType": "gtceu:bender", "voltageTier": "lv", "parallel": 1 },
-    { "id": "gtceu:lv_wiremill", "name": "LV Wiremill", "recipeType": "gtceu:wiremill", "voltageTier": "lv", "parallel": 1 }
+    { "id": "gtceu:mv_assembler", "name": "MV Assembler", "recipeTypes": ["gtceu:assembler"], "voltageTier": "mv", "parallel": 1 },
+    { "id": "gtceu:lv_bender", "name": "LV Bender", "recipeTypes": ["gtceu:bender"], "voltageTier": "lv", "parallel": 1 },
+    { "id": "gtceu:lv_wiremill", "name": "LV Wiremill", "recipeTypes": ["gtceu:wiremill"], "voltageTier": "lv", "parallel": 1 }
   ],
   "recipes": [
     {

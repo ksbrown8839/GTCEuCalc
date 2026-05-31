@@ -10,10 +10,20 @@ export class Repository {
     this.tags = new Map(data.tags.map((tag) => [tag.id, tag]));
     this.recipeTypes = new Map(data.recipeTypes.map((type) => [type.id, type]));
     this.voltageTiers = new Map(data.voltageTiers.map((tier) => [tier.id, tier]));
-    this.machines = new Map(data.machines.map((machine) => [machine.id, machine]));
+    this.machines = new Map();
+    this.machinesByRecipeType = new Map();
     this.recipes = data.recipes;
     this.recipesByOutput = new Map();
     this.recipesByInput = new Map();
+
+    for (const machine of data.machines ?? []) {
+      const recipeTypes = machine.recipeTypes ?? (machine.recipeType ? [machine.recipeType] : []);
+      const normalized = { ...machine, recipeTypes };
+      this.machines.set(normalized.id, normalized);
+      for (const recipeType of recipeTypes) {
+        this.addToIndex(this.machinesByRecipeType, recipeType, normalized);
+      }
+    }
 
     for (const recipe of this.recipes) {
       for (const output of recipe.outputs) {
@@ -37,6 +47,37 @@ export class Repository {
 
   getRecipeType(id) {
     return this.recipeTypes.get(id) ?? { id, name: id, category: "unknown" };
+  }
+
+  getVoltageTier(id) {
+    return this.voltageTiers.get(id) ?? null;
+  }
+
+  getVoltageTierForEut(eut) {
+    const requiredVoltage = Math.abs(eut ?? 0);
+    if (!requiredVoltage) return null;
+    return [...this.voltageTiers.values()].find((tier) => tier.voltage >= requiredVoltage) ?? null;
+  }
+
+  getMachinesForRecipeType(recipeType) {
+    return this.machinesByRecipeType.get(recipeType) ?? [];
+  }
+
+  chooseMachineForRecipe(recipe) {
+    const requiredVoltageTier = this.getVoltageTierForEut(recipe.eut);
+    const candidates = this.getMachinesForRecipeType(recipe.type);
+    const tiered = candidates
+      .filter((machine) => {
+        const tier = this.getVoltageTier(machine.voltageTier);
+        return tier && (!requiredVoltageTier || tier.voltage >= requiredVoltageTier.voltage);
+      })
+      .sort((a, b) => this.getVoltageTier(a.voltageTier).voltage - this.getVoltageTier(b.voltageTier).voltage);
+    const machine = tiered[0] ?? candidates.find((candidate) => !candidate.voltageTier) ?? candidates[0] ?? null;
+
+    return {
+      machine,
+      voltageTier: machine?.voltageTier ? this.getVoltageTier(machine.voltageTier) : requiredVoltageTier
+    };
   }
 
   getTag(id) {

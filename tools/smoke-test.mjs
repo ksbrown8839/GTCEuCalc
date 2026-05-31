@@ -36,6 +36,10 @@ if (plan.totalAverageEut <= 0) {
   throw new Error("Expected non-zero average EU/t.");
 }
 
+if (!plan.machineRows.some((row) => row.machine.id === "gtceu:mv_assembler" && row.machineCount > 0)) {
+  throw new Error("Expected the sample plan to include MV Assembler demand.");
+}
+
 if (formatRate(1) !== "1/min") {
   throw new Error("Expected rates to use the /min unit.");
 }
@@ -64,4 +68,20 @@ if (circuitBoundaryPlan.recipeRows.some((row) => row.recipe.id === "gtceu:assemb
   throw new Error("Expected circuit boundary preset to stop circuit expansion.");
 }
 
-console.log(`Smoke test passed: ${plan.recipeRows.length} recipe rows, ${plan.externalRows.length} external inputs.`);
+const realData = JSON.parse(await readFile("data/gtceu-modern-pack-1.14.5.json", "utf-8"));
+const realRepository = new Repository(realData);
+const realMachineRecipe = realRepository.recipes.find((recipe) => {
+  return recipe.durationTicks > 0 && realRepository.getMachinesForRecipeType(recipe.type).length > 0;
+});
+
+if (realRepository.machines.size === 0 || !realMachineRecipe) {
+  throw new Error("Expected the real pack to include usable machine metadata.");
+}
+
+if (!realRepository.chooseMachineForRecipe(realMachineRecipe).machine) {
+  throw new Error(`Expected a machine assignment for ${realMachineRecipe.id}.`);
+}
+
+console.log(
+  `Smoke test passed: ${plan.recipeRows.length} sample recipe rows, ${plan.machineRows.length} sample machine groups, ${realRepository.machines.size} real machine families.`
+);

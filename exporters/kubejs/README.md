@@ -43,10 +43,13 @@ http://127.0.0.1:4173/?data=data/gtceu-modern-pack-1.14.5.json
 - item and fluid goods that appear in exported recipes
 - tag ingredients and any entries that Minecraft can resolve during export
 - GTCEu recipe type IO sizes
+- GTCEu machine definitions, recipe types, and voltage tiers
 - voltage tiers from GTCEu constants
 
 ## Notes
 
 This script runs in `ServerEvents.afterRecipes`, so it sees the pack after normal recipe loading and KubeJS changes have been applied.
 
-The first version prioritizes recipe math over polish. Machine blocks, icons, localized names, and exact NBT-aware ingredient identity can come later.
+The exporter reads registered GTCEu machine definitions directly. Icons,
+localized names beyond the registered fallback, exact overclock behavior, and
+exact NBT-aware ingredient identity can come later.

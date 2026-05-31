@@ -20,6 +20,7 @@ var ResourceLocation = loadClass("net.minecraft.resources.ResourceLocation");
 var TagKey = loadClass("net.minecraft.tags.TagKey");
 var UtilsJS = loadClass("dev.latvian.mods.kubejs.util.UtilsJS");
 var GTRecipeCapabilities = loadClass("com.gregtechceu.gtceu.common.data.GTRecipeCapabilities");
+var GTRegistries = loadClass("com.gregtechceu.gtceu.api.registry.GTRegistries");
 var GTValues = loadClass("com.gregtechceu.gtceu.api.GTValues");
 var gtceuPlannerExportDone = false;
 
@@ -91,7 +92,9 @@ function runPlannerExport(eachRecipe, trigger) {
       pack.goods.length +
       " goods, and " +
       pack.tags.length +
-      " tags to " +
+      " tags, and " +
+      pack.machines.length +
+      " machines to " +
       outputPath
   );
 
@@ -616,7 +619,8 @@ function createExporter() {
         packVersion: PACK_VERSION,
         minecraftVersion: MINECRAFT_VERSION,
         loader: LOADER,
-        exporter: "kubejs-after-recipes-v1",
+        exporter: "kubejs-after-recipes-v2",
+        machineMetadata: "gtceu-machine-registry",
         exportedAt: new Date().toISOString(),
         recipeCounts: counts,
         warningCount: warnings.length,
@@ -626,7 +630,7 @@ function createExporter() {
       goods: valuesSortedById(goodsById),
       tags: valuesSortedById(tagsById),
       recipeTypes: valuesSortedById(recipeTypesById),
-      machines: [],
+      machines: machines(),
       recipes: recipes.sort(function(a, b) {
         return a.id.localeCompare(b.id);
       })
@@ -645,6 +649,46 @@ function createExporter() {
     build: build,
     warn: warn
   };
+}
+
+function machines() {
+  var machines = [];
+  if (!GTRegistries || !GTRegistries.MACHINES) return machines;
+
+  eachJava(GTRegistries.MACHINES, function(machine) {
+    var id = normalizeId(fieldOrGetter(machine, "id", "getId"));
+    var recipeTypes = [];
+
+    eachJava(fieldOrGetter(machine, "recipeTypes", "getRecipeTypes"), function(recipeType) {
+      var typeId = normalizeId(fieldOrGetter(recipeType, "registryName", "getRegistryName") || recipeType);
+      if (typeId && recipeTypes.indexOf(typeId) === -1) {
+        recipeTypes.push(typeId);
+      }
+    });
+
+    if (!id || recipeTypes.length === 0) return;
+
+    var tier = numberOr(fieldOrGetter(machine, "tier", "getTier"), -1);
+    var record = {
+      id: id,
+      name: machineName(machine, id),
+      recipeTypes: recipeTypes.sort(),
+      parallel: 1
+    };
+
+    // Tier zero is also used by untiered and steam machines, so only
+    // positive tiers are safe to expose as voltage requirements.
+    if (tier > 0) {
+      record.tier = tier;
+      record.voltageTier = voltageTierId(tier);
+    }
+
+    machines.push(record);
+  });
+
+  return machines.sort(function(a, b) {
+    return a.id.localeCompare(b.id);
+  });
 }
 
 function voltageTiers() {
@@ -671,6 +715,16 @@ function voltageTiers() {
     { id: "ev", name: "EV", voltage: 2048 },
     { id: "iv", name: "IV", voltage: 8192 }
   ];
+}
+
+function voltageTierId(index) {
+  if (!GTValues || !GTValues.VN || GTValues.VN[index] === undefined) return null;
+  return String(GTValues.VN[index]).toLowerCase();
+}
+
+function machineName(machine, id) {
+  var name = fieldOrGetter(machine, "langValue", "getLangValue") || humanName(id);
+  return String(name).replace(/\u00a7[0-9a-fk-or]/gi, "");
 }
 
 function isGTRecipe(recipe) {

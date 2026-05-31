@@ -1,6 +1,6 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=inspector-2026-05-21";
-import { loadRepository } from "./repository.js?v=inspector-2026-05-21";
-import { createPlan } from "./planner.js?v=inspector-2026-05-21";
+import { loadRepository } from "./repository.js?v=machine-metadata-2026-05-31";
+import { createPlan } from "./planner.js?v=machine-metadata-2026-05-31";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -51,6 +51,7 @@ const elements = {
   craftingTree: document.querySelector("[data-role='crafting-tree']"),
   treeViewControls: document.querySelector("[data-role='tree-view-controls']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
+  machinePlan: document.querySelector("[data-role='machine-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
   byproducts: document.querySelector("[data-role='byproducts']"),
   boundaryPresetList: document.querySelector("[data-role='boundary-preset-list']"),
@@ -487,6 +488,8 @@ function renderPlan() {
     ${assumptionHtml}
   `;
 
+  elements.machinePlan.innerHTML = machinePlanRows(repository, plan.machineRows);
+
   if (elements.recipePlan) {
     elements.recipePlan.innerHTML = plan.recipeRows.length
       ? plan.recipeRows.map((row) => recipeRow(repository, row, externalGoods)).join("")
@@ -509,7 +512,8 @@ function renderPlan() {
 function neededInputsOverview(repository, plan, assumptionCount) {
   const summary = [
     planCountText(plan.externalRows.length, "supplied input"),
-    planCountText(plan.recipeRows.length, "tree recipe")
+    planCountText(plan.recipeRows.length, "tree recipe"),
+    planCountText(plan.machineRows.length, "machine group")
   ];
 
   if (plan.byproductRows.length) {
@@ -537,6 +541,44 @@ function neededInputsOverview(repository, plan, assumptionCount) {
       </div>
     </div>
   `;
+}
+
+function machinePlanRows(repository, machineRows) {
+  const visibleRows = machineRows.slice(0, 12);
+
+  if (!visibleRows.length) {
+    return `<div class="empty-state">No timed machine recipes in this tree.</div>`;
+  }
+
+  return `
+    ${visibleRows.map((row) => machinePlanRow(repository, row)).join("")}
+    ${machineRows.length > visibleRows.length
+      ? `<div class="machine-overflow">${machineRows.length - visibleRows.length} more machine groups in tree recipes.</div>`
+      : ""}
+  `;
+}
+
+function machinePlanRow(repository, row) {
+  const name = machineName(row.machine, row.voltageTier);
+  const typeNames = row.machine.recipeTypes.map((type) => repository.getRecipeType(type).name).join(", ");
+  const inferred = row.machine.inferred ? `<span class="machine-note">inferred family</span>` : "";
+
+  return `
+    <div class="machine-row">
+      <div>
+        <strong>${escapeHtml(name)}</strong>
+        <span>${escapeHtml(typeNames)}</span>
+        ${inferred}
+      </div>
+      <strong>${formatAmount(row.machineCount)} x</strong>
+    </div>
+  `;
+}
+
+function machineName(machine, voltageTier, fallback = "Unknown machine") {
+  if (!machine) return fallback;
+  if (!voltageTier || machine.voltageTier) return machine.name;
+  return `${voltageTier.name} ${machine.name}`;
 }
 
 function planCountText(count, singular) {
@@ -579,7 +621,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
     <details class="tree-node tree-recipe${recipeKindClass}" data-goods-id="${escapeHtml(node.goodsId)}" style="--tree-depth:${depth}"${treeOpenAttribute(node.goodsId)}>
       <summary class="tree-card-summary">
         <span class="tree-card-body">
-          ${node.recipe ? machineRequirementBanner(node.recipe, type) : ""}
+          ${node.recipe ? machineRequirementBanner(node, type) : ""}
           <span class="tree-node-header">
             ${goodChip(repository, node.goodsId, visibleRate(node.amountPerMinute))}
             ${node.recipe?.durationTicks && !state.treeView.showRecipePreviews ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
@@ -603,16 +645,20 @@ function treeOpenAttribute(goodsId) {
   return state.expandedTreeGoods.has(goodsId) ? " open" : "";
 }
 
-function machineRequirementBanner(recipe, type) {
+function machineRequirementBanner(node, type) {
+  const { recipe } = node;
   const crafting = isCraftingRecipe(recipe);
   const label = crafting ? "Crafting method" : "Machine required";
   const name = crafting
     ? (type?.name ?? "Recipe").replace(/^Crafting\s+/i, "")
-    : type?.name ?? "Recipe";
+    : machineName(node.machine, node.voltageTier, type?.name ?? "Recipe");
+  const count = !crafting && node.machineCount > 0 ? `${formatAmount(node.machineCount)} x ` : "";
+  const inferred = !crafting && node.machine?.inferred ? `<em>inferred family</em>` : "";
   return `
     <span class="tree-machine-banner ${crafting ? "crafting" : "machine"}">
       <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(name)}</strong>
+      <strong>${escapeHtml(count + name)}</strong>
+      ${inferred}
     </span>
   `;
 }
@@ -766,6 +812,9 @@ function recipeRow(repository, row, externalGoods) {
   const recipeChoices = plannedOutputs
     .map(([goodsId, amountPerMinute]) => recipeChoiceControl(repository, goodsId, recipe.id, amountPerMinute, externalGoods))
     .join("");
+  const machine = row.machineCount > 0
+    ? `<span>${formatAmount(row.machineCount)} x ${escapeHtml(machineName(row.machine, row.voltageTier, type.name))}</span>`
+    : "";
 
   return `
     <article class="recipe-row">
@@ -788,6 +837,7 @@ function recipeRow(repository, row, externalGoods) {
         </div>
       </div>
       <div class="recipe-meta">
+        ${machine}
         <span>${formatDuration(recipe.durationTicks)}</span>
         <span>${formatAmount(recipe.eut)} EU/t</span>
         <span>${formatAverageEut(recipe, runsPerMinute)}</span>
@@ -1385,7 +1435,7 @@ async function main() {
     state.products = chooseInitialProducts(state.repository);
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     const meta = state.repository.metadata;
-    const packCounts = `${formatAmount(state.repository.goods.size)} goods / ${formatAmount(state.repository.recipes.length)} recipes`;
+    const packCounts = `${formatAmount(state.repository.goods.size)} goods / ${formatAmount(state.repository.recipes.length)} recipes / ${formatAmount(state.repository.machines.size)} machines`;
     elements.packName.textContent = meta.packName;
     elements.packMeta.textContent = `${meta.packVersion} / Minecraft ${meta.minecraftVersion} / ${meta.loader} / ${packCounts} / ${state.dataUrl}`;
     setupEvents();

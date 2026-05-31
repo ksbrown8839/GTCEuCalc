@@ -50,6 +50,8 @@ const recipes = requireArray("recipes");
 const goodIds = new Set();
 const tagIds = new Set();
 const recipeTypeIds = new Set();
+const voltageTierIds = new Set();
+const machineIds = new Set();
 
 for (const good of goods) {
   if (!isString(good.id)) error("Every good needs an id.");
@@ -83,11 +85,29 @@ for (const type of recipeTypes) {
 for (const tier of voltageTiers) {
   if (!isString(tier.id)) error("Every voltage tier needs an id.");
   if (!isNumber(tier.voltage)) error(`${tier.id} voltage must be numeric.`);
+  voltageTierIds.add(tier.id);
 }
 
 for (const machine of machines) {
-  if (machine.recipeType && !recipeTypeIds.has(machine.recipeType)) {
-    warn(`${machine.id} refers to unknown recipe type ${machine.recipeType}.`);
+  if (!isString(machine.id)) error("Every machine needs an id.");
+  if (!isString(machine.name)) warn(`${machine.id} is missing a display name.`);
+  if (machineIds.has(machine.id)) error(`Duplicate machine id ${machine.id}.`);
+  machineIds.add(machine.id);
+
+  const machineRecipeTypes = machine.recipeTypes ?? (machine.recipeType ? [machine.recipeType] : []);
+  if (!Array.isArray(machineRecipeTypes) || machineRecipeTypes.length === 0) {
+    error(`${machine.id} needs at least one recipe type.`);
+  }
+  for (const recipeType of machineRecipeTypes) {
+    if (!recipeTypeIds.has(recipeType)) {
+      warn(`${machine.id} refers to unknown recipe type ${recipeType}.`);
+    }
+  }
+  if (machine.voltageTier && !voltageTierIds.has(machine.voltageTier)) {
+    warn(`${machine.id} refers to unknown voltage tier ${machine.voltageTier}.`);
+  }
+  if (!isNumber(machine.parallel) || machine.parallel <= 0) {
+    error(`${machine.id} parallel must be a positive number.`);
   }
 }
 
@@ -140,5 +160,5 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `Validated ${filePath}: ${recipes.length} recipes, ${goods.length} goods, ${tags.length} tags, ${warnings.length} warnings.`
+  `Validated ${filePath}: ${recipes.length} recipes, ${goods.length} goods, ${tags.length} tags, ${machines.length} machines, ${warnings.length} warnings.`
 );

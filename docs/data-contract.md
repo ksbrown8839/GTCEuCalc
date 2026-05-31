@@ -83,13 +83,19 @@ The planner uses `preferred` as the first automatic choice. Later the UI should 
 {
   "id": "gtceu:mv_assembler",
   "name": "MV Assembler",
-  "recipeType": "gtceu:assembler",
+  "recipeTypes": ["gtceu:assembler"],
   "voltageTier": "mv",
   "parallel": 1
 }
 ```
 
-Machines are optional for early data. If absent, the planner can still reason about recipes.
+`recipeTypes` may contain more than one entry for multi-mode machines. `voltageTier`
+is optional for untiered machine families such as multiblocks. `parallel` defaults
+to `1`.
+
+Machines are optional for early data. If absent, `tools/normalize-export.mjs`
+adds inferred machine families for timed GTCEu recipe types so the planner can
+still report baseline machine counts.
 
 ## Recipes
 

@@ -13,14 +13,16 @@ This repository uses the GTNH calculator only as a reference for product thinkin
 
 ## Current State
 
-This first milestone includes:
+The current milestone includes:
 
 - a static browser app
-- a normalized `data/sample-pack.json` contract
-- a small recursive planner for selected products
-- a first-pass KubeJS exporter for real GTCEu Modern pack data
+- a normalized JSON contract with a small `data/sample-pack.json` fixture
+- the checked-in `data/gtceu-modern-pack-1.14.5.json` real-pack export
+- a recursive planner with baseline machine counts and minimum voltage tiers
+- a KubeJS exporter for recipes and registered GTCEu machine definitions
 
-The sample data is intentionally tiny. It exists to prove the UI and planner shape before we wire in the real pack export.
+The sample data stays intentionally tiny for smoke tests. The browser loads the
+real pack export by default.
 
 ## Run Locally
 
@@ -79,6 +81,7 @@ The generated atlas contains icons derived from Minecraft and mod assets; see `d
 
 ```bash
 node tools/validate-export.mjs data/sample-pack.json
+node tools/validate-export.mjs data/gtceu-modern-pack-1.14.5.json
 ```
 
 To open a different exported data file in the app, pass it as a query parameter:

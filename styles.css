@@ -562,6 +562,49 @@ select {
   font-size: 16px;
 }
 
+.machine-summary {
+  margin-top: 18px;
+}
+
+.machine-list {
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.machine-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fafbf8;
+  font-size: 12px;
+}
+
+.machine-row span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.machine-row > strong {
+  color: var(--accent-3);
+  white-space: nowrap;
+}
+
+.machine-row .machine-note,
+.machine-overflow {
+  color: var(--accent-2);
+}
+
+.machine-overflow {
+  font-size: 12px;
+  padding: 4px 2px;
+}
+
 .section-header {
   display: flex;
   align-items: center;

@@ -552,7 +552,7 @@ input[type="range"] {
 
 .tree-machine-banner {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   justify-self: start;
   gap: 10px;
@@ -562,6 +562,14 @@ input[type="range"] {
   padding: 8px 10px;
   background: #3d5865;
   white-space: normal;
+}
+
+.tree-machine-banner > em {
+  color: #bfe9ff;
+  font-size: 10px;
+  font-style: normal;
+  text-transform: lowercase;
+  white-space: nowrap;
 }
 
 .tree-machine-banner.machine {
