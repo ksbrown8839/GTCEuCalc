@@ -1,6 +1,6 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=machine-metadata-2026-05-31";
-import { createPlan } from "./planner.js?v=machine-build-counts-2026-05-31";
+import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
+import { createPlan } from "./planner.js?v=default-recipe-ranking-2026-05-31";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -672,7 +672,7 @@ function machineRequirementBanner(node, type) {
 }
 
 function treeRecipeChoiceControl(repository, node, externalGoods) {
-  const recipes = repository.findRecipesProducing(node.goodsId);
+  const recipes = repository.rankRecipesForOutput(node.goodsId);
   const goodName = repository.getGoodName(node.goodsId);
   const isTarget = state.products.some((product) => product.goodsId === node.goodsId);
   const canTreatAsExternal = !isTarget;
@@ -683,9 +683,9 @@ function treeRecipeChoiceControl(repository, node, externalGoods) {
     ? EXTERNAL_RECIPE_VALUE
     : state.preferredRecipeByOutput[node.goodsId] ?? node.recipe.id;
   const recipeOptions = recipes
-    .map((candidate) => {
+    .map((candidate, index) => {
       const type = repository.getRecipeType(candidate.type);
-      const label = `${type.name} · ${candidate.id}`;
+      const label = `${index === 0 ? "Recommended · " : ""}${type.name} · ${candidate.id}`;
       const selected = candidate.id === selectedRecipeId ? " selected" : "";
       return `<option value="${escapeHtml(candidate.id)}"${selected}>${escapeHtml(label)}</option>`;
     })
@@ -859,16 +859,16 @@ function recipeRow(repository, row, externalGoods) {
 }
 
 function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinute, externalGoods) {
-  const recipes = repository.findRecipesProducing(goodsId);
+  const recipes = repository.rankRecipesForOutput(goodsId);
   const goodName = repository.getGoodName(goodsId);
   const selectedRecipeId = externalGoods.has(goodsId)
     ? EXTERNAL_RECIPE_VALUE
     : state.preferredRecipeByOutput[goodsId] ?? currentRecipeId;
 
   const recipeOptions = recipes
-    .map((candidate) => {
+    .map((candidate, index) => {
       const type = repository.getRecipeType(candidate.type);
-      const label = `${type.name} · ${candidate.id}`;
+      const label = `${index === 0 ? "Recommended · " : ""}${type.name} · ${candidate.id}`;
       const selected = candidate.id === selectedRecipeId ? " selected" : "";
       return `<option value="${escapeHtml(candidate.id)}"${selected}>${escapeHtml(label)}</option>`;
     })
@@ -928,12 +928,13 @@ function inspectorResultRow(repository, good) {
 }
 
 function selectedGoodPanel(repository, good) {
-  const producedBy = repository.findRecipesProducing(good.id);
+  const producedBy = repository.rankRecipesForOutput(good.id);
   const usedIn = repository.findRecipesUsing(good.id);
   const effectiveExternalGoods = getEffectiveExternalGoods(repository);
   const isExternal = effectiveExternalGoods.has(good.id);
   const boundary = getBoundaryPresetForGood(good);
   const preferredRecipeId = state.preferredRecipeByOutput[good.id];
+  const recommendedRecipeId = producedBy[0]?.id;
 
   return `
     <section class="inspector-card selected-good-card">
@@ -960,7 +961,7 @@ function selectedGoodPanel(repository, good) {
     <section class="inspector-section">
       <h2>Produced by</h2>
       ${producedBy.length
-        ? producedBy.slice(0, 8).map((recipe) => inspectorRecipeCard(repository, recipe, good.id, "produced", preferredRecipeId)).join("")
+        ? producedBy.slice(0, 8).map((recipe) => inspectorRecipeCard(repository, recipe, good.id, "produced", preferredRecipeId, recommendedRecipeId)).join("")
         : `<div class="empty-state">No producing recipe. This is a raw or supplied input.</div>`}
       ${producedBy.length > 8 ? `<p class="match-summary">Showing 8 of ${formatAmount(producedBy.length)} producing recipes.</p>` : ""}
     </section>
@@ -968,20 +969,21 @@ function selectedGoodPanel(repository, good) {
     <section class="inspector-section">
       <h2>Used in</h2>
       ${usedIn.length
-        ? usedIn.slice(0, 8).map((recipe) => inspectorRecipeCard(repository, recipe, good.id, "used", null)).join("")
+        ? usedIn.slice(0, 8).map((recipe) => inspectorRecipeCard(repository, recipe, good.id, "used", null, null)).join("")
         : `<div class="empty-state">No exported recipes use this good.</div>`}
       ${usedIn.length > 8 ? `<p class="match-summary">Showing 8 of ${formatAmount(usedIn.length)} using recipes.</p>` : ""}
     </section>
   `;
 }
 
-function inspectorRecipeCard(repository, recipe, inspectedGoodsId, mode, preferredRecipeId) {
+function inspectorRecipeCard(repository, recipe, inspectedGoodsId, mode, preferredRecipeId, recommendedRecipeId) {
   const type = repository.getRecipeType(recipe.type);
   const outputs = recipe.outputs.map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
   const inputs = recipe.inputs.map((input) => ingredientChip(repository, input)).join("");
   const isPreferred = recipe.id === preferredRecipeId;
+  const isRecommended = recipe.id === recommendedRecipeId;
   const firstOutput = recipe.outputs.find((output) => repository.getGood(output.id));
-  const activeClass = isPreferred ? " active" : "";
+  const activeClass = isPreferred || isRecommended ? " active" : "";
 
   return `
     <article class="inspector-recipe-card${activeClass}">
@@ -990,7 +992,7 @@ function inspectorRecipeCard(repository, recipe, inspectedGoodsId, mode, preferr
           <strong>${escapeHtml(type.name)}</strong>
           <p>${escapeHtml(recipe.id)}</p>
         </div>
-        ${isPreferred ? `<span class="preferred-pill">preferred</span>` : ""}
+        ${isPreferred || isRecommended ? `<span class="preferred-pill">${isPreferred ? "preferred" : "recommended"}</span>` : ""}
       </header>
       <div class="recipe-meta compact-meta">
         <span>${formatDuration(recipe.durationTicks)}</span>

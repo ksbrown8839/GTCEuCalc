@@ -134,14 +134,27 @@ export class Repository {
     return this.recipesByInput.get(goodsId) ?? [];
   }
 
-  chooseRecipeForOutput(goodsId, preferences = {}) {
+  chooseRecipeForOutput(goodsId, preferences = {}, options = {}) {
     const preferredRecipe = preferences[goodsId];
     const recipes = this.findRecipesProducing(goodsId);
     if (preferredRecipe) {
       const match = recipes.find((recipe) => recipe.id === preferredRecipe);
       if (match) return match;
     }
-    return recipes[0] ?? null;
+    return this.rankRecipesForOutput(goodsId, options)[0] ?? null;
+  }
+
+  rankRecipesForOutput(goodsId, options = {}) {
+    const avoidGoods = new Set(options.avoidGoods ?? []);
+
+    return this.findRecipesProducing(goodsId)
+      .map((recipe, index) => ({
+        recipe,
+        index,
+        score: scoreRecipeForOutput(this, goodsId, recipe, avoidGoods)
+      }))
+      .sort((a, b) => a.score - b.score || a.index - b.index)
+      .map((candidate) => candidate.recipe);
   }
 
   searchGoods(query, limit = 80) {
@@ -202,6 +215,134 @@ function scoreGoodSearchMatch(good, query) {
   if (id.includes(query)) return 4;
   if (tags.some((tag) => tag.toLowerCase().includes(query))) return 5;
   if (mod.includes(query)) return 6;
+  return null;
+}
+
+function scoreRecipeForOutput(repository, goodsId, recipe, avoidGoods) {
+  const outputIndex = recipe.outputs.findIndex((output) => output.id === goodsId);
+  const outputForm = materialFormForId(goodsId);
+  const inputs = recipe.inputs.filter((input) => !input.notConsumed);
+  const inputForms = inputs.map((input) => materialFormForIngredient(repository, input));
+  let score = outputIndex > 0 ? 20_000 + outputIndex * 1_000 : 0;
+
+  for (let index = 0; index < inputs.length; index += 1) {
+    const input = inputs[index];
+    const resolved = repository.resolveIngredient(input);
+    const inputForm = inputForms[index];
+
+    if (avoidGoods.has(resolved.id)) score += 50_000;
+    if (isReverseMaterialConversion(outputForm, inputForm)) score += 10_000;
+    if (isTransformedMaterial(input.id)) score += 100;
+  }
+
+  if (recipe.type === "gtceu:arc_furnace") score += 4_000;
+  if (recipe.type === "gtceu:extractor") score += 3_000;
+  if (recipe.type === "gtceu:macerator" && !inputs.some(isOreProcessingIngredient)) score += 3_000;
+  if (/disassembl|recycl/i.test(recipe.id)) score += 3_000;
+
+  score += forwardProductionBonus(outputForm, recipe, inputForms);
+  return score;
+}
+
+function forwardProductionBonus(outputForm, recipe, inputForms) {
+  if (!outputForm) return 0;
+
+  const identityMatchesMaterial = recipe.id.includes(outputForm.material);
+  const hasSameMaterialCleanDust = inputForms.some((input) => {
+    return sameMaterial(outputForm, input) && input.form === "dust";
+  });
+  const hasSameMaterialDust = inputForms.some((input) => {
+    return sameMaterial(outputForm, input) && ["dust", "impure_dust", "pure_dust"].includes(input.form);
+  });
+  const hasSameMaterialPackingInput = inputForms.some((input) => {
+    return sameMaterial(outputForm, input) && ["nugget", "block", "fluid"].includes(input.form);
+  });
+  const hasSameMaterialOreProcessingInput = inputForms.some((input) => {
+    return sameMaterial(outputForm, input) && ["impure_dust", "pure_dust", "refined_ore"].includes(input.form);
+  });
+
+  if (outputForm.form === "ingot") {
+    if (recipe.type === "gtceu:alloy_smelter" && identityMatchesMaterial && recipe.inputs.filter((input) => !input.notConsumed).length > 1 && !hasSameMaterialPackingInput) return -1_400;
+    if (recipe.type === "gtceu:primitive_blast_furnace" && identityMatchesMaterial && !hasSameMaterialPackingInput) return -1_300;
+    if (recipe.type === "gtceu:electric_blast_furnace" && identityMatchesMaterial && !hasSameMaterialDust && !hasSameMaterialPackingInput) return -1_200;
+    if (hasSameMaterialCleanDust) return -1_100;
+    if (hasSameMaterialDust) return -1_000;
+    if (recipe.type === "minecraft:smelting" && recipe.inputs.some(isOreProcessingIngredient)) return -300;
+  }
+
+  if (outputForm.form === "dust") {
+    if (recipe.type === "gtceu:mixer") return -1_400;
+    if (hasSameMaterialOreProcessingInput) return -1_100;
+  }
+
+  if (outputForm.form === "nugget" && inputForms.some((input) => sameMaterial(outputForm, input) && input.form === "ingot")) {
+    return -300;
+  }
+
+  return 0;
+}
+
+function isReverseMaterialConversion(output, input) {
+  if (!sameMaterial(output, input)) return false;
+
+  if (output.form === "ingot") return ["nugget", "block", "fluid"].includes(input.form);
+  if (output.form === "dust") return ["ingot", "nugget", "block"].includes(input.form);
+  return false;
+}
+
+function sameMaterial(a, b) {
+  return Boolean(a && b && a.material === b.material);
+}
+
+function isTransformedMaterial(id) {
+  return /(?:^|[/:_])(annealed|magnetic)_/.test(id);
+}
+
+function isOreProcessingIngredient(ingredient) {
+  return /(?:^|[/:_])(raw_materials|crushed_ores|purified_ores|refined_ores|impure_dusts|pure_dusts)(?:[/:_]|$)|_ore$/.test(ingredient.id);
+}
+
+function materialFormForIngredient(repository, ingredient) {
+  const materialForm = materialFormForId(ingredient.id);
+  if (materialForm) return materialForm;
+
+  const tag = ingredient.kind === "tag" ? repository.getTag(ingredient.id) : null;
+  const fluidMatch = tag?.kind === "fluid" ? ingredient.id.match(/^[^:]+:([^/]+)$/) : null;
+  return fluidMatch ? { material: fluidMatch[1], form: "fluid" } : null;
+}
+
+function materialFormForId(id) {
+  const patterns = [
+    [/^[^:]+:tiny_dusts\/(.+)$/, "tiny_dust"],
+    [/^[^:]+:small_dusts\/(.+)$/, "small_dust"],
+    [/^[^:]+:impure_dusts\/(.+)$/, "impure_dust"],
+    [/^[^:]+:pure_dusts\/(.+)$/, "pure_dust"],
+    [/^[^:]+:dusts\/(.+)$/, "dust"],
+    [/^[^:]+:nuggets\/(.+)$/, "nugget"],
+    [/^[^:]+:ingots\/(.+)$/, "ingot"],
+    [/^[^:]+:storage_blocks\/(.+)$/, "block"],
+    [/^[^:]+:raw_materials\/(.+)$/, "raw_material"],
+    [/^[^:]+:crushed_ores\/(.+)$/, "crushed_ore"],
+    [/^[^:]+:purified_ores\/(.+)$/, "purified_ore"],
+    [/^[^:]+:refined_ores\/(.+)$/, "refined_ore"],
+    [/^[^:]+:impure_(.+)_dust$/, "impure_dust"],
+    [/^[^:]+:pure_(.+)_dust$/, "pure_dust"],
+    [/^[^:]+:tiny_(.+)_dust$/, "tiny_dust"],
+    [/^[^:]+:small_(.+)_dust$/, "small_dust"],
+    [/^[^:]+:crushed_(.+)_ore$/, "crushed_ore"],
+    [/^[^:]+:purified_(.+)_ore$/, "purified_ore"],
+    [/^[^:]+:refined_(.+)_ore$/, "refined_ore"],
+    [/^[^:]+:(.+)_nugget$/, "nugget"],
+    [/^[^:]+:(.+)_ingot$/, "ingot"],
+    [/^[^:]+:(.+)_dust$/, "dust"],
+    [/^[^:]+:(.+)_block$/, "block"]
+  ];
+
+  for (const [pattern, form] of patterns) {
+    const match = id.match(pattern);
+    if (match) return { material: match[1], form };
+  }
+
   return null;
 }
 

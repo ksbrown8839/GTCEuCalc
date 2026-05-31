@@ -56,6 +56,78 @@ if (formatAmount(100) !== "100" || formatAmount(300) !== "300") {
   throw new Error("Expected whole hundreds to keep their trailing zeros.");
 }
 
+const loopRepository = new Repository({
+  schema: "gtceu-planner-pack-v1",
+  metadata: {},
+  voltageTiers: [],
+  goods: [
+    { id: "minecraft:iron_ingot", kind: "item", name: "Iron Ingot", mod: "minecraft", tags: [] },
+    { id: "minecraft:iron_nugget", kind: "item", name: "Iron Nugget", mod: "minecraft", tags: [] },
+    { id: "gtceu:iron_dust", kind: "item", name: "Iron Dust", mod: "gtceu", tags: [] },
+    { id: "gtceu:ingot_casting_mold", kind: "item", name: "Casting Mold (Ingot)", mod: "gtceu", tags: [] },
+    { id: "gtceu:nugget_casting_mold", kind: "item", name: "Casting Mold (Nugget)", mod: "gtceu", tags: [] }
+  ],
+  tags: [
+    { id: "forge:ingots/iron", kind: "item", name: "Ingots Iron", entries: ["minecraft:iron_ingot"], preferred: "minecraft:iron_ingot" },
+    { id: "forge:nuggets/iron", kind: "item", name: "Nuggets Iron", entries: ["minecraft:iron_nugget"], preferred: "minecraft:iron_nugget" },
+    { id: "forge:dusts/iron", kind: "item", name: "Dusts Iron", entries: ["gtceu:iron_dust"], preferred: "gtceu:iron_dust" }
+  ],
+  recipeTypes: [
+    { id: "gtceu:alloy_smelter", name: "Alloy Smelter", category: "gtceu" },
+    { id: "minecraft:smelting", name: "Smelting", category: "minecraft" }
+  ],
+  machines: [],
+  recipes: [
+    {
+      id: "gtceu:alloy_smelter/alloy_smelt_iron_nugget_to_ingot",
+      type: "gtceu:alloy_smelter",
+      durationTicks: 56,
+      eut: 7,
+      inputs: [
+        { kind: "tag", id: "forge:nuggets/iron", amount: 9 },
+        { kind: "item", id: "gtceu:ingot_casting_mold", amount: 1, notConsumed: true }
+      ],
+      outputs: [{ kind: "item", id: "minecraft:iron_ingot", amount: 1 }]
+    },
+    {
+      id: "gtceu:smelting/smelt_dust_iron_to_ingot",
+      type: "minecraft:smelting",
+      durationTicks: 200,
+      eut: 0,
+      inputs: [{ kind: "tag", id: "forge:dusts/iron", amount: 1 }],
+      outputs: [{ kind: "item", id: "minecraft:iron_ingot", amount: 1 }]
+    },
+    {
+      id: "gtceu:alloy_smelter/alloy_smelt_iron_to_nugget",
+      type: "gtceu:alloy_smelter",
+      durationTicks: 56,
+      eut: 7,
+      inputs: [
+        { kind: "tag", id: "forge:ingots/iron", amount: 1 },
+        { kind: "item", id: "gtceu:nugget_casting_mold", amount: 1, notConsumed: true }
+      ],
+      outputs: [{ kind: "item", id: "minecraft:iron_nugget", amount: 9 }]
+    }
+  ]
+});
+
+const defaultIronRecipe = loopRepository.chooseRecipeForOutput("minecraft:iron_ingot");
+if (defaultIronRecipe?.id !== "gtceu:smelting/smelt_dust_iron_to_ingot") {
+  throw new Error("Expected ingot defaults to prefer forward dust smelting over nugget repacking.");
+}
+
+const loopSafePlan = createPlan(loopRepository, [{ goodsId: "minecraft:iron_nugget", amountPerMinute: 9 }]);
+if (loopSafePlan.warnings.some((warning) => warning.includes("Cycle detected"))) {
+  throw new Error("Expected nugget planning to expand through a loop-safe ingot default.");
+}
+
+const manuallyPreferredRepacking = loopRepository.chooseRecipeForOutput("minecraft:iron_ingot", {
+  "minecraft:iron_ingot": "gtceu:alloy_smelter/alloy_smelt_iron_nugget_to_ingot"
+});
+if (manuallyPreferredRepacking?.id !== "gtceu:alloy_smelter/alloy_smelt_iron_nugget_to_ingot") {
+  throw new Error("Expected explicit recipe preferences to override automatic ranking.");
+}
+
 if (!targetMatches.some((good) => good.id === "gtceu:polyethylene")) {
   throw new Error("Expected target search to find Polyethylene.");
 }
@@ -92,6 +164,24 @@ if (realRepository.machines.size === 0 || !realMachineRecipe) {
 
 if (!realRepository.chooseMachineForRecipe(realMachineRecipe).machine) {
   throw new Error(`Expected a machine assignment for ${realMachineRecipe.id}.`);
+}
+
+const expectedRealDefaults = new Map([
+  ["minecraft:iron_ingot", "gtceu:smelting/smelt_dust_iron_to_ingot"],
+  ["minecraft:copper_ingot", "gtceu:smelting/smelt_dust_copper_to_ingot"],
+  ["minecraft:gold_ingot", "gtceu:smelting/smelt_dust_gold_to_ingot"],
+  ["gtceu:tin_ingot", "gtceu:smelting/smelt_dust_tin_to_ingot"],
+  ["gtceu:wrought_iron_ingot", "gtceu:smelting/smelt_dust_wrought_iron_to_ingot"],
+  ["gtceu:steel_ingot", "gtceu:primitive_blast_furnace/steel_from_charcoal_dust"],
+  ["gtceu:aluminium_ingot", "gtceu:electric_blast_furnace/blast_aluminium"],
+  ["gtceu:bronze_ingot", "gtceu:alloy_smelter/copper_dust_and_tin_dust_into_bronze"]
+]);
+
+for (const [goodsId, expectedRecipeId] of expectedRealDefaults) {
+  const recipe = realRepository.chooseRecipeForOutput(goodsId);
+  if (recipe?.id !== expectedRecipeId) {
+    throw new Error(`Expected ${goodsId} to default to ${expectedRecipeId}, got ${recipe?.id ?? "no recipe"}.`);
+  }
 }
 
 console.log(

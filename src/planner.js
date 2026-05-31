@@ -68,7 +68,9 @@ export function createPlan(repository, products, options = {}) {
       return node;
     }
 
-    const recipe = repository.chooseRecipeForOutput(goodsId, options.preferredRecipeByOutput ?? {});
+    const recipe = repository.chooseRecipeForOutput(goodsId, options.preferredRecipeByOutput ?? {}, {
+      avoidGoods: stack
+    });
     if (!recipe) {
       add(externalInputs, goodsId, amountPerMinute);
       node.reason = "missing";
