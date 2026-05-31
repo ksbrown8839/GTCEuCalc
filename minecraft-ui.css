@@ -23,14 +23,6 @@
   --minecraft-slot-bg: #909090;
   --minecraft-slot-empty: #909090;
   --minecraft-crafting-gui-scale: 2;
-  --minecraft-crafting-gui-width: calc(176px * var(--minecraft-crafting-gui-scale));
-  --minecraft-crafting-gui-height: calc(83px * var(--minecraft-crafting-gui-scale));
-  --minecraft-crafting-slot-size: calc(18px * var(--minecraft-crafting-gui-scale));
-  --minecraft-crafting-slot-inner: calc(16px * var(--minecraft-crafting-gui-scale));
-  --minecraft-crafting-grid-left: calc(29px * var(--minecraft-crafting-gui-scale));
-  --minecraft-crafting-grid-top: calc(16px * var(--minecraft-crafting-gui-scale));
-  --minecraft-crafting-output-left: calc(123px * var(--minecraft-crafting-gui-scale));
-  --minecraft-crafting-output-top: calc(34px * var(--minecraft-crafting-gui-scale));
 }
 
 body {
@@ -787,6 +779,14 @@ input[type="range"] {
 }
 
 .crafting-visual {
+  --minecraft-crafting-gui-width: calc(176px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-gui-height: calc(83px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-slot-size: calc(18px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-slot-inner: calc(16px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-grid-left: calc(29px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-grid-top: calc(16px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-output-left: calc(123px * var(--minecraft-crafting-gui-scale));
+  --minecraft-crafting-output-top: calc(34px * var(--minecraft-crafting-gui-scale));
   position: relative;
   display: block;
   justify-self: start;
@@ -798,9 +798,9 @@ input[type="range"] {
   border: 0;
   border-radius: 0;
   background:
-    url("assets/gui/minecraft/crafting_table.png") 0 0 /
-      calc(256px * var(--minecraft-crafting-gui-scale))
-      calc(256px * var(--minecraft-crafting-gui-scale)) no-repeat;
+    url("assets/gui/minecraft/crafting_table_preview.png") 0 0 /
+      var(--minecraft-crafting-gui-width)
+      var(--minecraft-crafting-gui-height) no-repeat;
   box-shadow: none;
   image-rendering: pixelated;
   overflow: hidden;
@@ -1087,5 +1087,17 @@ input[type="range"] {
 
   .tree-recipe-choice {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .crafting-visual {
+    --minecraft-crafting-gui-scale: 1.35;
+  }
+}
+
+@media (max-width: 360px) {
+  .crafting-visual {
+    --minecraft-crafting-gui-scale: 1.2;
   }
 }

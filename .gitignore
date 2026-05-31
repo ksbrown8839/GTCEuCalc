@@ -9,6 +9,7 @@ assets/gui/*
 !assets/gui/minecraft/
 assets/gui/minecraft/*
 !assets/gui/minecraft/crafting_table.png
+!assets/gui/minecraft/crafting_table_preview.png
 !assets/gui/minecraft/widgets.png
 !assets/gui/minecraft/checkbox.png
 !assets/gui/minecraft/slider.png
