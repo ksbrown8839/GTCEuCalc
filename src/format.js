@@ -16,7 +16,8 @@ export function formatAmount(value, unit = "") {
   }
 
   const decimals = Math.abs(scaled) >= 100 ? 0 : Math.abs(scaled) >= 10 ? 1 : 2;
-  const text = scaled.toFixed(decimals).replace(/\.?0+$/, "");
+  const fixed = scaled.toFixed(decimals);
+  const text = decimals ? fixed.replace(/\.?0+$/, "") : fixed;
   return `${text}${suffix}${unit}`;
 }
 

@@ -39,7 +39,7 @@ This layer keeps the UI from doing repeated scans through the raw data.
 
 ### 4. Planner
 
-The initial planner is deliberately simple: it recursively picks a recipe for a requested product, scales recipe rates, reports unresolved inputs, and estimates baseline machine counts with minimum voltage tiers.
+The initial planner is deliberately simple: it recursively picks a recipe for a requested product, scales recipe rates, reports unresolved inputs, and estimates baseline machine builds and utilization with minimum voltage tiers.
 
 Later, this should grow into a real constraint solver so it can handle:
 

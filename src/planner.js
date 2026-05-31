@@ -92,7 +92,8 @@ export function createPlan(repository, products, options = {}) {
     const assignment = repository.chooseMachineForRecipe(recipe);
     node.machine = assignment.machine;
     node.voltageTier = assignment.voltageTier;
-    node.machineCount = machineCount(recipe, runsPerMinute, assignment.machine?.parallel ?? 1);
+    node.machineLoad = machineLoad(recipe, runsPerMinute, assignment.machine?.parallel ?? 1);
+    node.machineCount = requiredMachineCount(node.machineLoad);
     recordRecipe(recipe, runsPerMinute, goodsId, amountPerMinute);
 
     for (const output of recipe.outputs) {
@@ -165,20 +166,21 @@ export function createPlan(repository, products, options = {}) {
     const parallel = assignment.machine?.parallel ?? 1;
     row.machine = assignment.machine;
     row.voltageTier = assignment.voltageTier;
-    row.machineCount = machineCount(row.recipe, row.runsPerMinute, parallel);
+    row.machineLoad = machineLoad(row.recipe, row.runsPerMinute, parallel);
+    row.machineCount = requiredMachineCount(row.machineLoad);
 
-    if (row.machineCount <= 0 || !row.machine) continue;
+    if (row.machineLoad <= 0 || !row.machine) continue;
 
     const key = `${row.machine.id}:${row.voltageTier?.id ?? "untiered"}`;
     const current = machineRates.get(key);
     if (current) {
-      current.machineCount += row.machineCount;
+      current.machineLoad += row.machineLoad;
       current.recipeCount += 1;
     } else {
       machineRates.set(key, {
         machine: row.machine,
         voltageTier: row.voltageTier,
-        machineCount: row.machineCount,
+        machineLoad: row.machineLoad,
         recipeCount: 1
       });
     }
@@ -190,7 +192,12 @@ export function createPlan(repository, products, options = {}) {
   const byproductRows = [...byproducts.entries()]
     .map(([goodsId, amountPerMinute]) => ({ goodsId, amountPerMinute }))
     .sort((a, b) => b.amountPerMinute - a.amountPerMinute);
-  const machineRows = [...machineRates.values()].sort((a, b) => b.machineCount - a.machineCount);
+  const machineRows = [...machineRates.values()]
+    .map((row) => ({
+      ...row,
+      machineCount: requiredMachineCount(row.machineLoad)
+    }))
+    .sort((a, b) => b.machineCount - a.machineCount || b.machineLoad - a.machineLoad);
 
   const totalAverageEut = recipeRows.reduce((sum, row) => {
     return sum + averageEut(row.recipe, row.runsPerMinute);
@@ -214,7 +221,15 @@ export function averageEut(recipe, runsPerMinute) {
   return (recipe.eut * recipe.durationTicks * runsPerMinute) / 1200;
 }
 
-export function machineCount(recipe, runsPerMinute, parallel = 1) {
+export function machineLoad(recipe, runsPerMinute, parallel = 1) {
   if (!recipe.durationTicks || !runsPerMinute || parallel <= 0) return 0;
   return (recipe.durationTicks * runsPerMinute) / (1200 * parallel);
+}
+
+export function requiredMachineCount(load) {
+  return load > 0 ? Math.ceil(load) : 0;
+}
+
+export function machineCount(recipe, runsPerMinute, parallel = 1) {
+  return requiredMachineCount(machineLoad(recipe, runsPerMinute, parallel));
 }

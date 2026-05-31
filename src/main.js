@@ -1,6 +1,6 @@
-import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=inspector-2026-05-21";
+import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=machine-metadata-2026-05-31";
-import { createPlan } from "./planner.js?v=machine-metadata-2026-05-31";
+import { createPlan } from "./planner.js?v=machine-build-counts-2026-05-31";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -561,6 +561,7 @@ function machinePlanRows(repository, machineRows) {
 function machinePlanRow(repository, row) {
   const name = machineName(row.machine, row.voltageTier);
   const typeNames = row.machine.recipeTypes.map((type) => repository.getRecipeType(type).name).join(", ");
+  const load = machineLoadLabel(row.machineLoad, row.machineCount);
   const inferred = row.machine.inferred ? `<span class="machine-note">inferred family</span>` : "";
 
   return `
@@ -568,6 +569,7 @@ function machinePlanRow(repository, row) {
       <div>
         <strong>${escapeHtml(name)}</strong>
         <span>${escapeHtml(typeNames)}</span>
+        <span>${escapeHtml(load)}</span>
         ${inferred}
       </div>
       <strong>${formatAmount(row.machineCount)} x</strong>
@@ -579,6 +581,11 @@ function machineName(machine, voltageTier, fallback = "Unknown machine") {
   if (!machine) return fallback;
   if (!voltageTier || machine.voltageTier) return machine.name;
   return `${voltageTier.name} ${machine.name}`;
+}
+
+function machineLoadLabel(load, count) {
+  if (!load || !count) return "idle";
+  return `${formatAmount(load)} equivalent load · ${formatAmount((load / count) * 100)}% utilized`;
 }
 
 function planCountText(count, singular) {
@@ -653,12 +660,13 @@ function machineRequirementBanner(node, type) {
     ? (type?.name ?? "Recipe").replace(/^Crafting\s+/i, "")
     : machineName(node.machine, node.voltageTier, type?.name ?? "Recipe");
   const count = !crafting && node.machineCount > 0 ? `${formatAmount(node.machineCount)} x ` : "";
-  const inferred = !crafting && node.machine?.inferred ? `<em>inferred family</em>` : "";
+  const load = !crafting && node.machineLoad > 0 ? `${formatAmount(node.machineLoad)} load` : "";
+  const note = [load, node.machine?.inferred ? "inferred family" : ""].filter(Boolean).join(" · ");
   return `
     <span class="tree-machine-banner ${crafting ? "crafting" : "machine"}">
       <span>${escapeHtml(label)}</span>
       <strong>${escapeHtml(count + name)}</strong>
-      ${inferred}
+      ${note ? `<em>${escapeHtml(note)}</em>` : ""}
     </span>
   `;
 }
@@ -815,6 +823,9 @@ function recipeRow(repository, row, externalGoods) {
   const machine = row.machineCount > 0
     ? `<span>${formatAmount(row.machineCount)} x ${escapeHtml(machineName(row.machine, row.voltageTier, type.name))}</span>`
     : "";
+  const machineLoad = row.machineLoad > 0
+    ? `<span>${escapeHtml(machineLoadLabel(row.machineLoad, row.machineCount))}</span>`
+    : "";
 
   return `
     <article class="recipe-row">
@@ -838,6 +849,7 @@ function recipeRow(repository, row, externalGoods) {
       </div>
       <div class="recipe-meta">
         ${machine}
+        ${machineLoad}
         <span>${formatDuration(recipe.durationTicks)}</span>
         <span>${formatAmount(recipe.eut)} EU/t</span>
         <span>${formatAverageEut(recipe, runsPerMinute)}</span>

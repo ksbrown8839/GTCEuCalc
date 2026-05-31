@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { Repository } from "../src/repository.js";
-import { createPlan } from "../src/planner.js";
+import { createPlan, machineCount, machineLoad } from "../src/planner.js";
 import { getBoundaryPresetForGood, getBoundaryPresetGoods } from "../src/boundaries.js";
-import { formatRate } from "../src/format.js";
+import { formatAmount, formatRate } from "../src/format.js";
 
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
@@ -36,12 +36,24 @@ if (plan.totalAverageEut <= 0) {
   throw new Error("Expected non-zero average EU/t.");
 }
 
-if (!plan.machineRows.some((row) => row.machine.id === "gtceu:mv_assembler" && row.machineCount > 0)) {
+if (!plan.machineRows.some((row) => row.machine.id === "gtceu:mv_assembler" && row.machineCount > 0 && row.machineLoad > 0)) {
   throw new Error("Expected the sample plan to include MV Assembler demand.");
+}
+
+if (plan.machineRows.some((row) => row.machineCount !== Math.ceil(row.machineLoad))) {
+  throw new Error("Expected machine build counts to round equivalent load up to whole machines.");
+}
+
+if (machineLoad({ durationTicks: 100 }, 1) !== 1 / 12 || machineCount({ durationTicks: 100 }, 1) !== 1) {
+  throw new Error("Expected machine load and build count to remain distinct.");
 }
 
 if (formatRate(1) !== "1/min") {
   throw new Error("Expected rates to use the /min unit.");
+}
+
+if (formatAmount(100) !== "100" || formatAmount(300) !== "300") {
+  throw new Error("Expected whole hundreds to keep their trailing zeros.");
 }
 
 if (!targetMatches.some((good) => good.id === "gtceu:polyethylene")) {
