@@ -93,6 +93,53 @@ export function buildOreRoute(repository, material) {
   };
 }
 
+export function buildOreFlowGraph(repository, material, options = {}) {
+  const route = buildOreRoute(repository, material);
+  const groupedSteps = new Map();
+
+  for (const step of route.steps) {
+    if (!options.showHammerRoutes && isHammerRoute(step.recipe)) continue;
+    if (!options.showQuickSmelts && isQuickSmeltShortcut(step)) continue;
+
+    const key = `${step.inputStage}->${step.outputStage}|${step.recipe.type}`;
+    const variants = groupedSteps.get(key) ?? [];
+    variants.push(step);
+    groupedSteps.set(key, variants);
+  }
+
+  const operations = [...groupedSteps.entries()]
+    .map(([key, variants]) => {
+      const representative = [...variants].sort((a, b) => {
+        return representativeRecipeScore(a.recipe, material) - representativeRecipeScore(b.recipe, material)
+          || a.recipe.id.localeCompare(b.recipe.id);
+      })[0];
+
+      return {
+        id: operationId(key),
+        key,
+        inputStage: representative.inputStage,
+        outputStage: representative.outputStage,
+        recipeType: representative.recipe.type,
+        recipe: representative.recipe,
+        variants
+      };
+    })
+    .sort((a, b) => {
+      return stageOrder(a.inputStage) - stageOrder(b.inputStage)
+        || stageOrder(a.outputStage) - stageOrder(b.outputStage)
+        || a.recipeType.localeCompare(b.recipeType);
+    });
+
+  const usedStages = new Set(operations.flatMap((operation) => [operation.inputStage, operation.outputStage]));
+  const stages = route.stages.filter((stage) => usedStages.has(stage.id));
+
+  return {
+    ...route,
+    stages,
+    operations
+  };
+}
+
 export function classifyOreRouteIngredient(repository, ingredient, material) {
   const knownForm = knownMaterialFormForId(ingredient.id, material)
     ?? knownMaterialFormFromGoodTags(repository, ingredient.id, material);
@@ -161,7 +208,9 @@ function stageExamples(repository, steps, form, material) {
     }
   }
 
-  return ids.slice(0, 3);
+  return ids
+    .sort((a, b) => stageExampleScore(a, material) - stageExampleScore(b, material) || a.localeCompare(b))
+    .slice(0, 3);
 }
 
 function maximumStage(a, b) {
@@ -170,6 +219,40 @@ function maximumStage(a, b) {
 
 function stageOrder(id) {
   return ROUTE_STAGES.get(id)?.order ?? Number.MAX_SAFE_INTEGER;
+}
+
+function isHammerRoute(recipe) {
+  return recipe.type === "gtceu:forge_hammer" || recipe.type.includes("crafting");
+}
+
+function isQuickSmeltShortcut(step) {
+  return ["ingot", "gem"].includes(step.outputStage)
+    && step.inputStage !== "dust"
+    && step.recipe.type !== "gtceu:sifter";
+}
+
+function representativeRecipeScore(recipe, material) {
+  let score = recipe.id.length;
+  const escapedMaterial = escapeRegExp(material);
+
+  if (recipe.inputs.some((ingredient) => ingredient.id === `gtceu:${material}_ore` || ingredient.id === `minecraft:${material}_ore`)) {
+    score -= 1_000;
+  }
+  if (new RegExp(`/(?:macerate|hammer|smelt)_${escapedMaterial}_`).test(recipe.id)) score -= 300;
+  if (recipe.id.includes("_distilled")) score += 100;
+  if (recipe.id.includes("_fast")) score += 200;
+  return score;
+}
+
+function stageExampleScore(id, material) {
+  if (id === `gtceu:${material}_ore` || id === `minecraft:${material}_ore`) return -1_000;
+  if (id === `gtceu:${material}_dust` || id === `minecraft:${material}` || id === `minecraft:${material}_ingot`) return -900;
+  if (id === `gtceu:${material}_ingot`) return -800;
+  return id.length;
+}
+
+function operationId(key) {
+  return key.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
 }
 
 function formatMaterialName(material) {

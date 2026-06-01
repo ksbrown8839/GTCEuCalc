@@ -3,7 +3,7 @@ import { Repository } from "../src/repository.js";
 import { createPlan, machineCount, machineLoad } from "../src/planner.js";
 import { getBoundaryPresetForGood, getBoundaryPresetGoods } from "../src/boundaries.js";
 import { formatAmount, formatRate } from "../src/format.js";
-import { buildOreRoute, getOreRouteMaterials } from "../src/ore-routes-model.js";
+import { buildOreFlowGraph, buildOreRoute, getOreRouteMaterials } from "../src/ore-routes-model.js";
 
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
@@ -157,6 +157,8 @@ const realData = JSON.parse(await readFile("data/gtceu-modern-pack-1.14.5.json",
 const realRepository = new Repository(realData);
 const realOreMaterials = getOreRouteMaterials(realRepository);
 const ironOreRoute = buildOreRoute(realRepository, "iron");
+const ironOreFlowGraph = buildOreFlowGraph(realRepository, "iron");
+const ironOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "iron", { showQuickSmelts: true });
 const diamondOreRoute = buildOreRoute(realRepository, "diamond");
 const realMachineRecipe = realRepository.recipes.find((recipe) => {
   return recipe.durationTicks > 0 && realRepository.getMachinesForRecipeType(recipe.type).length > 0;
@@ -194,6 +196,22 @@ if (ironOreRoute.stages.some((stage) => stage.id === "gem")) {
 
 if (!diamondOreRoute.stages.some((stage) => stage.id === "gem")) {
   throw new Error("Expected tagged gem ores such as diamond to include a gem finishing stage.");
+}
+
+if (!ironOreFlowGraph.operations.some((operation) => operation.key === "crushed_ore->purified_ore|gtceu:ore_washer")) {
+  throw new Error("Expected the condensed ore graph to include the ore washer branch.");
+}
+
+if (!ironOreFlowGraph.operations.some((operation) => operation.key === "crushed_ore->refined_ore|gtceu:thermal_centrifuge")) {
+  throw new Error("Expected the condensed ore graph to include the thermal centrifuge branch.");
+}
+
+if (ironOreFlowGraph.operations.some((operation) => operation.key === "crushed_ore->ingot|minecraft:smelting")) {
+  throw new Error("Expected quick-smelt shortcuts to stay hidden in the default ore graph.");
+}
+
+if (!ironOreFlowGraphWithShortcuts.operations.some((operation) => operation.key === "crushed_ore->ingot|minecraft:smelting")) {
+  throw new Error("Expected the ore graph to reveal quick-smelt shortcuts when requested.");
 }
 
 const expectedRealDefaults = new Map([

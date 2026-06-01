@@ -1,12 +1,13 @@
 .ore-route-shell {
   display: grid;
-  grid-template-columns: 310px minmax(0, 1fr);
+  grid-template-columns: 286px minmax(0, 1fr);
   min-height: 100vh;
 }
+
 .ore-route-sidebar {
   max-height: 100vh;
   overflow: auto;
-  padding: 20px;
+  padding: 18px;
   background: var(--minecraft-panel);
   box-shadow:
     inset -2px 0 0 var(--minecraft-panel-shadow),
@@ -17,7 +18,7 @@
   min-width: 0;
   max-height: 100vh;
   overflow: auto;
-  padding: 22px;
+  padding: 20px;
   background: rgba(0, 0, 0, 0.18);
 }
 
@@ -29,7 +30,7 @@
 .ore-material-list {
   display: grid;
   gap: 6px;
-  max-height: calc(100vh - 330px);
+  max-height: calc(100vh - 314px);
   margin-top: 8px;
   overflow: auto;
   padding: 3px;
@@ -40,8 +41,8 @@
   grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  min-height: 38px;
-  padding: 7px;
+  min-height: 36px;
+  padding: 6px;
   color: #202020;
   text-align: left;
   text-shadow: none;
@@ -61,7 +62,12 @@
 }
 
 .ore-route-main .section-band {
-  margin-top: 18px;
+  margin-top: 16px;
+}
+
+.ore-flow-section .section-header > div:first-child {
+  display: grid;
+  gap: 3px;
 }
 
 .ore-route-note {
@@ -70,36 +76,88 @@
   text-shadow: 1px 1px 0 #ffffff;
 }
 
-.ore-stage-rail {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.ore-flow-frame {
   min-width: 0;
-  overflow-x: auto;
-  padding: 6px 4px 8px;
+  overflow: auto;
+  padding: 8px;
+  background: #9f9f9f;
+  box-shadow:
+    inset 3px 3px 0 #555555,
+    inset -3px -3px 0 #eeeeee;
 }
 
-.ore-stage-card {
+.ore-flow-track {
+  position: relative;
+  min-width: 0;
+}
+
+.ore-flow-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1320px;
+  height: 620px;
+  transform-origin: top left;
+}
+
+.ore-flow-connectors {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 1320px;
+  height: 620px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ore-flow-connectors path {
+  fill: none;
+  stroke: #202020;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 4;
+}
+
+.ore-flow-connectors marker path {
+  fill: #202020;
+  stroke: none;
+}
+
+.ore-stage-node,
+.ore-operation-node {
+  position: absolute;
+  z-index: 2;
+}
+
+.ore-stage-node {
   display: grid;
-  align-content: start;
   justify-items: center;
-  gap: 6px;
-  width: 94px;
-  min-width: 94px;
-  min-height: 88px;
-  padding: 9px 6px;
+  gap: 4px;
+  width: 92px;
+  min-height: 74px;
+  padding: 8px 5px 6px;
   background: #b1b1b1;
   box-shadow:
+    0 0 0 2px #4a4a4a,
     inset 2px 2px 0 #eeeeee,
     inset -2px -2px 0 #676767;
 }
 
-.ore-stage-card strong {
+.ore-stage-node strong {
   color: #202020;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.05;
   text-align: center;
   text-shadow: 1px 1px 0 #ffffff;
   text-transform: uppercase;
+}
+
+.ore-stage-node em {
+  color: #4f4f4f;
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #ffffff;
 }
 
 .ore-stage-icons {
@@ -110,95 +168,173 @@
   margin-left: -10px;
 }
 
-.ore-stage-arrow,
-.ore-recipe-arrow {
-  width: 42px;
-  min-width: 42px;
-  height: 28px;
-  background: url("assets/gtnh-ui/Arrow.png") center / 42px 28px no-repeat;
+.ore-operation-node {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 5px;
+  width: 116px;
+  min-height: 58px;
+  padding: 5px;
+  background: #aebfc8;
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 #dbe8ee,
+    inset -2px -2px 0 #5e7078;
+  color: #263b46;
+  text-align: left;
+  text-shadow: none;
+}
+
+.ore-operation-node:hover,
+.ore-operation-node.selected {
+  background: #c1d6df;
+  box-shadow:
+    0 0 0 3px #ffffa0,
+    inset 2px 2px 0 #f2fbff,
+    inset -2px -2px 0 #5e7078;
+}
+
+.ore-operation-node .recipe-slot {
+  grid-row: span 2;
+}
+
+.ore-operation-node strong {
+  align-self: end;
+  color: #263b46;
+  font-size: 9px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.ore-operation-node small {
+  align-self: start;
+  color: #4b626d;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.ore-operation-node .ore-operation-count {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 19px;
+  padding: 2px 3px;
+  background: #5f6b5d;
+  box-shadow:
+    inset 1px 1px 0 #b8b8b8,
+    inset -1px -1px 0 #303830;
+  color: #ffffff;
+  font-size: 8px;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.ore-operation-byproducts {
+  position: absolute;
+  right: -8px;
+  bottom: -11px;
+  display: flex;
+  gap: 1px;
+}
+
+.ore-operation-byproducts .ore-mini-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.ore-mini-icon {
+  display: block;
+  background-image: var(--atlas-url);
+  background-position: var(--atlas-x) var(--atlas-y);
+  background-repeat: no-repeat;
+  background-size: var(--atlas-width) auto;
   image-rendering: pixelated;
 }
 
-.ore-route-groups {
-  display: grid;
-  gap: 13px;
-}
-
-.ore-route-group {
-  background: var(--minecraft-panel);
-  box-shadow:
-    0 0 0 2px #4a4a4a,
-    inset 2px 2px 0 var(--minecraft-panel-light),
-    inset -2px -2px 0 var(--minecraft-panel-shadow);
-}
-
-.ore-route-group > summary {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 9px;
-  min-height: 48px;
-  padding: 10px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.ore-route-group > summary::-webkit-details-marker {
-  display: none;
-}
-
-.ore-route-group > summary::before {
-  content: "";
-  width: 22px;
-  height: 22px;
-  background:
-    url("assets/gtnh-ui/Arrow_Small_Right.png") center / 22px 22px no-repeat,
-    var(--minecraft-panel-mid);
-  box-shadow:
-    inset 2px 2px 0 var(--minecraft-panel-dark),
-    inset -2px -2px 0 var(--minecraft-panel-light);
-}
-
-.ore-route-group[open] > summary::before {
-  background:
-    url("assets/gtnh-ui/Arrow_Small_Down.png") center / 22px 22px no-repeat,
-    var(--minecraft-panel-mid);
-}
-
-.ore-route-group-title {
-  display: grid;
-  gap: 2px;
-}
-
-.ore-route-group-title strong {
-  color: #202020;
-  font-size: 14px;
+.ore-flow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  color: #4f4f4f;
+  font-size: 10px;
   text-shadow: 1px 1px 0 #ffffff;
   text-transform: uppercase;
 }
 
-.ore-route-group-title span {
+.ore-flow-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ore-flow-legend i {
+  display: inline-block;
+  width: 17px;
+  height: 13px;
+}
+
+.legend-item {
+  background: #b1b1b1;
+  box-shadow:
+    inset 1px 1px 0 #eeeeee,
+    inset -1px -1px 0 #676767;
+}
+
+.legend-machine {
+  background: #aebfc8;
+  box-shadow:
+    inset 1px 1px 0 #dbe8ee,
+    inset -1px -1px 0 #5e7078;
+}
+
+.legend-line {
+  height: 4px !important;
+  background: #202020;
+}
+
+.ore-detail-empty {
   color: #4f4f4f;
-  font-size: 11px;
+  font-size: 12px;
   text-shadow: 1px 1px 0 #ffffff;
 }
 
-.ore-route-group-count {
+.ore-detail-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ore-detail-header strong {
+  color: #202020;
+  font-size: 15px;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.ore-detail-header p {
+  margin: 3px 0 0;
+  color: #4f4f4f;
+  font-size: 11px;
+}
+
+.ore-detail-pill {
   padding: 4px 7px;
   background: #5f6b5d;
   box-shadow:
     inset 1px 1px 0 #b8b8b8,
-    inset -1px -1px 0 var(--minecraft-panel-dark);
+    inset -1px -1px 0 #303830;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
   text-shadow: 1px 1px 0 #000000;
   text-transform: uppercase;
-}
-
-.ore-route-card-list {
-  display: grid;
-  gap: 11px;
-  padding: 0 11px 12px;
+  white-space: nowrap;
 }
 
 .ore-recipe-card {
@@ -323,13 +459,23 @@
   font-size: 10px;
 }
 
-.ore-recipe-meta {
+.ore-recipe-arrow {
+  width: 42px;
+  min-width: 42px;
+  height: 28px;
+  background: url("assets/gtnh-ui/Arrow.png") center / 42px 28px no-repeat;
+  image-rendering: pixelated;
+}
+
+.ore-recipe-meta,
+.ore-variant-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.ore-recipe-meta span {
+.ore-recipe-meta span,
+.ore-variant-list span {
   padding: 3px 6px;
   background: #eeeeee;
   box-shadow:
@@ -337,6 +483,23 @@
     inset -1px -1px 0 #8b8b8b;
   color: #4f4f4f;
   font-size: 10px;
+}
+
+.ore-variant-panel {
+  margin-top: 10px;
+  padding: 9px;
+  background: #b1b1b1;
+  box-shadow:
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #676767;
+}
+
+.ore-variant-panel h3 {
+  margin: 0 0 7px;
+  color: #202020;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
 }
 
 @media (max-width: 820px) {
@@ -350,7 +513,7 @@
   }
 
   .ore-material-list {
-    max-height: 260px;
+    max-height: 250px;
   }
 
   .ore-recipe-visual {

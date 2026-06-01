@@ -6,7 +6,7 @@
     <title>Ore Routes · GTCEu Modern Planner</title>
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
-    <link rel="stylesheet" href="ore-routes.css?v=ore-route-explorer-2026-05-31">
+    <link rel="stylesheet" href="ore-routes.css?v=connected-ore-map-2026-05-31">
   </head>
   <body>
     <main class="ore-route-shell">
@@ -25,9 +25,9 @@
           <summary>What this shows</summary>
           <ol>
             <li>Choose an ore material.</li>
-            <li>Read the stage rail from ore to finished material.</li>
-            <li>Open a branch group to compare every exported machine recipe.</li>
-            <li>Hover items to see their names, amounts, and IDs.</li>
+            <li>Follow the connected processing map from ore to finished material.</li>
+            <li>Click a machine node to inspect its exact exported recipes.</li>
+            <li>Reveal shortcut and hammer routes when you need them.</li>
           </ol>
         </details>
 
@@ -51,27 +51,45 @@
           </div>
         </div>
 
-        <section class="section-band ore-stage-section">
+        <section class="section-band ore-flow-section">
           <header class="section-header">
-            <h2>Processing Stages</h2>
-            <span class="ore-route-note">Branches below connect these exported stages.</span>
-          </header>
-          <div class="ore-stage-rail" data-role="ore-stage-rail"></div>
-        </section>
-
-        <section class="section-band">
-          <header class="section-header">
-            <h2>Recipe Branches</h2>
-            <div class="tree-view-controls">
-              <button type="button" data-action="collapse-routes">Collapse all</button>
-              <button type="button" data-action="expand-routes">Expand all</button>
+            <div>
+              <h2>Complete Processing Map</h2>
+              <span class="ore-route-note">Core machine routes are condensed from the exported recipe graph.</span>
+            </div>
+            <div class="tree-view-controls" data-role="ore-map-controls">
+              <label>
+                <input type="checkbox" data-action="toggle-map-option" data-option="showHammerRoutes">
+                <span>Hammers</span>
+              </label>
+              <label>
+                <input type="checkbox" data-action="toggle-map-option" data-option="showQuickSmelts">
+                <span>Quick smelts</span>
+              </label>
             </div>
           </header>
-          <div class="ore-route-groups" data-role="ore-route-groups"></div>
+          <div class="ore-flow-frame" data-role="ore-flow-frame">
+            <div class="ore-flow-track" data-role="ore-flow-track">
+              <div class="ore-flow-canvas" data-role="ore-flow-canvas"></div>
+            </div>
+          </div>
+          <div class="ore-flow-legend">
+            <span><i class="legend-item"></i> Material stage</span>
+            <span><i class="legend-machine"></i> Machine route</span>
+            <span><i class="legend-line"></i> Processing direction</span>
+          </div>
+        </section>
+
+        <section class="section-band ore-detail-section">
+          <header class="section-header">
+            <h2>Selected Branch</h2>
+            <span class="ore-route-note">Select a machine on the map to inspect its exported variants.</span>
+          </header>
+          <div data-role="ore-route-detail"></div>
         </section>
       </section>
     </main>
 
-    <script type="module" src="src/ore-routes.js?v=ore-route-explorer-2026-05-31"></script>
+    <script type="module" src="src/ore-routes.js?v=connected-ore-map-2026-05-31"></script>
   </body>
 </html>
