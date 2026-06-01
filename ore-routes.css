@@ -1,0 +1,365 @@
+.ore-route-shell {
+  display: grid;
+  grid-template-columns: 310px minmax(0, 1fr);
+  min-height: 100vh;
+}
+.ore-route-sidebar {
+  max-height: 100vh;
+  overflow: auto;
+  padding: 20px;
+  background: var(--minecraft-panel);
+  box-shadow:
+    inset -2px 0 0 var(--minecraft-panel-shadow),
+    inset -4px 0 0 var(--minecraft-panel-light);
+}
+
+.ore-route-main {
+  min-width: 0;
+  max-height: 100vh;
+  overflow: auto;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.ore-route-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.ore-material-list {
+  display: grid;
+  gap: 6px;
+  max-height: calc(100vh - 330px);
+  margin-top: 8px;
+  overflow: auto;
+  padding: 3px;
+}
+
+.ore-material-button {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px;
+  color: #202020;
+  text-align: left;
+  text-shadow: none;
+}
+
+.ore-material-button.selected {
+  background: #315a73;
+  color: #ffffa0;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.ore-material-button .good-icon,
+.ore-material-button .good-swatch {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+}
+
+.ore-route-main .section-band {
+  margin-top: 18px;
+}
+
+.ore-route-note {
+  color: #4f4f4f;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.ore-stage-rail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 6px 4px 8px;
+}
+
+.ore-stage-card {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 6px;
+  width: 94px;
+  min-width: 94px;
+  min-height: 88px;
+  padding: 9px 6px;
+  background: #b1b1b1;
+  box-shadow:
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #676767;
+}
+
+.ore-stage-card strong {
+  color: #202020;
+  font-size: 11px;
+  text-align: center;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.ore-stage-icons {
+  display: flex;
+}
+
+.ore-stage-icons .recipe-slot + .recipe-slot {
+  margin-left: -10px;
+}
+
+.ore-stage-arrow,
+.ore-recipe-arrow {
+  width: 42px;
+  min-width: 42px;
+  height: 28px;
+  background: url("assets/gtnh-ui/Arrow.png") center / 42px 28px no-repeat;
+  image-rendering: pixelated;
+}
+
+.ore-route-groups {
+  display: grid;
+  gap: 13px;
+}
+
+.ore-route-group {
+  background: var(--minecraft-panel);
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 var(--minecraft-panel-light),
+    inset -2px -2px 0 var(--minecraft-panel-shadow);
+}
+
+.ore-route-group > summary {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 10px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ore-route-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ore-route-group > summary::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  background:
+    url("assets/gtnh-ui/Arrow_Small_Right.png") center / 22px 22px no-repeat,
+    var(--minecraft-panel-mid);
+  box-shadow:
+    inset 2px 2px 0 var(--minecraft-panel-dark),
+    inset -2px -2px 0 var(--minecraft-panel-light);
+}
+
+.ore-route-group[open] > summary::before {
+  background:
+    url("assets/gtnh-ui/Arrow_Small_Down.png") center / 22px 22px no-repeat,
+    var(--minecraft-panel-mid);
+}
+
+.ore-route-group-title {
+  display: grid;
+  gap: 2px;
+}
+
+.ore-route-group-title strong {
+  color: #202020;
+  font-size: 14px;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.ore-route-group-title span {
+  color: #4f4f4f;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.ore-route-group-count {
+  padding: 4px 7px;
+  background: #5f6b5d;
+  box-shadow:
+    inset 1px 1px 0 #b8b8b8,
+    inset -1px -1px 0 var(--minecraft-panel-dark);
+  color: #ffffff;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #000000;
+  text-transform: uppercase;
+}
+
+.ore-route-card-list {
+  display: grid;
+  gap: 11px;
+  padding: 0 11px 12px;
+}
+
+.ore-recipe-card {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  padding: 10px;
+  background: #d2d2d2;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #676767;
+}
+
+.ore-recipe-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ore-recipe-header strong {
+  color: #202020;
+  font-size: 13px;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.ore-recipe-header p {
+  margin: 2px 0 0;
+  color: #4f4f4f;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.ore-recipe-stage {
+  padding: 4px 7px;
+  background: #355a70;
+  box-shadow:
+    inset 1px 1px 0 #8eb5c8,
+    inset -1px -1px 0 #1d3443;
+  color: #ffffff;
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #000000;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ore-recipe-visual {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) 128px 42px minmax(36px, max-content);
+  align-items: center;
+  justify-content: start;
+  gap: 9px;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 9px;
+  background: var(--minecraft-panel);
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 var(--minecraft-panel-light),
+    inset -2px -2px 0 var(--minecraft-panel-shadow),
+    inset 4px 4px 0 #d9d9d9,
+    inset -4px -4px 0 var(--minecraft-panel-mid);
+}
+
+.ore-slot-flow {
+  display: grid;
+  grid-template-columns: repeat(3, var(--minecraft-slot-size));
+  align-items: start;
+}
+
+.ore-slot-flow.outputs {
+  grid-template-columns: repeat(4, var(--minecraft-slot-size));
+}
+
+.ore-route-shell .recipe-slot {
+  width: var(--minecraft-slot-size);
+  height: var(--minecraft-slot-size);
+  min-height: var(--minecraft-slot-size);
+  padding: 2px;
+  border: 0;
+  border-radius: 0;
+  background: url("assets/gtnh-ui/Slot.png") 0 0 / var(--minecraft-slot-size) var(--minecraft-slot-size) no-repeat;
+  box-shadow: none;
+}
+
+.ore-route-shell .slot-image,
+.ore-route-shell .slot-swatch {
+  width: var(--minecraft-slot-inner);
+  height: var(--minecraft-slot-inner);
+}
+
+.ore-machine-stage {
+  display: grid;
+  place-items: center;
+  min-height: 52px;
+  padding: 7px;
+  background: #aebfc8;
+  box-shadow:
+    inset 2px 2px 0 #dbe8ee,
+    inset -2px -2px 0 #5e7078;
+  color: #263b46;
+  text-align: center;
+}
+
+.ore-machine-stage em {
+  color: #4b626d;
+  font-size: 9px;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+.ore-machine-stage strong {
+  color: #263b46;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ore-machine-stage span {
+  color: #2f4149;
+  font-size: 10px;
+}
+
+.ore-recipe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ore-recipe-meta span {
+  padding: 3px 6px;
+  background: #eeeeee;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8b8b8b;
+  color: #4f4f4f;
+  font-size: 10px;
+}
+
+@media (max-width: 820px) {
+  .ore-route-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .ore-route-sidebar,
+  .ore-route-main {
+    max-height: none;
+  }
+
+  .ore-material-list {
+    max-height: 260px;
+  }
+
+  .ore-recipe-visual {
+    grid-template-columns: max-content 108px 38px max-content;
+  }
+
+  .ore-recipe-arrow {
+    width: 38px;
+    min-width: 38px;
+    background-size: 38px 25px;
+  }
+}

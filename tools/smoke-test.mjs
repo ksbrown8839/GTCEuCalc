@@ -3,6 +3,7 @@ import { Repository } from "../src/repository.js";
 import { createPlan, machineCount, machineLoad } from "../src/planner.js";
 import { getBoundaryPresetForGood, getBoundaryPresetGoods } from "../src/boundaries.js";
 import { formatAmount, formatRate } from "../src/format.js";
+import { buildOreRoute, getOreRouteMaterials } from "../src/ore-routes-model.js";
 
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
@@ -154,6 +155,9 @@ if (circuitBoundaryPlan.recipeRows.some((row) => row.recipe.id === "gtceu:assemb
 
 const realData = JSON.parse(await readFile("data/gtceu-modern-pack-1.14.5.json", "utf-8"));
 const realRepository = new Repository(realData);
+const realOreMaterials = getOreRouteMaterials(realRepository);
+const ironOreRoute = buildOreRoute(realRepository, "iron");
+const diamondOreRoute = buildOreRoute(realRepository, "diamond");
 const realMachineRecipe = realRepository.recipes.find((recipe) => {
   return recipe.durationTicks > 0 && realRepository.getMachinesForRecipeType(recipe.type).length > 0;
 });
@@ -164,6 +168,32 @@ if (realRepository.machines.size === 0 || !realMachineRecipe) {
 
 if (!realRepository.chooseMachineForRecipe(realMachineRecipe).machine) {
   throw new Error(`Expected a machine assignment for ${realMachineRecipe.id}.`);
+}
+
+if (!realOreMaterials.some((material) => material.id === "iron")) {
+  throw new Error("Expected the ore route explorer to discover iron from exported ore tags.");
+}
+
+const expectedIronOreRouteRecipes = [
+  "gtceu:ore_washer/wash_iron_crushed_ore_to_purified_ore",
+  "gtceu:chemical_bath/bathe_iron_crushed_ore_to_purified_ore",
+  "gtceu:thermal_centrifuge/centrifuge_iron_crushed_ore_to_refined_ore",
+  "gtceu:centrifuge/centrifuge_iron_dirty_dust_to_dust",
+  "gtceu:smelting/smelt_dust_iron_to_ingot"
+];
+
+for (const recipeId of expectedIronOreRouteRecipes) {
+  if (!ironOreRoute.steps.some((step) => step.recipe.id === recipeId)) {
+    throw new Error(`Expected the iron ore route explorer to include ${recipeId}.`);
+  }
+}
+
+if (ironOreRoute.stages.some((stage) => stage.id === "gem")) {
+  throw new Error("Expected molten iron and other bare material IDs not to appear as gem stages.");
+}
+
+if (!diamondOreRoute.stages.some((stage) => stage.id === "gem")) {
+  throw new Error("Expected tagged gem ores such as diamond to include a gem finishing stage.");
 }
 
 const expectedRealDefaults = new Map([

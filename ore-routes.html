@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ore Routes · GTCEu Modern Planner</title>
+    <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
+    <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
+    <link rel="stylesheet" href="ore-routes.css?v=ore-route-explorer-2026-05-31">
+  </head>
+  <body>
+    <main class="ore-route-shell">
+      <aside class="ore-route-sidebar">
+        <div class="brand-block">
+          <h1>Ore Routes</h1>
+          <p data-role="ore-pack-name">Loading pack data</p>
+          <p data-role="ore-pack-meta"></p>
+          <div class="ore-route-nav">
+            <a class="secondary-button lab-nav-link" href="index.html">Back to Planner</a>
+            <a class="secondary-button lab-nav-link" href="texture-lab.html">Texture Lab</a>
+          </div>
+        </div>
+
+        <details class="help-panel" open>
+          <summary>What this shows</summary>
+          <ol>
+            <li>Choose an ore material.</li>
+            <li>Read the stage rail from ore to finished material.</li>
+            <li>Open a branch group to compare every exported machine recipe.</li>
+            <li>Hover items to see their names, amounts, and IDs.</li>
+          </ol>
+        </details>
+
+        <section class="panel">
+          <h2>Ore Materials</h2>
+          <input data-role="ore-search" type="search" placeholder="Search ores">
+          <p class="match-summary" data-role="ore-match-summary"></p>
+          <div class="ore-material-list" data-role="ore-material-list"></div>
+        </section>
+      </aside>
+
+      <section class="ore-route-main">
+        <div class="status-band">
+          <div>
+            <h2 data-role="ore-route-title">Ore Processing</h2>
+            <div data-role="ore-route-summary">Loading...</div>
+          </div>
+          <div class="power-readout">
+            <span>Exported routes</span>
+            <strong data-role="ore-route-count">0 recipes</strong>
+          </div>
+        </div>
+
+        <section class="section-band ore-stage-section">
+          <header class="section-header">
+            <h2>Processing Stages</h2>
+            <span class="ore-route-note">Branches below connect these exported stages.</span>
+          </header>
+          <div class="ore-stage-rail" data-role="ore-stage-rail"></div>
+        </section>
+
+        <section class="section-band">
+          <header class="section-header">
+            <h2>Recipe Branches</h2>
+            <div class="tree-view-controls">
+              <button type="button" data-action="collapse-routes">Collapse all</button>
+              <button type="button" data-action="expand-routes">Expand all</button>
+            </div>
+          </header>
+          <div class="ore-route-groups" data-role="ore-route-groups"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="src/ore-routes.js?v=ore-route-explorer-2026-05-31"></script>
+  </body>
+</html>
