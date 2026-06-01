@@ -6,7 +6,7 @@
     <title>Ore Routes · GTCEu Modern Planner</title>
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
-    <link rel="stylesheet" href="ore-routes.css?v=connected-ore-map-2026-05-31">
+    <link rel="stylesheet" href="ore-routes.css?v=recommended-ore-map-2026-05-31">
   </head>
   <body>
     <main class="ore-route-shell">
@@ -58,6 +58,13 @@
               <span class="ore-route-note">Core machine routes are condensed from the exported recipe graph.</span>
             </div>
             <div class="tree-view-controls" data-role="ore-map-controls">
+              <label class="ore-strategy-control">
+                <span>Highlight</span>
+                <select data-action="choose-route-strategy" data-role="ore-route-strategy">
+                  <option value="yield">Max byproducts</option>
+                  <option value="fast">Fastest route</option>
+                </select>
+              </label>
               <label>
                 <input type="checkbox" data-action="toggle-map-option" data-option="showHammerRoutes">
                 <span>Hammers</span>
@@ -73,9 +80,12 @@
               <div class="ore-flow-canvas" data-role="ore-flow-canvas"></div>
             </div>
           </div>
+          <div class="ore-recommended-summary" data-role="ore-recommended-summary"></div>
+          <div class="ore-quick-smelt-lane" data-role="ore-quick-smelt-lane"></div>
           <div class="ore-flow-legend">
             <span><i class="legend-item"></i> Material stage</span>
             <span><i class="legend-machine"></i> Machine route</span>
+            <span><i class="legend-recommended"></i> Highlighted route</span>
             <span><i class="legend-line"></i> Processing direction</span>
           </div>
         </section>
@@ -90,6 +100,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/ore-routes.js?v=connected-ore-map-2026-05-31"></script>
+    <script type="module" src="src/ore-routes.js?v=recommended-ore-map-2026-05-31"></script>
   </body>
 </html>

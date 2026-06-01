@@ -121,7 +121,8 @@ export function buildOreFlowGraph(repository, material, options = {}) {
         outputStage: representative.outputStage,
         recipeType: representative.recipe.type,
         recipe: representative.recipe,
-        variants
+        variants,
+        isQuickSmelt: isQuickSmeltShortcut(representative)
       };
     })
     .sort((a, b) => {
@@ -132,11 +133,23 @@ export function buildOreFlowGraph(repository, material, options = {}) {
 
   const usedStages = new Set(operations.flatMap((operation) => [operation.inputStage, operation.outputStage]));
   const stages = route.stages.filter((stage) => usedStages.has(stage.id));
+  const routeStrategy = options.routeStrategy === "fast" ? "fast" : "yield";
+  const recommendedPath = findRecommendedPath(repository, material, operations, routeStrategy);
+  const recommendedOperationIds = recommendedPath.map((operation) => operation.id);
+  const recommendedIds = new Set(recommendedOperationIds);
+  const recommendedStageIds = [...new Set(recommendedPath.flatMap((operation) => [operation.inputStage, operation.outputStage]))];
 
   return {
     ...route,
     stages,
-    operations
+    operations: operations.map((operation) => ({
+      ...operation,
+      recommended: recommendedIds.has(operation.id)
+    })),
+    recommendedOperationIds,
+    recommendedStageIds,
+    recommendedByproducts: aggregateByproducts(repository, material, recommendedPath),
+    routeStrategy
   };
 }
 
@@ -229,6 +242,113 @@ function isQuickSmeltShortcut(step) {
   return ["ingot", "gem"].includes(step.outputStage)
     && step.inputStage !== "dust"
     && step.recipe.type !== "gtceu:sifter";
+}
+
+function findRecommendedPath(repository, material, operations, strategy) {
+  const terminalStage = operations.some((operation) => operation.outputStage === "ingot") ? "ingot" : "gem";
+  const sourceStage = operations.some((operation) => operation.inputStage === "ore") ? "ore" : "raw_material";
+  const allowedOperations = operations.filter((operation) => {
+    if (isHammerRoute(operation.recipe)) return false;
+    return strategy === "fast" || !operation.isQuickSmelt;
+  });
+  const operationsByInput = new Map();
+
+  for (const operation of allowedOperations) {
+    const candidates = operationsByInput.get(operation.inputStage) ?? [];
+    candidates.push(operation);
+    operationsByInput.set(operation.inputStage, candidates);
+  }
+
+  const memo = new Map();
+  const bestFrom = (stage) => {
+    if (stage === terminalStage) return { score: 0, operations: [] };
+    if (memo.has(stage)) return memo.get(stage);
+
+    let best = null;
+    for (const operation of operationsByInput.get(stage) ?? []) {
+      const tail = bestFrom(operation.outputStage);
+      if (!tail) continue;
+      const score = recommendationScore(repository, material, operation, strategy) + tail.score;
+      if (!best || score > best.score) {
+        best = { score, operations: [operation, ...tail.operations] };
+      }
+    }
+
+    memo.set(stage, best);
+    return best;
+  };
+
+  return bestFrom(sourceStage)?.operations ?? [];
+}
+
+function recommendationScore(repository, material, operation, strategy) {
+  if (strategy === "fast") {
+    const duration = Number(operation.recipe.durationTicks) || 1;
+    return -duration - 20;
+  }
+
+  const byproducts = secondaryOutputsForOperation(repository, material, operation);
+  const byproductAmount = byproducts.reduce((total, output) => {
+    return total + (Number(output.amount) || 1) * (output.chance ?? 1);
+  }, 0);
+  const machineBonus = {
+    "gtceu:chemical_bath": 12,
+    "gtceu:thermal_centrifuge": 10,
+    "gtceu:sifter": 9,
+    "gtceu:centrifuge": 7,
+    "gtceu:macerator": 6,
+    "gtceu:ore_washer": 4
+  }[operation.recipe.type] ?? 0;
+
+  return byproducts.length * 20
+    + Math.min(byproductAmount, 10) * 2
+    + machineBonus
+    + stageOrder(operation.outputStage) - stageOrder(operation.inputStage);
+}
+
+function aggregateByproducts(repository, material, operations) {
+  const totals = new Map();
+  let materialAmount = 1;
+
+  for (const operation of operations) {
+    const inputAmount = materialInputAmount(repository, material, operation);
+    const runs = materialAmount / inputAmount;
+    for (const output of secondaryOutputsForOperation(repository, material, operation)) {
+      const existing = totals.get(output.id) ?? { ...output, amount: 0, expected: true };
+      existing.amount += runs * (Number(output.amount) || 1) * (output.chance ?? 1);
+      totals.set(output.id, existing);
+    }
+    materialAmount = materialOutputAmount(repository, material, operation) * runs;
+  }
+
+  return [...totals.values()].sort((a, b) => b.amount - a.amount || a.id.localeCompare(b.id));
+}
+
+function materialInputAmount(repository, material, operation) {
+  const input = operation.recipe.inputs.find((ingredient) => {
+    if (ingredient.notConsumed) return false;
+    return classifyOreRouteIngredient(repository, ingredient, material)?.form === operation.inputStage;
+  });
+  return Number(input?.amount) || 1;
+}
+
+function materialOutputAmount(repository, material, operation) {
+  return operation.recipe.outputs.reduce((total, output) => {
+    if (classifyOreRouteIngredient(repository, output, material)?.form !== operation.outputStage) return total;
+    return total + (Number(output.amount) || 1) * (output.chance ?? 1);
+  }, 0) || 1;
+}
+
+function secondaryOutputsForOperation(repository, material, operation) {
+  let skippedPrimary = false;
+  return operation.recipe.outputs.filter((output) => {
+    const classified = classifyOreRouteIngredient(repository, output, material);
+    if (!skippedPrimary && classified?.form === operation.outputStage) {
+      skippedPrimary = true;
+      return false;
+    }
+    return true;
+  });
 }
 
 function representativeRecipeScore(recipe, material) {

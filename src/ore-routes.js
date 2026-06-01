@@ -1,5 +1,5 @@
 import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
-import { buildOreFlowGraph, classifyOreRouteIngredient, getOreRouteMaterials } from "./ore-routes-model.js?v=connected-ore-map-2026-05-31";
+import { buildOreFlowGraph, classifyOreRouteIngredient, getOreRouteMaterials } from "./ore-routes-model.js?v=recommended-ore-map-2026-05-31";
 import { escapeHtml, formatAmount, formatDuration } from "./format.js?v=machine-build-counts-2026-05-31";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -49,7 +49,8 @@ const state = {
   selectedOperationId: null,
   flowView: {
     showHammerRoutes: false,
-    showQuickSmelts: false
+    showQuickSmelts: false,
+    routeStrategy: "yield"
   }
 };
 
@@ -66,6 +67,8 @@ const elements = {
   flowFrame: document.querySelector("[data-role='ore-flow-frame']"),
   flowTrack: document.querySelector("[data-role='ore-flow-track']"),
   flowCanvas: document.querySelector("[data-role='ore-flow-canvas']"),
+  recommendedSummary: document.querySelector("[data-role='ore-recommended-summary']"),
+  quickSmeltLane: document.querySelector("[data-role='ore-quick-smelt-lane']"),
   detail: document.querySelector("[data-role='ore-route-detail']")
 };
 
@@ -118,11 +121,15 @@ function materialButton(material) {
 function renderRoute() {
   const graph = currentGraph();
   state.selectedOperationId = selectedOperation(graph)?.id ?? graph.operations[0]?.id ?? null;
+  const quickSmelts = graph.operations.filter((operation) => operation.isQuickSmelt);
+  const mapOperations = graph.operations.length - quickSmelts.length;
   elements.title.textContent = `${graph.name} Ore Processing`;
-  elements.summary.textContent = `${formatAmount(graph.operations.length)} mapped routes from ${formatAmount(graph.steps.length)} exported recipes`;
+  elements.summary.textContent = `${formatAmount(mapOperations)} mapped routes${quickSmelts.length ? ` and ${formatAmount(quickSmelts.length)} shortcuts` : ""} from ${formatAmount(graph.steps.length)} exported recipes`;
   elements.count.textContent = `${formatAmount(graph.steps.length)} recipes`;
   renderMapControls();
   renderFlowMap(graph);
+  renderRecommendedSummary(graph);
+  renderQuickSmeltLane(graph);
   renderSelectedBranch(graph);
   updateMaterialUrl();
 }
@@ -140,6 +147,8 @@ function renderMapControls() {
     if (!(input instanceof HTMLInputElement)) return;
     input.checked = Boolean(state.flowView[input.dataset.option]);
   });
+  const strategy = elements.mapControls?.querySelector("[data-role='ore-route-strategy']");
+  if (strategy instanceof HTMLSelectElement) strategy.value = state.flowView.routeStrategy;
 }
 
 function renderFlowMap(graph) {
@@ -148,9 +157,10 @@ function renderFlowMap(graph) {
     const source = layout.stages.get(operation.inputStage);
     const target = layout.stages.get(operation.outputStage);
     if (!source || !target) return [];
+    const connectorClass = operation.recommended ? ` class="recommended"` : "";
     return [
-      `<path d="${connectorPath(stageOutputPoint(source), operationInputPoint(operation))}"></path>`,
-      `<path d="${connectorPath(operationOutputPoint(operation), stageInputPoint(target))}" marker-end="url(#ore-flow-arrow)"></path>`
+      `<path${connectorClass} d="${connectorPath(stageOutputPoint(source), operationInputPoint(operation))}"></path>`,
+      `<path${connectorClass} d="${connectorPath(operationOutputPoint(operation), stageInputPoint(target))}" marker-end="url(#ore-flow-arrow${operation.recommended ? "-recommended" : ""})"></path>`
     ];
   }).join("");
 
@@ -160,10 +170,13 @@ function renderFlowMap(graph) {
         <marker id="ore-flow-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
           <path d="M 0 0 L 9 4.5 L 0 9 z"></path>
         </marker>
+        <marker id="ore-flow-arrow-recommended" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path class="recommended-arrow" d="M 0 0 L 9 4.5 L 0 9 z"></path>
+        </marker>
       </defs>
       ${connectors}
     </svg>
-    ${graph.stages.map((stage) => stageNode(stage, layout.stages.get(stage.id))).join("")}
+    ${graph.stages.map((stage) => stageNode(stage, layout.stages.get(stage.id), graph.recommendedStageIds.includes(stage.id))).join("")}
     ${layout.operations.map(operationNode).join("")}
   `;
 
@@ -177,7 +190,7 @@ function layoutFlowGraph(graph) {
   }
 
   const groupedOperations = new Map();
-  for (const operation of graph.operations) {
+  for (const operation of graph.operations.filter((candidate) => !candidate.isQuickSmelt)) {
     const pair = `${operation.inputStage}->${operation.outputStage}`;
     const operations = groupedOperations.get(pair) ?? [];
     operations.push(operation);
@@ -188,7 +201,7 @@ function layoutFlowGraph(graph) {
   for (const [pair, pairOperations] of groupedOperations) {
     const [inputStage, outputStage] = pair.split("->");
     const base = OPERATION_LAYOUT[pair] ?? fallbackOperationPosition(stages.get(inputStage), stages.get(outputStage));
-    const gap = pairOperations.length > 2 ? 52 : 68;
+    const gap = pairOperations.length > 2 ? 62 : 68;
 
     pairOperations.forEach((operation, index) => {
       operations.push({
@@ -234,10 +247,10 @@ function operationOutputPoint(operation) {
   return { x: operation.x + OPERATION_WIDTH, y: operation.y + OPERATION_HEIGHT / 2 };
 }
 
-function stageNode(stage, position) {
+function stageNode(stage, position, recommended) {
   if (!position) return "";
   return `
-    <div class="ore-stage-node" style="left:${position.x}px;top:${position.y}px">
+    <div class="ore-stage-node${recommended ? " recommended" : ""}" style="left:${position.x}px;top:${position.y}px">
       <div class="ore-stage-icons">
         ${stage.examples.slice(0, 2).map((id) => goodsSlot(id)).join("")}
       </div>
@@ -251,10 +264,11 @@ function operationNode(operation) {
   const recipeType = state.repository.getRecipeType(operation.recipeType);
   const machine = state.repository.chooseMachineForRecipe(operation.recipe).machine;
   const selected = operation.id === state.selectedOperationId ? " selected" : "";
-  const byproducts = secondaryOutputs(operation).slice(0, 2);
+  const recommended = operation.recommended ? " recommended" : "";
+  const byproducts = secondaryOutputs(operation).slice(0, 3);
   return `
     <button
-      class="ore-operation-node${selected}"
+      class="ore-operation-node${selected}${recommended}"
       type="button"
       style="left:${operation.x}px;top:${operation.y}px"
       data-action="select-operation"
@@ -263,9 +277,9 @@ function operationNode(operation) {
     >
       ${machineSlot(machine, recipeType.name, operation.recipe)}
       <strong>${escapeHtml(recipeType.name)}</strong>
-      <small>${escapeHtml(operation.inputStage)} to ${escapeHtml(operation.outputStage)}</small>
+      <small>${escapeHtml(formatStageLabel(operation.inputStage))} to ${escapeHtml(formatStageLabel(operation.outputStage))}</small>
       ${operation.variants.length > 1 ? `<span class="ore-operation-count">${formatAmount(operation.variants.length)}x</span>` : ""}
-      ${byproducts.length ? `<span class="ore-operation-byproducts">${byproducts.map((output) => miniIcon(output.id)).join("")}</span>` : ""}
+      ${byproducts.length ? `<span class="ore-operation-byproducts">${byproducts.map(miniByproduct).join("")}</span>` : ""}
     </button>
   `;
 }
@@ -282,6 +296,81 @@ function secondaryOutputs(operation) {
   });
 }
 
+function renderRecommendedSummary(graph) {
+  const label = graph.routeStrategy === "fast" ? "Fastest route" : "Max byproducts";
+  const byproducts = graph.recommendedByproducts;
+  elements.recommendedSummary.innerHTML = `
+    <div class="ore-recommended-heading">
+      <strong>Highlighted route</strong>
+      <span>${escapeHtml(label)}</span>
+    </div>
+    <div class="ore-recommended-byproducts">
+      <em>Expected byproducts / starting ore</em>
+      ${byproducts.length ? byproducts.map(byproductChip).join("") : `<span class="ore-no-byproducts">None on this path</span>`}
+    </div>
+  `;
+}
+
+function renderQuickSmeltLane(graph) {
+  const quickSmelts = graph.operations.filter((operation) => operation.isQuickSmelt);
+  if (!quickSmelts.length) {
+    elements.quickSmeltLane.innerHTML = "";
+    elements.quickSmeltLane.hidden = true;
+    return;
+  }
+
+  const groups = new Map();
+  for (const operation of quickSmelts) {
+    const key = `${operation.inputStage}->${operation.outputStage}`;
+    const group = groups.get(key) ?? [];
+    group.push(operation);
+    groups.set(key, group);
+  }
+
+  elements.quickSmeltLane.hidden = false;
+  elements.quickSmeltLane.innerHTML = `
+    <div class="ore-shortcut-heading">
+      <strong>Quick smelt shortcuts</strong>
+      <span>${formatAmount(quickSmelts.length)} exported routes</span>
+    </div>
+    <div class="ore-shortcut-grid">
+      ${[...groups.entries()].map(([key, operations]) => shortcutCard(key, operations)).join("")}
+    </div>
+  `;
+}
+
+function shortcutCard(key, operations) {
+  const [inputStage, outputStage] = key.split("->");
+  return `
+    <article class="ore-shortcut-card">
+      <div class="ore-shortcut-route">
+        <strong>${escapeHtml(formatStageLabel(inputStage))}</strong>
+        <span aria-hidden="true"></span>
+        <strong>${escapeHtml(formatStageLabel(outputStage))}</strong>
+      </div>
+      <div class="ore-shortcut-actions">
+        ${operations.map(shortcutButton).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function shortcutButton(operation) {
+  const type = state.repository.getRecipeType(operation.recipeType);
+  const selected = operation.id === state.selectedOperationId ? " selected" : "";
+  const recommended = operation.recommended ? " recommended" : "";
+  return `
+    <button
+      class="ore-shortcut-button${selected}${recommended}"
+      type="button"
+      data-action="select-operation"
+      data-operation-id="${escapeHtml(operation.id)}"
+    >
+      ${escapeHtml(type.name)}
+    </button>
+  `;
+}
+
 function renderSelectedBranch(graph) {
   const operation = selectedOperation(graph);
   if (!operation) {
@@ -290,15 +379,22 @@ function renderSelectedBranch(graph) {
   }
 
   const type = state.repository.getRecipeType(operation.recipeType);
+  const byproducts = secondaryOutputs(operation);
   elements.detail.innerHTML = `
     <div class="ore-detail-header">
       <div>
         <strong>${escapeHtml(type.name)}</strong>
-        <p>${escapeHtml(operation.inputStage)} to ${escapeHtml(operation.outputStage)}</p>
+        <p>${escapeHtml(formatStageLabel(operation.inputStage))} to ${escapeHtml(formatStageLabel(operation.outputStage))}</p>
       </div>
       <span class="ore-detail-pill">${formatAmount(operation.variants.length)} exported variant${operation.variants.length === 1 ? "" : "s"}</span>
     </div>
     ${recipeCard(operation.recipe, operation.inputStage, operation.outputStage)}
+    <div class="ore-byproduct-panel">
+      <h3>Byproducts from one recipe run</h3>
+      <div class="ore-byproduct-list">
+        ${byproducts.length ? byproducts.map(byproductChip).join("") : `<span class="ore-no-byproducts">No secondary outputs</span>`}
+      </div>
+    </div>
     <div class="ore-variant-panel">
       <h3>Exported variants represented by this node</h3>
       <div class="ore-variant-list">
@@ -309,6 +405,21 @@ function renderSelectedBranch(graph) {
   `;
 }
 
+function byproductChip(output) {
+  const good = state.repository.getGood(output.id);
+  const name = good?.name ?? output.id;
+  const chanceText = output.chance !== undefined && !output.expected ? `${formatAmount(output.chance * 100)}%` : "";
+  const amountText = output.expected ? `${formatAmount(output.amount)} avg` : `x${formatAmount(output.amount)}`;
+  return `
+    <span class="ore-byproduct-chip" ${tooltipAttrs({ name, id: output.id, amountText, detail: chanceText ? `${chanceText} chance` : "" })}>
+      ${goodIconMarkup(output.id)}
+      <span>${escapeHtml(name)}</span>
+      <strong>${escapeHtml(amountText)}</strong>
+      ${chanceText ? `<em>${escapeHtml(chanceText)}</em>` : ""}
+    </span>
+  `;
+}
+
 function recipeCard(recipe, inputStage, outputStage) {
   const type = state.repository.getRecipeType(recipe.type);
   const machine = state.repository.chooseMachineForRecipe(recipe).machine;
@@ -316,7 +427,7 @@ function recipeCard(recipe, inputStage, outputStage) {
   const meta = [
     recipe.durationTicks ? formatDuration(recipe.durationTicks) : "instant",
     recipe.eut ? `${formatAmount(recipe.eut)} EU/t` : "",
-    `${inputStage} -> ${outputStage}`
+    `${formatStageLabel(inputStage)} -> ${formatStageLabel(outputStage)}`
   ].filter(Boolean);
 
   return `
@@ -326,7 +437,7 @@ function recipeCard(recipe, inputStage, outputStage) {
           <strong>${escapeHtml(type.name)}</strong>
           <p>${escapeHtml(recipe.id)}</p>
         </div>
-        <span class="ore-recipe-stage">${escapeHtml(inputStage)} -> ${escapeHtml(outputStage)}</span>
+        <span class="ore-recipe-stage">${escapeHtml(formatStageLabel(inputStage))} -> ${escapeHtml(formatStageLabel(outputStage))}</span>
       </header>
       <div class="ore-recipe-visual">
         <div class="ore-slot-flow">
@@ -403,6 +514,18 @@ function miniIcon(goodsId) {
     || `<span class="ore-mini-icon" style="background:#7d8790"></span>`;
 }
 
+function miniByproduct(output) {
+  const good = state.repository.getGood(output.id);
+  const name = good?.name ?? output.id;
+  const chanceText = output.chance !== undefined ? `${formatAmount(output.chance * 100)}% chance` : "";
+  return `
+    <span class="ore-mini-byproduct" ${tooltipAttrs({ name, id: output.id, amountText: formatAmount(output.amount), detail: chanceText })}>
+      ${miniIcon(output.id)}
+      <strong>${escapeHtml(formatAmount(output.amount))}</strong>
+    </span>
+  `;
+}
+
 function goodIconMarkup(goodsId) {
   const good = state.repository.getGood(goodsId);
   return atlasIconMarkup(goodsId, "good-icon", 20)
@@ -450,6 +573,10 @@ function initials(value) {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+}
+
+function formatStageLabel(stage) {
+  return stage.replaceAll("_", " ");
 }
 
 function tooltipAttrs({ name, id, amountText = "", detail = "" }) {
@@ -536,6 +663,11 @@ function setupEvents() {
 
   elements.mapControls.addEventListener("change", (event) => {
     const input = event.target;
+    if (input instanceof HTMLSelectElement && input.dataset.action === "choose-route-strategy") {
+      state.flowView.routeStrategy = input.value === "fast" ? "fast" : "yield";
+      renderRoute();
+      return;
+    }
     if (!(input instanceof HTMLInputElement) || input.dataset.action !== "toggle-map-option") return;
     const option = input.dataset.option;
     if (!option || !(option in state.flowView)) return;
@@ -543,15 +675,18 @@ function setupEvents() {
     renderRoute();
   });
 
-  elements.flowCanvas.addEventListener("click", (event) => {
+  const selectOperation = (event) => {
     if (!(event.target instanceof Element)) return;
     const button = event.target.closest("[data-action='select-operation']");
     if (!(button instanceof HTMLElement) || !button.dataset.operationId) return;
     state.selectedOperationId = button.dataset.operationId;
     const graph = currentGraph();
     renderFlowMap(graph);
+    renderQuickSmeltLane(graph);
     renderSelectedBranch(graph);
-  });
+  };
+  elements.flowCanvas.addEventListener("click", selectOperation);
+  elements.quickSmeltLane.addEventListener("click", selectOperation);
 
   window.addEventListener("resize", fitFlowMap);
   setupMinecraftTooltips();

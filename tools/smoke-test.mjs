@@ -159,6 +159,10 @@ const realOreMaterials = getOreRouteMaterials(realRepository);
 const ironOreRoute = buildOreRoute(realRepository, "iron");
 const ironOreFlowGraph = buildOreFlowGraph(realRepository, "iron");
 const ironOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "iron", { showQuickSmelts: true });
+const ironFastOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "iron", {
+  routeStrategy: "fast",
+  showQuickSmelts: true
+});
 const diamondOreRoute = buildOreRoute(realRepository, "diamond");
 const realMachineRecipe = realRepository.recipes.find((recipe) => {
   return recipe.durationTicks > 0 && realRepository.getMachinesForRecipeType(recipe.type).length > 0;
@@ -212,6 +216,30 @@ if (ironOreFlowGraph.operations.some((operation) => operation.key === "crushed_o
 
 if (!ironOreFlowGraphWithShortcuts.operations.some((operation) => operation.key === "crushed_ore->ingot|minecraft:smelting")) {
   throw new Error("Expected the ore graph to reveal quick-smelt shortcuts when requested.");
+}
+
+if (!ironOreFlowGraphWithShortcuts.operations.some((operation) => operation.isQuickSmelt)) {
+  throw new Error("Expected shortcut routes to be marked for the compact quick-smelt lane.");
+}
+
+const expectedIronYieldPath = [
+  "ore-crushed-ore-gtceu-macerator",
+  "crushed-ore-purified-ore-gtceu-chemical-bath",
+  "purified-ore-refined-ore-gtceu-thermal-centrifuge",
+  "refined-ore-dust-gtceu-macerator",
+  "dust-ingot-minecraft-smelting"
+];
+
+if (ironOreFlowGraph.recommendedOperationIds.join("|") !== expectedIronYieldPath.join("|")) {
+  throw new Error(`Expected iron's highlighted yield path to use advanced ore processing, got ${ironOreFlowGraph.recommendedOperationIds.join(", ")}.`);
+}
+
+if (!ironOreFlowGraph.recommendedByproducts.some((output) => output.id === "gtceu:gold_dust" && output.amount === 1.4)) {
+  throw new Error("Expected iron's highlighted yield path to report normalized secondary gold dust.");
+}
+
+if (ironFastOreFlowGraphWithShortcuts.recommendedOperationIds.join("|") !== "ore-ingot-minecraft-blasting") {
+  throw new Error("Expected the fastest iron highlight to use the visible direct blasting shortcut.");
 }
 
 const expectedRealDefaults = new Map([
