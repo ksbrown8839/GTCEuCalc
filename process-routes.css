@@ -477,11 +477,109 @@
   gap: 5px;
 }
 
+.process-method-picker {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  background: #b8b8b8;
+  box-shadow:
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #777777;
+}
+
+.process-method-picker > span,
 .process-recipe-choice span {
   color: #4f4f4f;
   font-size: 10px;
   text-transform: uppercase;
   text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-method-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  gap: 6px;
+}
+
+.process-method-button {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 6px;
+  background: #d2d2d2;
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #8b8b8b;
+  color: #202020;
+  text-align: left;
+  text-shadow: none;
+}
+
+.process-method-button .machine-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  background: #aebfc8;
+  box-shadow:
+    inset 2px 2px 0 #dbe8ee,
+    inset -2px -2px 0 #5e7078;
+  color: #263b46;
+  font-size: 10px;
+  font-weight: 900;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-method-button > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.process-method-button strong,
+.process-method-button em,
+.process-method-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.process-method-button strong {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.process-method-button em,
+.process-method-note {
+  color: #4f4f4f;
+  font-size: 9px;
+  font-style: normal;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-method-button.selected {
+  background: #315a73;
+  color: #ffffa0;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #6b8fa5,
+    inset -2px -2px 0 #1c3545;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.process-method-button.selected em {
+  color: #d7e9ff;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.process-method-button.recommended:not(.selected) {
+  box-shadow:
+    0 0 0 2px #e0bd35,
+    inset 2px 2px 0 #f8f1b7,
+    inset -2px -2px 0 #8b8b8b;
 }
 
 @media (max-width: 1100px) {

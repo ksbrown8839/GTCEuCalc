@@ -54,18 +54,47 @@ export function buildProcessFlow(repository, target, options = {}) {
 }
 
 function buildMachineRows(plan, machineCounts) {
-  return plan.recipeRows
+  const groups = new Map();
+
+  for (const row of plan.recipeRows) {
+    if (row.machineLoad <= 0 || !row.machine) continue;
+
+    const machineKey = machineGroupKey(row.machine, row.voltageTier, row.recipe.type);
+    const current = groups.get(machineKey);
+    if (current) {
+      current.runsPerMinute += row.runsPerMinute;
+      current.idealLoad += row.machineLoad ?? 0;
+      current.recipeRows.push(row);
+      current.recipeTypes.add(row.recipe.type);
+    } else {
+      groups.set(machineKey, {
+        type: "machine",
+        bottleneckKey: `machine:${machineKey}`,
+        machineKey,
+        machine: row.machine,
+        voltageTier: row.voltageTier,
+        recipeTypes: new Set([row.recipe.type]),
+        recipeRows: [row],
+        runsPerMinute: row.runsPerMinute,
+        idealLoad: row.machineLoad ?? 0,
+        bottleneck: false,
+        weakestMachine: false,
+        underbuilt: false
+      });
+    }
+  }
+
+  return [...groups.values()]
     .map((row) => {
-      const idealLoad = row.machineLoad ?? 0;
+      const idealLoad = row.idealLoad;
       const requiredCount = requiredMachineCount(idealLoad);
-      const builtCount = Math.max(0, Number(machineCounts[row.recipe.id] ?? requiredCount));
+      const builtCount = Math.max(0, Number(machineCounts[row.machineKey] ?? requiredCount));
       const capacityFactor = idealLoad > 0 ? builtCount / idealLoad : Infinity;
 
       return {
-        type: "machine",
-        bottleneckKey: `machine:${row.recipe.id}`,
         ...row,
-        idealLoad,
+        recipeTypes: [...row.recipeTypes],
+        recipeCount: row.recipeRows.length,
         requiredCount,
         builtCount,
         capacityFactor,
@@ -76,7 +105,7 @@ function buildMachineRows(plan, machineCounts) {
     })
     .sort((a, b) => {
       const capacitySort = finiteSortValue(a.capacityFactor) - finiteSortValue(b.capacityFactor);
-      return capacitySort || b.idealLoad - a.idealLoad || a.recipe.id.localeCompare(b.recipe.id);
+      return capacitySort || b.idealLoad - a.idealLoad || a.machineKey.localeCompare(b.machineKey);
     });
 }
 
@@ -138,8 +167,12 @@ function applyActualRates(supplyRows, lineFactor, targetAmountPerMinute) {
 }
 
 function bottleneckLabel(row) {
-  if (row.type === "machine") return row.recipe.id;
+  if (row.type === "machine") return row.machineKey;
   return row.goodsId;
+}
+
+function machineGroupKey(machine, voltageTier, fallback) {
+  return `${machine?.id ?? fallback}:${voltageTier?.id ?? "untiered"}`;
 }
 
 function finiteSortValue(value) {
@@ -194,6 +227,7 @@ function buildProcessGraph(repository, plan) {
       label: repository.getRecipeType(treeNode.recipe.type).name,
       machine: treeNode.machine,
       voltageTier: treeNode.voltageTier,
+      machineGroupKey: machineGroupKey(treeNode.machine, treeNode.voltageTier, treeNode.recipe.type),
       depth,
       runsPerMinute: treeNode.runsPerMinute,
       amountPerMinute: treeNode.amountPerMinute,

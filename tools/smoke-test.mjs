@@ -123,6 +123,62 @@ if (loopSafePlan.warnings.some((warning) => warning.includes("Cycle detected")))
   throw new Error("Expected nugget planning to expand through a loop-safe ingot default.");
 }
 
+const machineGroupRepository = new Repository({
+  schema: "gtceu-planner-pack-v1",
+  metadata: {},
+  voltageTiers: [],
+  goods: [
+    { id: "test:blend", kind: "fluid", name: "Blend", mod: "test", tags: [] },
+    { id: "test:cut_a", kind: "fluid", name: "Cut A", mod: "test", tags: [] },
+    { id: "test:cut_b", kind: "fluid", name: "Cut B", mod: "test", tags: [] },
+    { id: "test:feed_a", kind: "fluid", name: "Feed A", mod: "test", tags: [] },
+    { id: "test:feed_b", kind: "fluid", name: "Feed B", mod: "test", tags: [] }
+  ],
+  tags: [],
+  recipeTypes: [
+    { id: "test:mixer", name: "Mixer", category: "test" },
+    { id: "test:distillery", name: "Distillery", category: "test" }
+  ],
+  machines: [
+    { id: "test:mixer", name: "Mixer", recipeTypes: ["test:mixer"], parallel: 1 },
+    { id: "test:distillery", name: "Distillery", recipeTypes: ["test:distillery"], parallel: 1 }
+  ],
+  recipes: [
+    {
+      id: "test:mixer/blend",
+      type: "test:mixer",
+      durationTicks: 20,
+      eut: 8,
+      inputs: [
+        { kind: "item", id: "test:cut_a", amount: 1 },
+        { kind: "item", id: "test:cut_b", amount: 1 }
+      ],
+      outputs: [{ kind: "fluid", id: "test:blend", amount: 1 }]
+    },
+    {
+      id: "test:distillery/cut_a",
+      type: "test:distillery",
+      durationTicks: 60,
+      eut: 16,
+      inputs: [{ kind: "item", id: "test:feed_a", amount: 1 }],
+      outputs: [{ kind: "fluid", id: "test:cut_a", amount: 1 }]
+    },
+    {
+      id: "test:distillery/cut_b",
+      type: "test:distillery",
+      durationTicks: 80,
+      eut: 16,
+      inputs: [{ kind: "item", id: "test:feed_b", amount: 1 }],
+      outputs: [{ kind: "fluid", id: "test:cut_b", amount: 1 }]
+    }
+  ]
+});
+const groupedMachineFlow = buildProcessFlow(machineGroupRepository, { goodsId: "test:blend", amountPerMinute: 2 });
+const groupedDistilleryRow = groupedMachineFlow.machineRows.find((row) => row.machine?.id === "test:distillery");
+if (!groupedDistilleryRow || groupedDistilleryRow.recipeCount !== 2) {
+  throw new Error("Expected process machine configuration to group multiple Distillery recipe steps into one machine row.");
+}
+
 const manuallyPreferredRepacking = loopRepository.chooseRecipeForOutput("minecraft:iron_ingot", {
   "minecraft:iron_ingot": "gtceu:alloy_smelter/alloy_smelt_iron_nugget_to_ingot"
 });
@@ -178,10 +234,14 @@ const dieselProcessFlow = buildProcessFlow(realRepository, { goodsId: "gtceu:die
 const expandedDieselProcessFlow = buildProcessFlow(realRepository, { goodsId: "gtceu:diesel", amountPerMinute: 6000 }, {
   externalGoods: getBoundaryPresetGoods(realRepository, new Set(["base-materials", "stock-parts", "circuits"]))
 });
+const dieselMachineKey = dieselProcessFlow.machineRows[0]?.machineKey;
+if (!dieselMachineKey) {
+  throw new Error("Expected compact diesel process planning to include a configurable machine group.");
+}
 const zeroMachineDieselProcessFlow = buildProcessFlow(realRepository, { goodsId: "gtceu:diesel", amountPerMinute: 6000 }, {
   externalGoods: processExternalGoods,
   machineCounts: {
-    [dieselProcessFlow.plan.recipeRows[0].recipe.id]: 0
+    [dieselMachineKey]: 0
   }
 });
 const lightFuelDemand = dieselProcessFlow.supplyRows.find((row) => row.goodsId === "gtceu:light_fuel")?.requiredAmountPerMinute ?? 0;

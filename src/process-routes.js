@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-supply-rates-2026-06-04";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-machine-menu-2026-06-04";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -163,7 +163,7 @@ function renderProcess() {
   elements.summary.textContent = [
     `${formatRate(flow.idealOutputPerMinute)} target`,
     `${formatAmount(flow.plan.recipeRows.length)} recipes`,
-    `${formatAmount(flow.plan.machineRows.length)} machine groups`
+    `${formatAmount(flow.machineRows.length)} machine groups`
   ].join(" / ");
   elements.power.textContent = `${formatAmount(flow.targetPowerEut)} EU/t target`;
 
@@ -218,7 +218,7 @@ function renderStats(flow) {
 
 function bottleneckDescription(row) {
   if (row.type === "machine") {
-    return `${recipeTypeName(row.recipe)} at ${formatAmount(row.capacityFactor)}x target`;
+    return `${machineFamilyName(row.machine, "Machine")} at ${formatAmount(row.capacityFactor)}x target`;
   }
 
   return `${state.repository.getGoodName(row.goodsId)} supply at ${formatAmount(row.capacityFactor)}x target`;
@@ -286,7 +286,7 @@ function goodNode(node, flow) {
 }
 
 function recipeNode(node, flow) {
-  const machineRow = flow.machineRows.find((row) => row.recipe.id === node.recipe.id);
+  const machineRow = machineRowForRecipe(flow, node.recipe.id);
   const selected = node.id === state.selectedNodeId ? " selected" : "";
   const bottleneck = machineRow?.weakestMachine ? " bottleneck" : "";
   const underbuilt = machineRow?.underbuilt ? " underbuilt" : "";
@@ -301,6 +301,10 @@ function recipeNode(node, flow) {
   `;
 }
 
+function machineRowForRecipe(flow, recipeId) {
+  return flow.machineRows.find((row) => row.recipeRows.some((recipeRow) => recipeRow.recipe.id === recipeId));
+}
+
 function renderMachineConfig(flow) {
   const visibleRows = flow.machineRows.slice(0, MACHINE_LIMIT);
   elements.generatorEuT.value = flow.generatorEuT;
@@ -310,19 +314,25 @@ function renderMachineConfig(flow) {
 }
 
 function machineConfigRow(row) {
-  const machine = machineName(row.machine, row.voltageTier, recipeTypeName(row.recipe));
+  const machine = machineFamilyName(row.machine, "Machine");
+  const recipeTypes = row.recipeTypes
+    .map((typeId) => state.repository.getRecipeType(typeId).name)
+    .filter((name) => name !== machine)
+    .join(", ");
+  const detail = [row.voltageTier ? `${row.voltageTier.name} tier` : "", recipeTypes].filter(Boolean).join(" / ");
+  const stepText = `${formatAmount(row.recipeCount)} recipe ${row.recipeCount === 1 ? "step" : "steps"}`;
   const bottleneck = row.weakestMachine ? " bottleneck" : "";
   const underbuilt = row.underbuilt ? " underbuilt" : "";
   return `
     <article class="process-machine-row${bottleneck}${underbuilt}">
       <div>
-        <strong>${escapeHtml(recipeTypeName(row.recipe))}</strong>
-        <span>${escapeHtml(machine)}</span>
-        <em>${formatRate(row.runsPerMinute)} runs / ${formatAmount(row.idealLoad)} load / ${formatAmount(row.capacityFactor)}x capacity</em>
+        <strong>${escapeHtml(machine)}</strong>
+        <span>${escapeHtml(detail || stepText)}</span>
+        <em>${stepText} / ${formatRate(row.runsPerMinute)} runs / ${formatAmount(row.idealLoad)} load / ${formatAmount(row.capacityFactor)}x capacity</em>
       </div>
       <label>
         <span>Built</span>
-        <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-recipe-id="${escapeHtml(row.recipe.id)}">
+        <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.machineKey)}">
       </label>
     </article>
   `;
@@ -429,18 +439,92 @@ function goodDetail(node) {
 function recipeChoiceControl(goodsId, currentRecipeId) {
   const recipes = state.repository.rankRecipesForOutput(goodsId);
   if (recipes.length <= 1) return "";
+  const groups = recipeMethodGroups(recipes);
+  const selectedGroup = groups.find((group) => group.recipes.some((recipe) => recipe.id === currentRecipeId)) ?? groups[0];
+  return `
+    <div class="process-method-picker">
+      <span>Machine method</span>
+      <div class="process-method-menu">
+        ${groups.map((group) => methodButton(goodsId, group, selectedGroup, recipes[0])).join("")}
+      </div>
+      ${recipeVariantControl(goodsId, selectedGroup, currentRecipeId)}
+    </div>
+  `;
+}
+
+function recipeMethodGroups(recipes) {
+  const groups = new Map();
+  for (const recipe of recipes) {
+    const key = recipe.type;
+    const current = groups.get(key);
+    if (current) {
+      current.recipes.push(recipe);
+    } else {
+      groups.set(key, {
+        key,
+        label: recipeTypeName(recipe),
+        recipes: [recipe]
+      });
+    }
+  }
+  return [...groups.values()];
+}
+
+function methodButton(goodsId, group, selectedGroup, recommendedRecipe) {
+  const selected = group.key === selectedGroup.key ? " selected" : "";
+  const recommended = group.recipes.some((recipe) => recipe.id === recommendedRecipe.id) ? " recommended" : "";
+  const variantText = `${formatAmount(group.recipes.length)} ${group.recipes.length === 1 ? "variant" : "variants"}`;
+  return `
+    <button class="process-method-button${selected}${recommended}" type="button" data-action="choose-process-machine" data-output-id="${escapeHtml(goodsId)}" data-recipe-id="${escapeHtml(group.recipes[0].id)}">
+      <span class="machine-icon">${escapeHtml(machineInitialsForName(group.label))}</span>
+      <span>
+        <strong>${escapeHtml(group.label)}</strong>
+        <em>${escapeHtml(variantText)}</em>
+      </span>
+    </button>
+  `;
+}
+
+function recipeVariantControl(goodsId, group, currentRecipeId) {
+  const selectedRecipeId = group.recipes.some((recipe) => recipe.id === currentRecipeId)
+    ? currentRecipeId
+    : group.recipes[0].id;
+  if (group.recipes.length === 1) {
+    return `<em class="process-method-note">${escapeHtml(recipeVariantLabel(group.recipes[0], goodsId, 0))}</em>`;
+  }
+
   return `
     <label class="process-recipe-choice">
-      <span>Recipe choice</span>
+      <span>${escapeHtml(group.label)} variant</span>
       <select data-action="choose-process-recipe" data-output-id="${escapeHtml(goodsId)}">
-        ${recipes.slice(0, 40).map((recipe, index) => {
-          const selected = recipe.id === currentRecipeId ? " selected" : "";
-          const label = `${index === 0 ? "Recommended / " : ""}${recipeTypeName(recipe)} / ${recipe.id}`;
-          return `<option value="${escapeHtml(recipe.id)}"${selected}>${escapeHtml(label)}</option>`;
+        ${group.recipes.slice(0, 40).map((recipe, index) => {
+          const selected = recipe.id === selectedRecipeId ? " selected" : "";
+          return `<option value="${escapeHtml(recipe.id)}"${selected}>${escapeHtml(recipeVariantLabel(recipe, goodsId, index))}</option>`;
         }).join("")}
       </select>
     </label>
   `;
+}
+
+function recipeVariantLabel(recipe, goodsId, index) {
+  const inputs = recipe.inputs
+    .filter((input) => !input.notConsumed)
+    .slice(0, 3)
+    .map((input) => `${formatAmount(input.amount)} ${state.repository.getIngredientName(input)}`)
+    .join(" + ");
+  const extraInputCount = recipe.inputs.filter((input) => !input.notConsumed).length - 3;
+  const output = recipe.outputs.find((item) => item.id === goodsId);
+  const outputText = output
+    ? `${formatAmount(output.amount)} ${state.repository.getGoodName(goodsId)}`
+    : state.repository.getGoodName(goodsId);
+  const byproductCount = secondaryOutputs(recipe, goodsId).length;
+  const meta = [
+    formatDuration(recipe.durationTicks),
+    recipe.eut ? `${formatAmount(recipe.eut)} EU/t` : "",
+    byproductCount ? `${formatAmount(byproductCount)} byproducts` : ""
+  ].filter(Boolean).join(", ");
+  const inputText = `${inputs || recipe.id}${extraInputCount > 0 ? ` + ${formatAmount(extraInputCount)} more` : ""}`;
+  return `${index === 0 ? "Recommended / " : ""}${inputText} -> ${outputText}${meta ? ` (${meta})` : ""}`;
 }
 
 function goodLine(goodsId, amountText, options = {}) {
@@ -532,7 +616,11 @@ function goodTooltipAttrs(good, fallbackId, amountText = "") {
 }
 
 function machineInitials(node) {
-  const words = machineName(node.machine, node.voltageTier, node.label).split(/[^a-z0-9]+/i).filter(Boolean);
+  return machineInitialsForName(machineName(node.machine, node.voltageTier, node.label));
+}
+
+function machineInitialsForName(name) {
+  const words = name.split(/[^a-z0-9]+/i).filter(Boolean);
   return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "M";
 }
 
@@ -540,6 +628,10 @@ function machineName(machine, voltageTier, fallback = "Unknown machine") {
   if (!machine) return fallback;
   if (!voltageTier || machine.voltageTier) return machine.name;
   return `${voltageTier.name} ${machine.name}`;
+}
+
+function machineFamilyName(machine, fallback = "Unknown machine") {
+  return machine?.name ?? fallback;
 }
 
 function recipeTypeName(recipe) {
@@ -625,9 +717,9 @@ function setupEvents() {
     const action = target.dataset.action;
 
     if (action === "set-process-machine-count") {
-      const recipeId = target.dataset.recipeId;
-      if (!recipeId) return;
-      state.machineCounts[recipeId] = Math.max(0, Number(target.value) || 0);
+      const machineKey = target.dataset.machineKey;
+      if (!machineKey) return;
+      state.machineCounts[machineKey] = Math.max(0, Number(target.value) || 0);
       renderProcess();
       return;
     }
@@ -656,9 +748,7 @@ function setupEvents() {
     if (action === "choose-process-recipe") {
       const outputId = target.dataset.outputId;
       if (!outputId) return;
-      state.preferredRecipeByOutput[outputId] = target.value;
-      state.manualMadeGoods.add(outputId);
-      state.manualExternalGoods.delete(outputId);
+      chooseProcessRecipe(outputId, target.value);
       renderProcess();
     }
   });
@@ -687,6 +777,12 @@ function setupEvents() {
       return;
     }
 
+    if (action === "choose-process-machine" && target.dataset.outputId && target.dataset.recipeId) {
+      chooseProcessRecipe(target.dataset.outputId, target.dataset.recipeId);
+      renderProcess();
+      return;
+    }
+
     if (action === "make-process-good" && goodsId) {
       state.manualMadeGoods.add(goodsId);
       state.manualExternalGoods.delete(goodsId);
@@ -701,6 +797,12 @@ function setupEvents() {
       renderAll();
     }
   });
+}
+
+function chooseProcessRecipe(outputId, recipeId) {
+  state.preferredRecipeByOutput[outputId] = recipeId;
+  state.manualMadeGoods.add(outputId);
+  state.manualExternalGoods.delete(outputId);
 }
 
 function setupMinecraftTooltips() {
