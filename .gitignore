@@ -18,6 +18,8 @@ assets/gui/minecraft/*
 !assets/gui/minecraft/generic_54.png
 !assets/gui/minecraft/inventory.png
 !assets/gui/minecraft/furnace.png
+!assets/gui/gtceu/
+!assets/gui/gtceu/**
 assets/animated-icons/
 data/texture-manifest.local.json
 
