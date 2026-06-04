@@ -6,7 +6,7 @@
     <title>Ore Routes · GTCEu Modern Planner</title>
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
-    <link rel="stylesheet" href="ore-routes.css?v=recommended-ore-map-2026-05-31">
+    <link rel="stylesheet" href="ore-routes.css?v=ore-yield-map-2026-06-03">
   </head>
   <body>
     <main class="ore-route-shell">
@@ -27,7 +27,9 @@
             <li>Choose an ore material.</li>
             <li>Follow the connected processing map from ore to finished material.</li>
             <li>Click a machine node to inspect its exact exported recipes.</li>
-            <li>Reveal shortcut and hammer routes when you need them.</li>
+            <li>Use max byproducts for normal GT ore processing decisions.</li>
+            <li>Quick smelts are direct smelting routes with poor byproduct yield.</li>
+            <li>Hammers are manual or low-tech fallback routes.</li>
           </ol>
         </details>
 
@@ -58,29 +60,30 @@
               <span class="ore-route-note">Core machine routes are condensed from the exported recipe graph.</span>
             </div>
             <div class="tree-view-controls" data-role="ore-map-controls">
-              <label class="ore-strategy-control">
+              <label class="ore-strategy-control" data-mc-tooltip data-tooltip-name="Highlight" data-tooltip-id="route highlight" data-tooltip-detail="Max byproducts favors richer ore processing. Fastest route favors the shortest visible route.">
                 <span>Highlight</span>
                 <select data-action="choose-route-strategy" data-role="ore-route-strategy">
                   <option value="yield">Max byproducts</option>
                   <option value="fast">Fastest route</option>
                 </select>
               </label>
-              <label>
+              <label data-mc-tooltip data-tooltip-name="Hammers" data-tooltip-id="route filter" data-tooltip-detail="Shows forge hammer and crafting fallback routes. These are handy early-game, but usually not optimal for ore yield.">
                 <input type="checkbox" data-action="toggle-map-option" data-option="showHammerRoutes">
                 <span>Hammers</span>
               </label>
-              <label>
+              <label data-mc-tooltip data-tooltip-name="Quick smelts" data-tooltip-id="route filter" data-tooltip-detail="Shows direct smelting and blasting shortcuts from ore forms to the final material. Fast, simple, and usually low byproduct yield.">
                 <input type="checkbox" data-action="toggle-map-option" data-option="showQuickSmelts">
                 <span>Quick smelts</span>
               </label>
             </div>
           </header>
+          <div class="ore-yield-board" data-role="ore-yield-board"></div>
           <div class="ore-flow-frame" data-role="ore-flow-frame">
             <div class="ore-flow-track" data-role="ore-flow-track">
               <div class="ore-flow-canvas" data-role="ore-flow-canvas"></div>
             </div>
           </div>
-          <div class="ore-recommended-summary" data-role="ore-recommended-summary"></div>
+          <div class="ore-fallback-lane" data-role="ore-fallback-lane"></div>
           <div class="ore-quick-smelt-lane" data-role="ore-quick-smelt-lane"></div>
           <div class="ore-flow-legend">
             <span><i class="legend-item"></i> Material stage</span>
@@ -100,6 +103,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/ore-routes.js?v=recommended-ore-map-2026-05-31"></script>
+    <script type="module" src="src/ore-routes.js?v=ore-yield-map-2026-06-03"></script>
   </body>
 </html>

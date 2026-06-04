@@ -158,6 +158,7 @@ const realRepository = new Repository(realData);
 const realOreMaterials = getOreRouteMaterials(realRepository);
 const ironOreRoute = buildOreRoute(realRepository, "iron");
 const ironOreFlowGraph = buildOreFlowGraph(realRepository, "iron");
+const ironOreFlowGraphWithHammers = buildOreFlowGraph(realRepository, "iron", { showHammerRoutes: true });
 const ironOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "iron", { showQuickSmelts: true });
 const ironFastOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "iron", {
   routeStrategy: "fast",
@@ -222,6 +223,10 @@ if (!ironOreFlowGraphWithShortcuts.operations.some((operation) => operation.isQu
   throw new Error("Expected shortcut routes to be marked for the compact quick-smelt lane.");
 }
 
+if (!ironOreFlowGraphWithHammers.operations.some((operation) => operation.isFallbackRoute)) {
+  throw new Error("Expected hammer and crafting routes to be marked as fallback routes.");
+}
+
 const expectedIronYieldPath = [
   "ore-crushed-ore-gtceu-macerator",
   "crushed-ore-purified-ore-gtceu-chemical-bath",
@@ -236,6 +241,10 @@ if (ironOreFlowGraph.recommendedOperationIds.join("|") !== expectedIronYieldPath
 
 if (!ironOreFlowGraph.recommendedByproducts.some((output) => output.id === "gtceu:gold_dust" && output.amount === 1.4)) {
   throw new Error("Expected iron's highlighted yield path to report normalized secondary gold dust.");
+}
+
+if (!ironOreFlowGraph.possibleByproducts.some((output) => output.id === "gtceu:gold_dust" && output.routeCount === 1)) {
+  throw new Error("Expected iron's material-wide byproduct summary to include gold dust.");
 }
 
 if (ironFastOreFlowGraphWithShortcuts.recommendedOperationIds.join("|") !== "ore-ingot-minecraft-blasting") {

@@ -1,43 +1,43 @@
 import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
-import { buildOreFlowGraph, classifyOreRouteIngredient, getOreRouteMaterials } from "./ore-routes-model.js?v=recommended-ore-map-2026-05-31";
+import { buildOreFlowGraph, classifyOreRouteIngredient, getOreRouteMaterials } from "./ore-routes-model.js?v=ore-yield-map-2026-06-03";
 import { escapeHtml, formatAmount, formatDuration } from "./format.js?v=machine-build-counts-2026-05-31";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
-const FLOW_MAP_WIDTH = 1320;
-const FLOW_MAP_HEIGHT = 620;
+const FLOW_MAP_WIDTH = 1450;
+const FLOW_MAP_HEIGHT = 700;
 const STAGE_WIDTH = 92;
 const STAGE_HEIGHT = 74;
 const OPERATION_WIDTH = 116;
 const OPERATION_HEIGHT = 58;
 
 const STAGE_LAYOUT = {
-  ore: { x: 18, y: 112 },
-  raw_material: { x: 18, y: 286 },
-  crushed_ore: { x: 242, y: 202 },
-  purified_ore: { x: 502, y: 62 },
-  refined_ore: { x: 742, y: 38 },
-  impure_dust: { x: 502, y: 454 },
-  pure_dust: { x: 742, y: 368 },
-  dust: { x: 982, y: 244 },
-  ingot: { x: 1210, y: 244 },
-  gem: { x: 1210, y: 244 }
+  ore: { x: 24, y: 118 },
+  raw_material: { x: 24, y: 402 },
+  crushed_ore: { x: 282, y: 258 },
+  purified_ore: { x: 542, y: 76 },
+  refined_ore: { x: 802, y: 66 },
+  impure_dust: { x: 542, y: 522 },
+  pure_dust: { x: 802, y: 438 },
+  dust: { x: 1092, y: 306 },
+  ingot: { x: 1324, y: 306 },
+  gem: { x: 1324, y: 306 }
 };
 
 const OPERATION_LAYOUT = {
-  "ore->crushed_ore": { x: 132, y: 120 },
-  "raw_material->crushed_ore": { x: 132, y: 300 },
-  "crushed_ore->purified_ore": { x: 370, y: 86 },
-  "crushed_ore->refined_ore": { x: 472, y: 220 },
-  "crushed_ore->impure_dust": { x: 370, y: 362 },
-  "purified_ore->refined_ore": { x: 622, y: 44 },
-  "purified_ore->pure_dust": { x: 622, y: 238 },
-  "refined_ore->dust": { x: 852, y: 116 },
-  "impure_dust->dust": { x: 662, y: 464 },
-  "pure_dust->dust": { x: 852, y: 344 },
-  "dust->ingot": { x: 1092, y: 252 },
-  "dust->gem": { x: 1092, y: 252 },
-  "purified_ore->gem": { x: 928, y: 92 }
+  "ore->crushed_ore": { x: 144, y: 168 },
+  "raw_material->crushed_ore": { x: 144, y: 372 },
+  "crushed_ore->purified_ore": { x: 396, y: 112 },
+  "crushed_ore->refined_ore": { x: 470, y: 284 },
+  "crushed_ore->impure_dust": { x: 396, y: 438 },
+  "purified_ore->refined_ore": { x: 650, y: 90 },
+  "purified_ore->pure_dust": { x: 650, y: 326 },
+  "refined_ore->dust": { x: 920, y: 160 },
+  "impure_dust->dust": { x: 730, y: 540 },
+  "pure_dust->dust": { x: 920, y: 438 },
+  "dust->ingot": { x: 1196, y: 314 },
+  "dust->gem": { x: 1196, y: 314 },
+  "purified_ore->gem": { x: 1048, y: 120 }
 };
 
 const state = {
@@ -67,7 +67,8 @@ const elements = {
   flowFrame: document.querySelector("[data-role='ore-flow-frame']"),
   flowTrack: document.querySelector("[data-role='ore-flow-track']"),
   flowCanvas: document.querySelector("[data-role='ore-flow-canvas']"),
-  recommendedSummary: document.querySelector("[data-role='ore-recommended-summary']"),
+  yieldBoard: document.querySelector("[data-role='ore-yield-board']"),
+  fallbackLane: document.querySelector("[data-role='ore-fallback-lane']"),
   quickSmeltLane: document.querySelector("[data-role='ore-quick-smelt-lane']"),
   detail: document.querySelector("[data-role='ore-route-detail']")
 };
@@ -122,13 +123,20 @@ function renderRoute() {
   const graph = currentGraph();
   state.selectedOperationId = selectedOperation(graph)?.id ?? graph.operations[0]?.id ?? null;
   const quickSmelts = graph.operations.filter((operation) => operation.isQuickSmelt);
-  const mapOperations = graph.operations.length - quickSmelts.length;
+  const fallbackRoutes = graph.operations.filter((operation) => operation.isFallbackRoute);
+  const mapOperations = graph.operations.length - quickSmelts.length - fallbackRoutes.length;
+  const routeSummary = [
+    `${formatAmount(mapOperations)} core routes`,
+    fallbackRoutes.length ? `${formatAmount(fallbackRoutes.length)} fallbacks` : "",
+    quickSmelts.length ? `${formatAmount(quickSmelts.length)} shortcuts` : ""
+  ].filter(Boolean).join(" · ");
   elements.title.textContent = `${graph.name} Ore Processing`;
-  elements.summary.textContent = `${formatAmount(mapOperations)} mapped routes${quickSmelts.length ? ` and ${formatAmount(quickSmelts.length)} shortcuts` : ""} from ${formatAmount(graph.steps.length)} exported recipes`;
+  elements.summary.textContent = `${routeSummary} from ${formatAmount(graph.steps.length)} exported recipes`;
   elements.count.textContent = `${formatAmount(graph.steps.length)} recipes`;
   renderMapControls();
+  renderYieldBoard(graph);
   renderFlowMap(graph);
-  renderRecommendedSummary(graph);
+  renderFallbackLane(graph);
   renderQuickSmeltLane(graph);
   renderSelectedBranch(graph);
   updateMaterialUrl();
@@ -190,7 +198,7 @@ function layoutFlowGraph(graph) {
   }
 
   const groupedOperations = new Map();
-  for (const operation of graph.operations.filter((candidate) => !candidate.isQuickSmelt)) {
+  for (const operation of graph.operations.filter((candidate) => !candidate.isQuickSmelt && !candidate.isFallbackRoute)) {
     const pair = `${operation.inputStage}->${operation.outputStage}`;
     const operations = groupedOperations.get(pair) ?? [];
     operations.push(operation);
@@ -296,19 +304,45 @@ function secondaryOutputs(operation) {
   });
 }
 
-function renderRecommendedSummary(graph) {
+function renderYieldBoard(graph) {
   const label = graph.routeStrategy === "fast" ? "Fastest route" : "Max byproducts";
-  const byproducts = graph.recommendedByproducts;
-  elements.recommendedSummary.innerHTML = `
-    <div class="ore-recommended-heading">
-      <strong>Highlighted route</strong>
-      <span>${escapeHtml(label)}</span>
-    </div>
-    <div class="ore-recommended-byproducts">
-      <em>Expected byproducts / starting ore</em>
-      ${byproducts.length ? byproducts.map(byproductChip).join("") : `<span class="ore-no-byproducts">None on this path</span>`}
-    </div>
+  elements.yieldBoard.innerHTML = `
+    <section class="ore-yield-panel possible">
+      <div class="ore-yield-heading">
+        <strong>Possible byproducts</strong>
+        <span>Core machine branches</span>
+      </div>
+      <div class="ore-yield-chip-list">
+        ${graph.possibleByproducts.length ? graph.possibleByproducts.map(possibleByproductChip).join("") : `<span class="ore-no-byproducts">No secondary outputs found</span>`}
+      </div>
+    </section>
+    <section class="ore-yield-panel highlighted">
+      <div class="ore-yield-heading">
+        <strong>Highlighted path yield</strong>
+        <span>${escapeHtml(label)}</span>
+      </div>
+      <div class="ore-yield-chip-list">
+        ${graph.recommendedByproducts.length ? graph.recommendedByproducts.map(byproductChip).join("") : `<span class="ore-no-byproducts">None on this path</span>`}
+      </div>
+    </section>
   `;
+}
+
+function renderFallbackLane(graph) {
+  const fallbackRoutes = graph.operations.filter((operation) => operation.isFallbackRoute);
+  if (!fallbackRoutes.length) {
+    elements.fallbackLane.innerHTML = "";
+    elements.fallbackLane.hidden = true;
+    return;
+  }
+
+  elements.fallbackLane.hidden = false;
+  elements.fallbackLane.innerHTML = routeLaneMarkup({
+    heading: "Hammer and crafting fallbacks",
+    count: fallbackRoutes.length,
+    operations: fallbackRoutes,
+    cardClass: "fallback"
+  });
 }
 
 function renderQuickSmeltLane(graph) {
@@ -319,49 +353,62 @@ function renderQuickSmeltLane(graph) {
     return;
   }
 
+  elements.quickSmeltLane.hidden = false;
+  elements.quickSmeltLane.innerHTML = routeLaneMarkup({
+    heading: "Quick smelt shortcuts",
+    count: quickSmelts.length,
+    operations: quickSmelts,
+    cardClass: "shortcut"
+  });
+}
+
+function routeLaneMarkup({ heading, count, operations, cardClass }) {
+  const groups = groupOperationsByRoute(operations);
+  return `
+    <div class="ore-route-lane-heading">
+      <strong>${escapeHtml(heading)}</strong>
+      <span>${formatAmount(count)} exported routes</span>
+    </div>
+    <div class="ore-route-lane-grid">
+      ${[...groups.entries()].map(([key, routeOperations]) => routeLaneCard(key, routeOperations, cardClass)).join("")}
+    </div>
+  `;
+}
+
+function groupOperationsByRoute(operations) {
   const groups = new Map();
-  for (const operation of quickSmelts) {
+  for (const operation of operations) {
     const key = `${operation.inputStage}->${operation.outputStage}`;
     const group = groups.get(key) ?? [];
     group.push(operation);
     groups.set(key, group);
   }
-
-  elements.quickSmeltLane.hidden = false;
-  elements.quickSmeltLane.innerHTML = `
-    <div class="ore-shortcut-heading">
-      <strong>Quick smelt shortcuts</strong>
-      <span>${formatAmount(quickSmelts.length)} exported routes</span>
-    </div>
-    <div class="ore-shortcut-grid">
-      ${[...groups.entries()].map(([key, operations]) => shortcutCard(key, operations)).join("")}
-    </div>
-  `;
+  return groups;
 }
 
-function shortcutCard(key, operations) {
+function routeLaneCard(key, operations, cardClass) {
   const [inputStage, outputStage] = key.split("->");
   return `
-    <article class="ore-shortcut-card">
-      <div class="ore-shortcut-route">
+    <article class="ore-route-lane-card ${escapeHtml(cardClass)}">
+      <div class="ore-route-lane-route">
         <strong>${escapeHtml(formatStageLabel(inputStage))}</strong>
         <span aria-hidden="true"></span>
         <strong>${escapeHtml(formatStageLabel(outputStage))}</strong>
       </div>
-      <div class="ore-shortcut-actions">
-        ${operations.map(shortcutButton).join("")}
+      <div class="ore-route-lane-actions">
+        ${operations.map(routeLaneButton).join("")}
       </div>
     </article>
   `;
 }
 
-function shortcutButton(operation) {
+function routeLaneButton(operation) {
   const type = state.repository.getRecipeType(operation.recipeType);
   const selected = operation.id === state.selectedOperationId ? " selected" : "";
   const recommended = operation.recommended ? " recommended" : "";
   return `
     <button
-      class="ore-shortcut-button${selected}${recommended}"
+      class="ore-route-lane-button${selected}${recommended}"
       type="button"
       data-action="select-operation"
       data-operation-id="${escapeHtml(operation.id)}"
@@ -416,6 +463,22 @@ function byproductChip(output) {
       <span>${escapeHtml(name)}</span>
       <strong>${escapeHtml(amountText)}</strong>
       ${chanceText ? `<em>${escapeHtml(chanceText)}</em>` : ""}
+    </span>
+  `;
+}
+
+function possibleByproductChip(output) {
+  const good = state.repository.getGood(output.id);
+  const name = good?.name ?? output.id;
+  const chanceText = output.maxChance < 1 ? `${formatAmount(output.maxChance * 100)}% chance` : "guaranteed";
+  const routeText = `${formatAmount(output.routeCount)} route${output.routeCount === 1 ? "" : "s"}`;
+  const machineText = output.recipeTypes.map((typeId) => state.repository.getRecipeType(typeId).name).join(", ");
+  return `
+    <span class="ore-byproduct-chip possible" ${tooltipAttrs({ name, id: output.id, amountText: routeText, detail: machineText })}>
+      ${goodIconMarkup(output.id)}
+      <span>${escapeHtml(name)}</span>
+      <strong>${escapeHtml(routeText)}</strong>
+      <em>${escapeHtml(chanceText)}</em>
     </span>
   `;
 }
@@ -682,6 +745,7 @@ function setupEvents() {
     state.selectedOperationId = button.dataset.operationId;
     const graph = currentGraph();
     renderFlowMap(graph);
+    renderFallbackLane(graph);
     renderQuickSmeltLane(graph);
     renderSelectedBranch(graph);
   };

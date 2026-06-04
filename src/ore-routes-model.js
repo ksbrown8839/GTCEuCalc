@@ -122,7 +122,8 @@ export function buildOreFlowGraph(repository, material, options = {}) {
         recipeType: representative.recipe.type,
         recipe: representative.recipe,
         variants,
-        isQuickSmelt: isQuickSmeltShortcut(representative)
+        isQuickSmelt: isQuickSmeltShortcut(representative),
+        isFallbackRoute: isHammerRoute(representative.recipe)
       };
     })
     .sort((a, b) => {
@@ -138,6 +139,7 @@ export function buildOreFlowGraph(repository, material, options = {}) {
   const recommendedOperationIds = recommendedPath.map((operation) => operation.id);
   const recommendedIds = new Set(recommendedOperationIds);
   const recommendedStageIds = [...new Set(recommendedPath.flatMap((operation) => [operation.inputStage, operation.outputStage]))];
+  const processingOperations = operations.filter((operation) => !operation.isQuickSmelt && !operation.isFallbackRoute);
 
   return {
     ...route,
@@ -149,6 +151,7 @@ export function buildOreFlowGraph(repository, material, options = {}) {
     recommendedOperationIds,
     recommendedStageIds,
     recommendedByproducts: aggregateByproducts(repository, material, recommendedPath),
+    possibleByproducts: aggregatePossibleByproducts(repository, material, processingOperations),
     routeStrategy
   };
 }
@@ -322,6 +325,36 @@ function aggregateByproducts(repository, material, operations) {
   }
 
   return [...totals.values()].sort((a, b) => b.amount - a.amount || a.id.localeCompare(b.id));
+}
+
+function aggregatePossibleByproducts(repository, material, operations) {
+  const totals = new Map();
+
+  for (const operation of operations) {
+    for (const output of secondaryOutputsForOperation(repository, material, operation)) {
+      const expectedAmount = (Number(output.amount) || 1) * (output.chance ?? 1);
+      const existing = totals.get(output.id) ?? {
+        ...output,
+        amount: 0,
+        possible: true,
+        routeCount: 0,
+        maxChance: 0,
+        recipeTypes: new Set()
+      };
+      existing.amount = Math.max(existing.amount, expectedAmount);
+      existing.routeCount += 1;
+      existing.maxChance = Math.max(existing.maxChance, output.chance ?? 1);
+      existing.recipeTypes.add(operation.recipeType);
+      totals.set(output.id, existing);
+    }
+  }
+
+  return [...totals.values()]
+    .map((output) => ({
+      ...output,
+      recipeTypes: [...output.recipeTypes].sort()
+    }))
+    .sort((a, b) => b.routeCount - a.routeCount || b.amount - a.amount || a.id.localeCompare(b.id));
 }
 
 function materialInputAmount(repository, material, operation) {

@@ -70,6 +70,18 @@
   gap: 3px;
 }
 
+.ore-flow-section .section-header {
+  align-items: start;
+  gap: 12px;
+}
+
+.ore-flow-section .tree-view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  max-width: 100%;
+}
+
 .ore-route-note {
   color: #4f4f4f;
   font-size: 11px;
@@ -114,8 +126,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 1320px;
-  height: 620px;
+  width: 1450px;
+  height: 700px;
   transform-origin: top left;
 }
 
@@ -123,8 +135,8 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  width: 1320px;
-  height: 620px;
+  width: 1450px;
+  height: 700px;
   overflow: visible;
   pointer-events: none;
 }
@@ -380,7 +392,8 @@
   background: #202020;
 }
 
-.ore-recommended-summary,
+.ore-yield-board,
+.ore-fallback-lane,
 .ore-quick-smelt-lane {
   margin-top: 10px;
   padding: 9px;
@@ -390,30 +403,48 @@
     inset -2px -2px 0 #676767;
 }
 
-.ore-recommended-summary {
+.ore-yield-board {
   display: grid;
-  grid-template-columns: minmax(132px, max-content) minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
   gap: 10px;
+  background: #979797;
 }
 
-.ore-recommended-heading,
-.ore-shortcut-heading {
+.ore-yield-panel {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px;
+  background: #d2d2d2;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #676767;
+}
+
+.ore-yield-panel.possible {
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #676767;
+}
+
+.ore-yield-heading,
+.ore-route-lane-heading {
   display: grid;
   gap: 3px;
 }
 
-.ore-recommended-heading strong,
-.ore-shortcut-heading strong {
+.ore-yield-heading strong,
+.ore-route-lane-heading strong {
   color: #202020;
   font-size: 11px;
   text-shadow: 1px 1px 0 #ffffff;
   text-transform: uppercase;
 }
 
-.ore-recommended-heading span,
-.ore-shortcut-heading span,
-.ore-recommended-byproducts em {
+.ore-yield-heading span,
+.ore-route-lane-heading span,
+.ore-yield-chip-list em {
   color: #4f4f4f;
   font-size: 10px;
   font-style: normal;
@@ -421,7 +452,7 @@
   text-transform: uppercase;
 }
 
-.ore-recommended-byproducts,
+.ore-yield-chip-list,
 .ore-byproduct-list {
   display: flex;
   flex-wrap: wrap;
@@ -462,6 +493,10 @@
   text-transform: none;
 }
 
+.ore-byproduct-chip.possible {
+  background: #f3f3f3;
+}
+
 .ore-no-byproducts {
   color: #4f4f4f;
   font-size: 10px;
@@ -469,22 +504,24 @@
   text-transform: uppercase;
 }
 
+.ore-fallback-lane[hidden],
 .ore-quick-smelt-lane[hidden] {
   display: none;
 }
 
+.ore-fallback-lane,
 .ore-quick-smelt-lane {
   display: grid;
   gap: 8px;
 }
 
-.ore-shortcut-grid {
+.ore-route-lane-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
   gap: 6px;
 }
 
-.ore-shortcut-card {
+.ore-route-lane-card {
   display: grid;
   gap: 5px;
   padding: 6px;
@@ -494,14 +531,18 @@
     inset -1px -1px 0 #676767;
 }
 
-.ore-shortcut-route {
+.ore-route-lane-card.fallback {
+  background: #c4c4c4;
+}
+
+.ore-route-lane-route {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
   align-items: center;
   gap: 4px;
 }
 
-.ore-shortcut-route strong {
+.ore-route-lane-route strong {
   color: #202020;
   font-size: 9px;
   overflow-wrap: anywhere;
@@ -510,13 +551,13 @@
   text-transform: uppercase;
 }
 
-.ore-shortcut-route span {
+.ore-route-lane-route span {
   position: relative;
   height: 3px;
   background: #7b7b7b;
 }
 
-.ore-shortcut-route span::after {
+.ore-route-lane-route span::after {
   position: absolute;
   top: -3px;
   right: -1px;
@@ -526,13 +567,13 @@
   content: "";
 }
 
-.ore-shortcut-actions {
+.ore-route-lane-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.ore-shortcut-button {
+.ore-route-lane-button {
   min-height: 24px;
   padding: 4px 6px;
   background: #aebfc8;
@@ -546,8 +587,8 @@
   text-transform: uppercase;
 }
 
-.ore-shortcut-button:hover,
-.ore-shortcut-button.selected {
+.ore-route-lane-button:hover,
+.ore-route-lane-button.selected {
   background: #c1d6df;
   box-shadow:
     0 0 0 2px #ffffa0,
@@ -555,7 +596,7 @@
     inset -1px -1px 0 #5e7078;
 }
 
-.ore-shortcut-button.recommended {
+.ore-route-lane-button.recommended {
   box-shadow:
     0 0 0 2px #e0bd35,
     inset 1px 1px 0 #fffbcf,
@@ -808,7 +849,7 @@
     background-size: 38px 25px;
   }
 
-  .ore-recommended-summary {
+  .ore-yield-board {
     grid-template-columns: 1fr;
   }
 }
