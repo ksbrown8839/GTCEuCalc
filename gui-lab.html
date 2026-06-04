@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GUI Lab · GTCEu Modern Planner</title>
+    <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
+    <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
+    <link rel="stylesheet" href="texture-lab.css?v=texture-lab-2026-05-22b">
+    <link rel="stylesheet" href="gui-lab.css?v=gui-lab-2026-06-04">
+  </head>
+  <body>
+    <main class="gui-lab-shell">
+      <aside class="texture-lab-sidebar">
+        <div class="brand-block">
+          <h1>GUI Lab</h1>
+          <p data-role="gui-pack-name">Loading GUI assets</p>
+          <p data-role="gui-pack-meta"></p>
+          <a class="secondary-button lab-nav-link" href="index.html">Crafting Tree</a>
+          <a class="secondary-button lab-nav-link" href="process-routes.html">Process Lines</a>
+          <a class="secondary-button lab-nav-link" href="texture-lab.html">Texture Lab</a>
+        </div>
+
+        <details class="help-panel" open>
+          <summary>Purpose</summary>
+          <p>Inspect extracted GTCEu, LDLib, and Minecraft GUI textures. This is where we identify real machine GUI parts before wiring them into recipe panels.</p>
+        </details>
+
+        <section class="panel texture-controls">
+          <h2>Filters</h2>
+          <label>
+            Search
+            <input data-role="gui-search" type="search" placeholder="machine, progress, tank, gtceu...">
+          </label>
+          <label>
+            Namespace
+            <select data-role="gui-namespace"></select>
+          </label>
+          <label>
+            Preview scale
+            <input data-role="gui-scale" type="range" min="1" max="4" step="0.25" value="2">
+          </label>
+          <p class="match-summary" data-role="gui-match-summary"></p>
+          <p class="match-summary" data-role="gui-status"></p>
+        </section>
+      </aside>
+
+      <section class="texture-lab-main">
+        <section class="section-band">
+          <header class="section-header">
+            <div>
+              <h2>Extracted GUI Assets</h2>
+              <span class="ore-route-note">Generated from <code>data/gui-assets.local.json</code> and <code>assets/gui/...</code>.</span>
+            </div>
+          </header>
+          <div class="gui-asset-grid" data-role="gui-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="src/gui-lab.js?v=gui-lab-2026-06-04"></script>
+  </body>
+</html>
