@@ -1,33 +1,54 @@
+:root {
+  --gtceu-gui-bg: url("assets/gui/gtceu/base/background.png");
+  --gtceu-gui-border: url("assets/gui/gtceu/base/bordered_background.png");
+  --gtceu-gui-display: url("assets/gui/gtceu/base/display.png");
+  --gtceu-gui-slot: url("assets/gui/gtceu/base/slot.png");
+  --gtceu-gui-slot-dark: url("assets/gui/gtceu/base/slot_dark.png");
+  --gtceu-gui-fluid-slot: url("assets/gui/gtceu/base/fluid_slot.png");
+  --gtceu-gui-title: url("assets/gui/gtceu/base/title_bar_background.png");
+  --gtceu-gui-progress: url("assets/gui/gtceu/progress_bar/progress_bar_arrow.png");
+  --gtceu-gui-input-overlay: url("assets/gui/gtceu/overlay/in_slot_overlay.png");
+  --gtceu-gui-output-overlay: url("assets/gui/gtceu/overlay/out_slot_overlay.png");
+  --gtceu-gui-circuit-overlay: url("assets/gui/gtceu/overlay/circuit_overlay.png");
+}
+
 .process-detail-card:has(.process-detail-grid) {
   gap: 12px;
   width: fit-content;
-  max-width: min(100%, 1040px);
+  max-width: min(100%, 1060px);
   padding: 12px;
-  background: #c6c6c6;
+  background-color: #c6c6c6;
+  background-image: var(--gtceu-gui-bg);
+  background-repeat: repeat;
   box-shadow:
     0 0 0 2px #1f1f1f,
     inset 2px 2px 0 #ffffff,
     inset -2px -2px 0 #555555;
+  image-rendering: pixelated;
 }
 
 .process-detail-card:has(.process-detail-grid) > header {
   align-items: center;
-  padding: 8px 10px;
-  background: #8b8b8b;
+  min-height: 36px;
+  padding: 7px 10px;
+  background-color: #616161;
+  background-image: var(--gtceu-gui-title);
+  background-repeat: repeat-x;
   box-shadow:
-    inset 2px 2px 0 #b8b8b8,
-    inset -2px -2px 0 #373737;
+    inset 2px 2px 0 rgba(255, 255, 255, 0.45),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.45);
 }
 
 .process-detail-card:has(.process-detail-grid) > header h2 {
   color: #ffffff;
   font-size: 17px;
+  letter-spacing: 0.02em;
   text-shadow: 2px 2px 0 #342c34;
   text-transform: uppercase;
 }
 
 .process-detail-card:has(.process-detail-grid) > header p {
-  max-width: 680px;
+  max-width: 700px;
   overflow: hidden;
   color: #d7d7d7;
   text-overflow: ellipsis;
@@ -54,14 +75,16 @@
 .process-detail-grid {
   position: relative;
   display: grid;
-  grid-template-columns: max-content 78px max-content;
+  grid-template-columns: max-content 88px max-content;
   align-items: center;
   justify-content: start;
-  gap: 18px;
+  gap: 20px;
   width: fit-content;
   max-width: 100%;
-  padding: 16px;
-  background: #b1b1b1;
+  padding: 18px;
+  background-color: #b8b8b8;
+  background-image: var(--gtceu-gui-border), var(--gtceu-gui-bg);
+  background-repeat: repeat, repeat;
   box-shadow:
     inset 3px 3px 0 #555555,
     inset -3px -3px 0 #eeeeee;
@@ -71,10 +94,12 @@
   content: "";
   grid-column: 2;
   justify-self: center;
-  width: 64px;
-  height: 38px;
-  background: #6f6f6f;
-  clip-path: polygon(0 39%, 48% 39%, 48% 14%, 100% 50%, 48% 86%, 48% 61%, 0 61%);
+  width: 72px;
+  height: 44px;
+  background-image: var(--gtceu-gui-progress);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   image-rendering: pixelated;
 }
 
@@ -95,7 +120,7 @@
 }
 
 .process-detail-grid .section-label {
-  color: #3f3f3f;
+  color: #2a2a2a;
   font-size: 11px;
   text-transform: uppercase;
   text-shadow: 1px 1px 0 #ffffff;
@@ -103,44 +128,69 @@
 
 .process-detail-grid .chip-flow {
   display: grid;
-  grid-template-columns: repeat(3, 46px);
-  grid-auto-rows: 46px;
+  grid-template-columns: repeat(3, 54px);
+  grid-auto-rows: 54px;
   align-content: start;
   justify-content: start;
   width: max-content;
-  min-width: 138px;
-  max-width: 322px;
-  min-height: 46px;
+  min-width: 162px;
+  max-width: 378px;
+  min-height: 54px;
   padding: 8px;
-  background: #8b8b8b;
+  background-color: #777777;
+  background-image: var(--gtceu-gui-display);
+  background-repeat: repeat;
   box-shadow:
     inset 3px 3px 0 #373737,
     inset -3px -3px 0 #ffffff;
 }
 
 .process-detail-grid > div:nth-child(2) .chip-flow {
-  grid-template-columns: repeat(2, 46px);
-  min-width: 92px;
+  grid-template-columns: repeat(2, 54px);
+  min-width: 108px;
 }
 
 .process-detail-grid .good-chip {
   position: relative;
   display: grid;
   place-items: center;
-  width: 46px;
-  min-width: 46px;
-  height: 46px;
-  min-height: 46px;
-  padding: 3px;
+  width: 54px;
+  min-width: 54px;
+  height: 54px;
+  min-height: 54px;
+  padding: 7px;
   border: 0;
   border-radius: 0;
-  background: #8b8b8b;
-  box-shadow:
-    inset 3px 3px 0 #373737,
-    inset -3px -3px 0 #ffffff,
-    inset 6px 6px 0 #8b8b8b,
-    inset -6px -6px 0 #b8b8b8;
+  background-color: transparent;
+  background-image: var(--gtceu-gui-slot);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-shadow: none;
+  image-rendering: pixelated;
   text-shadow: none;
+}
+
+.process-detail-grid > div:first-child .good-chip::before,
+.process-detail-grid > div:nth-child(2) .good-chip::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  z-index: 1;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 28px 28px;
+  image-rendering: pixelated;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.process-detail-grid > div:first-child .good-chip::before {
+  background-image: var(--gtceu-gui-input-overlay);
+}
+
+.process-detail-grid > div:nth-child(2) .good-chip::before {
+  background-image: var(--gtceu-gui-output-overlay);
 }
 
 .process-detail-grid .good-chip > span:not(.good-icon):not(.good-swatch),
@@ -150,14 +200,17 @@
 
 .process-detail-grid .good-chip .good-icon,
 .process-detail-grid .good-chip .good-swatch {
-  width: 36px;
-  height: 36px;
+  position: relative;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
 }
 
 .process-detail-grid .good-chip strong {
   position: absolute;
-  right: 3px;
-  bottom: 2px;
+  right: 4px;
+  bottom: 3px;
+  z-index: 3;
   color: #ffffff;
   font-size: 10px;
   line-height: 1;
@@ -180,7 +233,9 @@
   min-height: 38px;
   min-width: 112px;
   padding: 6px 8px;
-  background: #d2d2d2;
+  background-color: #d2d2d2;
+  background-image: var(--gtceu-gui-display);
+  background-repeat: repeat;
   color: #202020;
   font-size: 11px;
   text-align: center;
@@ -195,19 +250,20 @@
 }
 
 .process-machine-row::before {
-  content: "M";
+  content: "";
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
-  background: #aebfc8;
-  color: #263b46;
-  font-size: 11px;
-  font-weight: 900;
-  text-shadow: 1px 1px 0 #ffffff;
+  background-color: #aebfc8;
+  background-image: url("assets/gui/gtceu/icon/gregtech_logo.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
   box-shadow:
     inset 2px 2px 0 #dbe8ee,
     inset -2px -2px 0 #5e7078;
+  image-rendering: pixelated;
 }
 
 .process-machine-row label input,
