@@ -4,8 +4,8 @@ import { escapeHtml, formatAmount, formatDuration } from "./format.js?v=machine-
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
-const FLOW_MAP_WIDTH = 1450;
-const FLOW_MAP_HEIGHT = 700;
+const FLOW_MAP_WIDTH = 1780;
+const FLOW_MAP_HEIGHT = 720;
 const STAGE_WIDTH = 92;
 const STAGE_HEIGHT = 74;
 const OPERATION_WIDTH = 116;
@@ -14,30 +14,30 @@ const OPERATION_HEIGHT = 58;
 const STAGE_LAYOUT = {
   ore: { x: 24, y: 118 },
   raw_material: { x: 24, y: 402 },
-  crushed_ore: { x: 282, y: 258 },
-  purified_ore: { x: 542, y: 76 },
-  refined_ore: { x: 802, y: 66 },
-  impure_dust: { x: 542, y: 522 },
-  pure_dust: { x: 802, y: 438 },
-  dust: { x: 1092, y: 306 },
-  ingot: { x: 1324, y: 306 },
-  gem: { x: 1324, y: 306 }
+  crushed_ore: { x: 340, y: 258 },
+  purified_ore: { x: 670, y: 76 },
+  refined_ore: { x: 1000, y: 66 },
+  impure_dust: { x: 670, y: 522 },
+  pure_dust: { x: 1000, y: 438 },
+  dust: { x: 1340, y: 306 },
+  ingot: { x: 1660, y: 306 },
+  gem: { x: 1660, y: 306 }
 };
 
 const OPERATION_LAYOUT = {
   "ore->crushed_ore": { x: 144, y: 168 },
   "raw_material->crushed_ore": { x: 144, y: 372 },
-  "crushed_ore->purified_ore": { x: 396, y: 112 },
-  "crushed_ore->refined_ore": { x: 470, y: 284 },
-  "crushed_ore->impure_dust": { x: 396, y: 438 },
-  "purified_ore->refined_ore": { x: 650, y: 90 },
-  "purified_ore->pure_dust": { x: 650, y: 326 },
-  "refined_ore->dust": { x: 920, y: 160 },
-  "impure_dust->dust": { x: 730, y: 540 },
-  "pure_dust->dust": { x: 920, y: 438 },
-  "dust->ingot": { x: 1196, y: 314 },
-  "dust->gem": { x: 1196, y: 314 },
-  "purified_ore->gem": { x: 1048, y: 120 }
+  "crushed_ore->purified_ore": { x: 500, y: 112 },
+  "crushed_ore->refined_ore": { x: 570, y: 284 },
+  "crushed_ore->impure_dust": { x: 500, y: 438 },
+  "purified_ore->refined_ore": { x: 820, y: 90 },
+  "purified_ore->pure_dust": { x: 820, y: 326 },
+  "refined_ore->dust": { x: 1160, y: 160 },
+  "impure_dust->dust": { x: 910, y: 540 },
+  "pure_dust->dust": { x: 1160, y: 438 },
+  "dust->ingot": { x: 1480, y: 314 },
+  "dust->gem": { x: 1480, y: 314 },
+  "purified_ore->gem": { x: 1370, y: 120 }
 };
 
 const state = {
