@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Process Lines · GTCEu Modern Planner</title>
+    <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
+    <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
+    <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
+    <link rel="stylesheet" href="process-routes.css?v=process-lines-bottleneck-2026-06-04">
+  </head>
+  <body>
+    <main class="process-route-shell">
+      <aside class="process-route-sidebar">
+        <div class="brand-block">
+          <h1>Process Lines</h1>
+          <p data-role="process-pack-name">Loading pack data</p>
+          <p data-role="process-pack-meta"></p>
+          <div class="ore-route-nav">
+            <a class="secondary-button lab-nav-link" href="index.html">Crafting Tree</a>
+            <a class="secondary-button lab-nav-link" href="ore-routes.html">Ore Routes</a>
+            <a class="secondary-button lab-nav-link" href="texture-lab.html">Texture Lab</a>
+          </div>
+        </div>
+
+        <details class="help-panel" open>
+          <summary>What this shows</summary>
+          <ol>
+            <li>Choose a fluid, chemical, or long processing target.</li>
+            <li>Set the desired output per minute.</li>
+            <li>Use boundaries to decide what counts as supplied.</li>
+            <li>Adjust built machines to find the line bottleneck.</li>
+            <li>Use recipe choices for alternate diesel, fuel, and chemistry paths.</li>
+          </ol>
+        </details>
+
+        <section class="panel">
+          <h2>Target</h2>
+          <label class="process-rate-control">
+            <span>Output rate</span>
+            <input data-role="process-target-rate" type="number" min="0" step="100">
+          </label>
+          <input data-role="process-target-search" type="search" placeholder="Search process targets">
+          <p class="match-summary" data-role="process-target-match-summary"></p>
+          <div class="process-target-list" data-role="process-target-results"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Supplied Boundaries</h2>
+          <div class="boundary-list" data-role="process-boundary-preset-list"></div>
+          <p class="boundary-summary" data-role="process-boundary-summary"></p>
+        </section>
+      </aside>
+
+      <section class="process-route-main">
+        <div class="status-band">
+          <div>
+            <h2 data-role="process-title">Process Line</h2>
+            <div data-role="process-summary">Loading...</div>
+          </div>
+          <div class="power-readout">
+            <span>Power</span>
+            <strong data-role="process-power">0 EU/t target</strong>
+          </div>
+        </div>
+
+        <section class="process-stat-grid" data-role="process-stats"></section>
+
+        <section class="section-band process-flow-section">
+          <header class="section-header">
+            <div>
+              <h2>Rate Flow Map</h2>
+              <span class="ore-route-note">Ideal demand flows left to right. Machine counts below show actual built capacity.</span>
+            </div>
+          </header>
+          <div class="process-flow-frame" data-role="process-flow-frame">
+            <div class="process-flow-track" data-role="process-flow-track">
+              <div class="process-flow-canvas" data-role="process-flow-canvas"></div>
+            </div>
+          </div>
+          <div class="ore-flow-legend">
+            <span><i class="legend-item"></i> Input/output good</span>
+            <span><i class="legend-machine"></i> Processing step</span>
+            <span><i class="legend-recommended"></i> Bottleneck</span>
+            <span><i class="legend-line"></i> Rate direction</span>
+          </div>
+        </section>
+
+        <div class="process-lower-grid">
+          <section class="section-band">
+            <header class="section-header">
+              <h2>Machine Configuration</h2>
+              <label class="process-generator-control">
+                <span>Generator EU/t</span>
+                <input data-role="process-generator-eut" type="number" min="1" step="1">
+              </label>
+            </header>
+            <div class="process-machine-list" data-role="process-machine-config"></div>
+          </section>
+
+          <aside>
+            <section class="section-band">
+              <h2>Supplied Inputs</h2>
+              <div class="process-stacked-list" data-role="process-external-inputs"></div>
+            </section>
+            <section class="section-band">
+              <h2>Byproducts</h2>
+              <div class="process-stacked-list" data-role="process-byproducts"></div>
+            </section>
+          </aside>
+        </div>
+
+        <section class="section-band process-detail-section">
+          <header class="section-header">
+            <h2>Selected Step</h2>
+            <span class="ore-route-note">Select a node on the map to inspect recipes, inputs, outputs, and choices.</span>
+          </header>
+          <div data-role="process-detail"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="src/process-routes.js?v=process-lines-bottleneck-2026-06-04"></script>
+  </body>
+</html>

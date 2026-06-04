@@ -1,0 +1,734 @@
+import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
+import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
+import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-lines-bottleneck-2026-06-04";
+
+const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
+const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
+const NODE_SIZES = {
+  good: { width: 98, height: 72 },
+  recipe: { width: 136, height: 78 }
+};
+const TARGET_LIMIT = 64;
+const MACHINE_LIMIT = 18;
+
+const state = {
+  repository: null,
+  textureAtlas: null,
+  dataUrl: DEFAULT_DATA_URL,
+  targetGoodsId: "gtceu:diesel",
+  targetRate: 6000,
+  targetSearch: "",
+  preferredRecipeByOutput: {},
+  manualExternalGoods: new Set(),
+  manualMadeGoods: new Set(),
+  activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
+  machineCounts: {},
+  generatorEuT: 32,
+  selectedNodeId: null
+};
+
+const elements = {
+  packName: document.querySelector("[data-role='process-pack-name']"),
+  packMeta: document.querySelector("[data-role='process-pack-meta']"),
+  targetSearch: document.querySelector("[data-role='process-target-search']"),
+  targetMatchSummary: document.querySelector("[data-role='process-target-match-summary']"),
+  targetResults: document.querySelector("[data-role='process-target-results']"),
+  targetRate: document.querySelector("[data-role='process-target-rate']"),
+  boundaryPresetList: document.querySelector("[data-role='process-boundary-preset-list']"),
+  boundarySummary: document.querySelector("[data-role='process-boundary-summary']"),
+  title: document.querySelector("[data-role='process-title']"),
+  summary: document.querySelector("[data-role='process-summary']"),
+  power: document.querySelector("[data-role='process-power']"),
+  stats: document.querySelector("[data-role='process-stats']"),
+  flowFrame: document.querySelector("[data-role='process-flow-frame']"),
+  flowTrack: document.querySelector("[data-role='process-flow-track']"),
+  flowCanvas: document.querySelector("[data-role='process-flow-canvas']"),
+  machineConfig: document.querySelector("[data-role='process-machine-config']"),
+  externalInputs: document.querySelector("[data-role='process-external-inputs']"),
+  byproducts: document.querySelector("[data-role='process-byproducts']"),
+  detail: document.querySelector("[data-role='process-detail']"),
+  generatorEuT: document.querySelector("[data-role='process-generator-eut']")
+};
+
+function currentFlow() {
+  return buildProcessFlow(state.repository, {
+    goodsId: state.targetGoodsId,
+    amountPerMinute: state.targetRate
+  }, {
+    preferredRecipeByOutput: state.preferredRecipeByOutput,
+    externalGoods: getEffectiveExternalGoods(),
+    machineCounts: state.machineCounts,
+    generatorEuT: state.generatorEuT
+  });
+}
+
+function getEffectiveExternalGoods() {
+  const externalGoods = getBoundaryPresetGoods(state.repository, state.activeBoundaryPresets);
+  externalGoods.delete(state.targetGoodsId);
+
+  for (const goodsId of state.manualMadeGoods) {
+    externalGoods.delete(goodsId);
+  }
+
+  for (const goodsId of state.manualExternalGoods) {
+    if (goodsId !== state.targetGoodsId) externalGoods.add(goodsId);
+  }
+
+  return externalGoods;
+}
+
+function renderAll() {
+  renderTargetControls();
+  renderBoundaryControls();
+  renderProcess();
+}
+
+function renderTargetControls() {
+  const matches = targetMatches();
+  elements.targetResults.innerHTML = matches.length
+    ? matches.map(targetButton).join("")
+    : `<div class="empty-state">No matching process targets.</div>`;
+  elements.targetMatchSummary.textContent = state.targetSearch.trim()
+    ? `${formatAmount(matches.length)} matches shown`
+    : `${formatAmount(matches.length)} suggested process targets`;
+  elements.targetRate.value = state.targetRate;
+}
+
+function targetMatches() {
+  const query = state.targetSearch.trim();
+  const source = query
+    ? state.repository.searchGoods(query, TARGET_LIMIT * 4)
+    : [...state.repository.goods.values()];
+
+  return source
+    .map((good, index) => ({
+      good,
+      index,
+      recipeCount: state.repository.findRecipesProducing(good.id).length,
+      score: processTargetScore(good)
+    }))
+    .filter((match) => match.recipeCount > 0 && (query || match.good.kind === "fluid" || match.good.mod === "gtceu"))
+    .sort((a, b) => b.score - a.score || b.recipeCount - a.recipeCount || a.index - b.index)
+    .slice(0, TARGET_LIMIT);
+}
+
+function processTargetScore(good) {
+  let score = 0;
+  if (good.id === state.targetGoodsId) score += 10000;
+  if (/diesel|fuel|gasoline|oil|uranium|platinum|titanium/i.test(`${good.id} ${good.name}`)) score += 900;
+  if (good.kind === "fluid") score += 400;
+  if (state.textureAtlas?.icons?.[good.id] !== undefined) score += 50;
+  if (good.mod === "gtceu") score += 20;
+  return score;
+}
+
+function targetButton(match) {
+  const { good, recipeCount } = match;
+  const selected = good.id === state.targetGoodsId ? " selected" : "";
+  return `
+    <button class="process-target-button${selected}" type="button" data-action="select-process-target" data-id="${escapeHtml(good.id)}">
+      ${goodIconMarkup(good.id)}
+      <span>
+        <strong>${escapeHtml(good.name)}</strong>
+        <em>${escapeHtml(`${formatAmount(recipeCount)} recipes · ${good.kind}`)}</em>
+      </span>
+    </button>
+  `;
+}
+
+function renderBoundaryControls() {
+  const externalGoods = getEffectiveExternalGoods();
+  elements.boundaryPresetList.innerHTML = BOUNDARY_PRESETS.map((preset) => {
+    const checked = state.activeBoundaryPresets.has(preset.id) ? " checked" : "";
+    return `
+      <label class="boundary-toggle">
+        <input type="checkbox" data-action="toggle-process-boundary" data-preset-id="${escapeHtml(preset.id)}"${checked}>
+        <span>${escapeHtml(preset.label)}</span>
+        <strong>${formatAmount(countBoundaryPresetGoods(state.repository, preset))}</strong>
+      </label>
+    `;
+  }).join("");
+  elements.boundarySummary.textContent = `${formatAmount(externalGoods.size)} goods treated as supplied`;
+}
+
+function renderProcess() {
+  const flow = currentFlow();
+  const targetGood = state.repository.getGood(flow.product.goodsId);
+  state.selectedNodeId = selectedNode(flow)?.id ?? flow.graph.nodes.find((node) => node.type === "recipe")?.id ?? flow.graph.nodes[0]?.id ?? null;
+
+  elements.title.textContent = `${targetGood?.name ?? flow.product.goodsId} Process Line`;
+  elements.summary.textContent = [
+    `${formatRate(flow.idealOutputPerMinute)} target`,
+    `${formatAmount(flow.plan.recipeRows.length)} recipes`,
+    `${formatAmount(flow.plan.machineRows.length)} machine groups`
+  ].join(" / ");
+  elements.power.textContent = `${formatAmount(flow.targetPowerEut)} EU/t target`;
+
+  renderStats(flow);
+  renderFlowMap(flow);
+  renderMachineConfig(flow);
+  renderExternalInputs(flow);
+  renderByproducts(flow);
+  renderSelectedDetail(flow);
+  updateUrl();
+}
+
+function selectedNode(flow) {
+  return flow.graph.nodes.find((node) => node.id === state.selectedNodeId) ?? null;
+}
+
+function renderStats(flow) {
+  const bottleneckText = flow.bottleneck
+    ? `${recipeTypeName(flow.bottleneck.recipe)} at ${formatAmount(flow.bottleneck.capacityFactor)}x target`
+    : "No timed bottleneck";
+  const assumptionCount = flow.plan.warnings.length + flow.plan.suppressedWarningCount;
+  const assumptions = assumptionCount
+    ? `<div class="process-stat-card assumptions">
+        <span>Planner assumptions</span>
+        <strong>${formatAmount(assumptionCount)}</strong>
+        <em>${escapeHtml(flow.plan.warnings[0] ?? "Review supplied boundaries and recipe choices")}</em>
+      </div>`
+    : "";
+  elements.stats.innerHTML = `
+    <div class="process-stat-card">
+      <span>Ideal output</span>
+      <strong>${formatRate(flow.idealOutputPerMinute)}</strong>
+      <em>Requested target rate</em>
+    </div>
+    <div class="process-stat-card">
+      <span>Built capacity</span>
+      <strong>${formatRate(flow.capacityOutputPerMinute)}</strong>
+      <em>${escapeHtml(bottleneckText)}</em>
+    </div>
+    <div class="process-stat-card">
+      <span>Power draw</span>
+      <strong>${formatAmount(flow.targetPowerEut)} EU/t</strong>
+      <em>${formatAmount(flow.targetGeneratorCount)} generators @ ${formatAmount(flow.generatorEuT)} EU/t</em>
+    </div>
+    <div class="process-stat-card">
+      <span>Capacity power</span>
+      <strong>${formatAmount(flow.capacityPowerEut)} EU/t</strong>
+      <em>${formatAmount(flow.capacityGeneratorCount)} generators at built capacity</em>
+    </div>
+    ${assumptions}
+  `;
+}
+
+function renderFlowMap(flow) {
+  const connectors = flow.graph.edges.map((edge) => connector(edge, flow.graph.nodes)).join("");
+  elements.flowCanvas.style.width = `${flow.graph.width}px`;
+  elements.flowCanvas.style.height = `${flow.graph.height}px`;
+  elements.flowCanvas.innerHTML = `
+    <svg class="process-flow-connectors" viewBox="0 0 ${flow.graph.width} ${flow.graph.height}" style="width:${flow.graph.width}px;height:${flow.graph.height}px" aria-hidden="true">
+      ${connectors}
+    </svg>
+    ${flow.graph.nodes.map((node) => processNode(node, flow)).join("")}
+  `;
+  elements.flowTrack.style.width = `${flow.graph.width}px`;
+  elements.flowTrack.style.height = `${flow.graph.height}px`;
+}
+
+function connector(edge, nodes) {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const from = nodeMap.get(edge.from);
+  const to = nodeMap.get(edge.to);
+  if (!from || !to) return "";
+  const start = nodeOutputPoint(from);
+  const end = nodeInputPoint(to);
+  const midpoint = Math.round((start.x + end.x) / 2);
+  const baseX = Math.max(start.x + 8, end.x - 22);
+  const pathEndX = Math.max(start.x + 8, baseX);
+  const path = `M ${start.x} ${start.y} H ${midpoint} V ${end.y} H ${pathEndX}`;
+  const arrow = `M ${baseX} ${end.y - 10} L ${end.x} ${end.y} L ${baseX} ${end.y + 10} Z`;
+  return `
+    <path class="process-flow-line" d="${path}"></path>
+    <path class="process-flow-arrowhead" d="${arrow}"></path>
+  `;
+}
+
+function nodeInputPoint(node) {
+  const size = NODE_SIZES[node.type];
+  return { x: node.x, y: node.y + size.height / 2 };
+}
+
+function nodeOutputPoint(node) {
+  const size = NODE_SIZES[node.type];
+  return { x: node.x + size.width, y: node.y + size.height / 2 };
+}
+
+function processNode(node, flow) {
+  if (node.type === "recipe") return recipeNode(node, flow);
+  return goodNode(node);
+}
+
+function goodNode(node) {
+  const selected = node.id === state.selectedNodeId ? " selected" : "";
+  const supplied = node.reason ? ` ${node.reason}` : "";
+  return `
+    <button class="process-good-node${selected}${supplied}" type="button" style="left:${node.x}px;top:${node.y}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
+      ${goodSlot(node.goodsId, formatRate(node.amountPerMinute))}
+      <strong>${escapeHtml(node.label)}</strong>
+    </button>
+  `;
+}
+
+function recipeNode(node, flow) {
+  const machineRow = flow.machineRows.find((row) => row.recipe.id === node.recipe.id);
+  const selected = node.id === state.selectedNodeId ? " selected" : "";
+  const bottleneck = machineRow?.bottleneck ? " bottleneck" : "";
+  const underbuilt = machineRow?.underbuilt ? " underbuilt" : "";
+  const secondary = secondaryOutputs(node.recipe, node.goodsId).slice(0, 2);
+  return `
+    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}" type="button" style="left:${node.x}px;top:${node.y}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
+      <span class="machine-icon">${machineInitials(node)}</span>
+      <strong>${escapeHtml(node.label)}</strong>
+      <span>${formatRate(node.runsPerMinute)} runs</span>
+      ${secondary.length ? `<em>${secondary.map((output) => goodIconMarkup(output.id)).join("")}</em>` : ""}
+    </button>
+  `;
+}
+
+function renderMachineConfig(flow) {
+  const visibleRows = flow.machineRows.slice(0, MACHINE_LIMIT);
+  elements.generatorEuT.value = flow.generatorEuT;
+  elements.machineConfig.innerHTML = visibleRows.length
+    ? visibleRows.map((row) => machineConfigRow(row)).join("")
+    : `<div class="empty-state">No timed machine recipes in this process line.</div>`;
+}
+
+function machineConfigRow(row) {
+  const machine = machineName(row.machine, row.voltageTier, recipeTypeName(row.recipe));
+  const bottleneck = row.bottleneck ? " bottleneck" : "";
+  const underbuilt = row.underbuilt ? " underbuilt" : "";
+  return `
+    <article class="process-machine-row${bottleneck}${underbuilt}">
+      <div>
+        <strong>${escapeHtml(recipeTypeName(row.recipe))}</strong>
+        <span>${escapeHtml(machine)}</span>
+        <em>${formatRate(row.runsPerMinute)} runs / ${formatAmount(row.idealLoad)} load / ${formatAmount(row.capacityFactor)}x capacity</em>
+      </div>
+      <label>
+        <span>Built</span>
+        <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-recipe-id="${escapeHtml(row.recipe.id)}">
+      </label>
+    </article>
+  `;
+}
+
+function renderExternalInputs(flow) {
+  elements.externalInputs.innerHTML = flow.plan.externalRows.length
+    ? flow.plan.externalRows.slice(0, 18).map((row) => goodLine(row.goodsId, formatRate(row.amountPerMinute), {
+        action: state.repository.findRecipesProducing(row.goodsId).length ? "make-process-good" : "",
+        actionLabel: "Make"
+      })).join("")
+    : `<div class="empty-state">No supplied inputs at this boundary.</div>`;
+}
+
+function renderByproducts(flow) {
+  elements.byproducts.innerHTML = flow.plan.byproductRows.length
+    ? flow.plan.byproductRows.slice(0, 18).map((row) => goodLine(row.goodsId, formatRate(row.amountPerMinute))).join("")
+    : `<div class="empty-state">No byproducts in this selected chain.</div>`;
+}
+
+function renderSelectedDetail(flow) {
+  const node = selectedNode(flow);
+  if (!node) {
+    elements.detail.innerHTML = `<div class="empty-state">Select a graph node.</div>`;
+    return;
+  }
+
+  elements.detail.innerHTML = node.type === "recipe"
+    ? recipeDetail(node)
+    : goodDetail(node);
+}
+
+function recipeDetail(node) {
+  const recipe = node.recipe;
+  const inputs = recipe.inputs.filter((input) => !input.notConsumed).map(ingredientChip).join("");
+  const outputs = recipe.outputs.map((output) => goodChip(output.id, formatAmount(output.amount))).join("");
+  return `
+    <section class="process-detail-card">
+      <header>
+        <div>
+          <h2>${escapeHtml(recipeTypeName(recipe))}</h2>
+          <p>${escapeHtml(recipe.id)}</p>
+        </div>
+        <strong>${formatRate(node.runsPerMinute)} runs</strong>
+      </header>
+      ${recipeChoiceControl(node.goodsId, recipe.id)}
+      <div class="process-detail-grid">
+        <div>
+          <span class="section-label">Inputs</span>
+          <div class="chip-flow">${inputs || "None"}</div>
+        </div>
+        <div>
+          <span class="section-label">Outputs</span>
+          <div class="chip-flow">${outputs || "None"}</div>
+        </div>
+      </div>
+      <div class="recipe-meta">
+        <span>${formatDuration(recipe.durationTicks)}</span>
+        <span>${formatAmount(recipe.eut)} EU/t</span>
+        <span>${escapeHtml(machineName(node.machine, node.voltageTier, recipeTypeName(recipe)))}</span>
+      </div>
+    </section>
+  `;
+}
+
+function goodDetail(node) {
+  const producedBy = state.repository.rankRecipesForOutput(node.goodsId);
+  const external = getEffectiveExternalGoods().has(node.goodsId);
+  return `
+    <section class="process-detail-card">
+      <header>
+        <div>
+          <h2>${escapeHtml(node.label)}</h2>
+          <p>${escapeHtml(node.goodsId)}</p>
+        </div>
+        <strong>${formatRate(node.amountPerMinute)}</strong>
+      </header>
+      <div class="process-detail-actions">
+        ${producedBy.length ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(node.goodsId)}">Make in line</button>` : ""}
+        ${node.goodsId !== state.targetGoodsId ? `<button class="secondary-button" type="button" data-action="supply-process-good" data-id="${escapeHtml(node.goodsId)}">Treat supplied</button>` : ""}
+      </div>
+      <p class="process-muted">${external ? "Currently treated as supplied by the active boundaries." : "Currently allowed to expand into upstream recipes."}</p>
+      ${producedBy.length ? recipeChoiceControl(node.goodsId, state.preferredRecipeByOutput[node.goodsId] ?? producedBy[0].id) : ""}
+    </section>
+  `;
+}
+
+function recipeChoiceControl(goodsId, currentRecipeId) {
+  const recipes = state.repository.rankRecipesForOutput(goodsId);
+  if (recipes.length <= 1) return "";
+  return `
+    <label class="process-recipe-choice">
+      <span>Recipe choice</span>
+      <select data-action="choose-process-recipe" data-output-id="${escapeHtml(goodsId)}">
+        ${recipes.slice(0, 40).map((recipe, index) => {
+          const selected = recipe.id === currentRecipeId ? " selected" : "";
+          const label = `${index === 0 ? "Recommended / " : ""}${recipeTypeName(recipe)} / ${recipe.id}`;
+          return `<option value="${escapeHtml(recipe.id)}"${selected}>${escapeHtml(label)}</option>`;
+        }).join("")}
+      </select>
+    </label>
+  `;
+}
+
+function goodLine(goodsId, amountText, options = {}) {
+  const action = options.action
+    ? `<button class="secondary-button" type="button" data-action="${escapeHtml(options.action)}" data-id="${escapeHtml(goodsId)}">${escapeHtml(options.actionLabel)}</button>`
+    : "";
+  return `
+    <div class="process-good-line">
+      ${goodChip(goodsId, amountText)}
+      ${action}
+    </div>
+  `;
+}
+
+function goodChip(goodsId, amountText = "") {
+  const good = state.repository.getGood(goodsId);
+  const name = good?.name ?? goodsId;
+  return `
+    <span class="good-chip" ${goodTooltipAttrs(good, goodsId, amountText)}>
+      ${goodIconMarkup(goodsId)}
+      <span>${escapeHtml(name)}</span>
+      ${amountText ? `<strong>${escapeHtml(amountText)}</strong>` : ""}
+    </span>
+  `;
+}
+
+function ingredientChip(ingredient) {
+  const resolved = state.repository.resolveIngredient(ingredient);
+  if (resolved.good) return goodChip(resolved.id, formatAmount(ingredient.amount));
+  return `
+    <span class="good-chip muted">
+      <span class="good-swatch tag"></span>
+      <span>${escapeHtml(state.repository.getIngredientName(ingredient))}</span>
+      <strong>${formatAmount(ingredient.amount)}</strong>
+    </span>
+  `;
+}
+
+function goodSlot(goodsId, amountText) {
+  const good = state.repository.getGood(goodsId);
+  const kind = good?.kind ?? "item";
+  return `
+    <span class="process-good-slot ${kind}" ${goodTooltipAttrs(good, goodsId, amountText)}>
+      ${slotIconMarkup(goodsId, kind, good?.color ?? "#7d8790", good?.name ?? goodsId)}
+      <span>${escapeHtml(good?.name ?? goodsId)}</span>
+      <strong>${escapeHtml(amountText)}</strong>
+    </span>
+  `;
+}
+
+function goodIconMarkup(goodsId) {
+  const good = state.repository.getGood(goodsId);
+  const kind = good?.kind ?? "item";
+  const atlasIcon = atlasIconMarkup(goodsId, kind, "good-icon", 18);
+  if (atlasIcon) return atlasIcon;
+  return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(good?.color ?? "#7d8790")}"></span>`;
+}
+
+function slotIconMarkup(goodsId, kind, color, label) {
+  const atlasIcon = atlasIconMarkup(goodsId, kind, "slot-image", 32);
+  if (atlasIcon) return atlasIcon;
+  return `<span class="slot-swatch ${kind}" style="--swatch:${escapeHtml(color)}"><span>${escapeHtml(slotInitials(label, goodsId))}</span></span>`;
+}
+
+function atlasIconMarkup(goodsId, kind, className, displaySize) {
+  const atlas = state.textureAtlas;
+  const iconId = atlas?.icons?.[goodsId];
+  if (!atlas || iconId === undefined) return "";
+  const column = iconId % atlas.columns;
+  const row = Math.floor(iconId / atlas.columns);
+  const style = [
+    `--atlas-url:url(${escapeHtml(atlas.image)})`,
+    `--atlas-x:${-(column * displaySize)}px`,
+    `--atlas-y:${-(row * displaySize)}px`,
+    `--atlas-width:${atlas.columns * displaySize}px`
+  ].join(";");
+  return `<span class="${className} ${kind}" style="${style}" aria-hidden="true"></span>`;
+}
+
+function goodTooltipAttrs(good, fallbackId, amountText = "") {
+  return [
+    "data-mc-tooltip",
+    `data-tooltip-name="${escapeHtml(good?.name ?? fallbackId)}"`,
+    `data-tooltip-id="${escapeHtml(good?.id ?? fallbackId)}"`,
+    amountText ? `data-tooltip-amount="${escapeHtml(amountText)}"` : "",
+    good?.kind ? `data-tooltip-kind="${escapeHtml(good.kind)}"` : "",
+    good?.mod ? `data-tooltip-mod="${escapeHtml(good.mod)}"` : ""
+  ].filter(Boolean).join(" ");
+}
+
+function machineInitials(node) {
+  const words = machineName(node.machine, node.voltageTier, node.label).split(/[^a-z0-9]+/i).filter(Boolean);
+  return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "M";
+}
+
+function machineName(machine, voltageTier, fallback = "Unknown machine") {
+  if (!machine) return fallback;
+  if (!voltageTier || machine.voltageTier) return machine.name;
+  return `${voltageTier.name} ${machine.name}`;
+}
+
+function recipeTypeName(recipe) {
+  return state.repository.getRecipeType(recipe.type).name;
+}
+
+function secondaryOutputs(recipe, primaryGoodsId) {
+  return recipe.outputs.filter((output) => output.id !== primaryGoodsId && state.repository.getGood(output.id));
+}
+
+function formatMachineInput(value) {
+  return Number.isFinite(value) ? String(Math.max(0, Math.floor(value))) : "0";
+}
+
+function slotInitials(name, fallback) {
+  const words = String(name).split(/[^a-z0-9]+/i).filter(Boolean);
+  return (words.length > 1 ? words.slice(0, 2).map((word) => word[0]).join("") : (words[0] ?? fallback).slice(0, 2)).toUpperCase();
+}
+
+function updateUrl() {
+  const params = new URLSearchParams();
+  if (state.dataUrl !== DEFAULT_DATA_URL) params.set("data", state.dataUrl);
+  params.set("target", state.targetGoodsId);
+  params.set("rate", String(state.targetRate));
+  const nextUrl = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState(null, "", nextUrl);
+}
+
+function dataUrlFromLocation() {
+  return new URLSearchParams(window.location.search).get("data") || DEFAULT_DATA_URL;
+}
+
+function targetFromLocation() {
+  return new URLSearchParams(window.location.search).get("target");
+}
+
+function rateFromLocation() {
+  const value = Number(new URLSearchParams(window.location.search).get("rate"));
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function textureAtlasUrlFromLocation() {
+  const value = new URLSearchParams(window.location.search).get("textures");
+  if (value === "none") return null;
+  return value || DEFAULT_TEXTURE_ATLAS_URL;
+}
+
+async function loadTextureAtlas(url) {
+  if (!url) return null;
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function setupEvents() {
+  elements.targetSearch.addEventListener("input", (event) => {
+    state.targetSearch = event.target.value;
+    renderTargetControls();
+  });
+
+  elements.targetRate.addEventListener("input", (event) => {
+    state.targetRate = Math.max(0, Number(event.target.value) || 0);
+    renderProcess();
+  });
+
+  elements.generatorEuT.addEventListener("input", (event) => {
+    state.generatorEuT = Math.max(1, Number(event.target.value) || 32);
+    renderProcess();
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = event.target.closest("[data-action]");
+    if (!(target instanceof HTMLElement)) return;
+    if (target.dataset.action !== "set-process-machine-count") return;
+    const recipeId = target.dataset.recipeId;
+    if (!recipeId) return;
+    state.machineCounts[recipeId] = Math.max(0, Number(target.value) || 0);
+    renderProcess();
+  });
+
+  document.addEventListener("change", (event) => {
+    const target = event.target.closest("[data-action]");
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.dataset.action;
+
+    if (action === "toggle-process-boundary") {
+      const presetId = target.dataset.presetId;
+      if (!presetId) return;
+      if (target.checked) state.activeBoundaryPresets.add(presetId);
+      else state.activeBoundaryPresets.delete(presetId);
+      renderAll();
+    }
+
+    if (action === "choose-process-recipe") {
+      const outputId = target.dataset.outputId;
+      if (!outputId) return;
+      state.preferredRecipeByOutput[outputId] = target.value;
+      state.manualMadeGoods.add(outputId);
+      state.manualExternalGoods.delete(outputId);
+      renderProcess();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-action]");
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.dataset.action;
+    const goodsId = target.dataset.id;
+
+    if (action === "select-process-target" && goodsId) {
+      state.targetGoodsId = goodsId;
+      state.manualMadeGoods.add(goodsId);
+      state.manualExternalGoods.delete(goodsId);
+      state.machineCounts = {};
+      state.targetSearch = "";
+      elements.targetSearch.value = "";
+      renderAll();
+      return;
+    }
+
+    if (action === "select-process-node") {
+      state.selectedNodeId = target.dataset.nodeId ?? null;
+      renderProcess();
+      return;
+    }
+
+    if (action === "make-process-good" && goodsId) {
+      state.manualMadeGoods.add(goodsId);
+      state.manualExternalGoods.delete(goodsId);
+      renderAll();
+      return;
+    }
+
+    if (action === "supply-process-good" && goodsId) {
+      state.manualExternalGoods.add(goodsId);
+      state.manualMadeGoods.delete(goodsId);
+      delete state.preferredRecipeByOutput[goodsId];
+      renderAll();
+    }
+  });
+}
+
+function setupMinecraftTooltips() {
+  let tooltip = null;
+  let activeTarget = null;
+  function getTooltip() {
+    if (tooltip) return tooltip;
+    tooltip = document.createElement("div");
+    tooltip.className = "minecraft-tooltip";
+    tooltip.setAttribute("role", "tooltip");
+    document.body.append(tooltip);
+    return tooltip;
+  }
+  function position(x, y) {
+    if (!tooltip) return;
+    const pad = 14;
+    tooltip.style.left = `${Math.min(window.innerWidth - tooltip.offsetWidth - 10, x + pad)}px`;
+    tooltip.style.top = `${Math.min(window.innerHeight - tooltip.offsetHeight - 10, y + pad)}px`;
+  }
+  function show(target, event) {
+    const node = getTooltip();
+    activeTarget = target;
+    node.innerHTML = `
+      <div class="minecraft-tooltip-name">${escapeHtml(target.dataset.tooltipName ?? "Unknown")}</div>
+      ${target.dataset.tooltipAmount ? `<div class="minecraft-tooltip-amount">${escapeHtml(target.dataset.tooltipAmount)}</div>` : ""}
+      <div class="minecraft-tooltip-detail">${escapeHtml(target.dataset.tooltipId ?? "")}</div>
+      ${target.dataset.tooltipMod || target.dataset.tooltipKind ? `<div class="minecraft-tooltip-meta">${escapeHtml([target.dataset.tooltipMod, target.dataset.tooltipKind].filter(Boolean).join(" / "))}</div>` : ""}
+    `;
+    node.classList.add("visible");
+    position(event.clientX, event.clientY);
+  }
+  function hide() {
+    activeTarget = null;
+    tooltip?.classList.remove("visible");
+  }
+  document.addEventListener("pointerover", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest("[data-mc-tooltip]");
+    if (target instanceof HTMLElement) show(target, event);
+  });
+  document.addEventListener("pointermove", (event) => {
+    if (activeTarget) position(event.clientX, event.clientY);
+  });
+  document.addEventListener("pointerout", (event) => {
+    if (!activeTarget) return;
+    if (event.relatedTarget instanceof Node && activeTarget.contains(event.relatedTarget)) return;
+    hide();
+  });
+}
+
+async function main() {
+  try {
+    state.dataUrl = dataUrlFromLocation();
+    state.repository = await loadRepository(state.dataUrl);
+    state.textureAtlas = await loadTextureAtlas(textureAtlasUrlFromLocation());
+    state.targetGoodsId = targetFromLocation() && state.repository.getGood(targetFromLocation())
+      ? targetFromLocation()
+      : state.repository.getGood("gtceu:diesel")
+        ? "gtceu:diesel"
+        : [...state.repository.goods.values()].find((good) => state.repository.findRecipesProducing(good.id).length)?.id;
+    state.targetRate = rateFromLocation() ?? state.targetRate;
+    state.manualMadeGoods.add(state.targetGoodsId);
+    const meta = state.repository.metadata;
+    const packCounts = `${formatAmount(state.repository.goods.size)} goods / ${formatAmount(state.repository.recipes.length)} recipes`;
+    elements.packName.textContent = meta.packName;
+    elements.packMeta.textContent = `${meta.packVersion} / Minecraft ${meta.minecraftVersion} / ${packCounts}`;
+    setupEvents();
+    setupMinecraftTooltips();
+    renderAll();
+  } catch (error) {
+    elements.summary.innerHTML = `<span class="error">${escapeHtml(error.message)}</span>`;
+    console.error(error);
+  }
+}
+
+main();

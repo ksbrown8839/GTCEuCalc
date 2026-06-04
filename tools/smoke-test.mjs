@@ -4,6 +4,7 @@ import { createPlan, machineCount, machineLoad } from "../src/planner.js";
 import { getBoundaryPresetForGood, getBoundaryPresetGoods } from "../src/boundaries.js";
 import { formatAmount, formatRate } from "../src/format.js";
 import { buildOreFlowGraph, buildOreRoute, getOreRouteMaterials } from "../src/ore-routes-model.js";
+import { buildProcessFlow } from "../src/process-flow-model.js";
 
 const data = JSON.parse(await readFile("data/sample-pack.json", "utf-8"));
 const repository = new Repository(data);
@@ -156,6 +157,7 @@ if (circuitBoundaryPlan.recipeRows.some((row) => row.recipe.id === "gtceu:assemb
 const realData = JSON.parse(await readFile("data/gtceu-modern-pack-1.14.5.json", "utf-8"));
 const realRepository = new Repository(realData);
 const realOreMaterials = getOreRouteMaterials(realRepository);
+const processExternalGoods = getBoundaryPresetGoods(realRepository, new Set(["fluids", "base-materials", "stock-parts", "circuits"]));
 const ironOreRoute = buildOreRoute(realRepository, "iron");
 const ironOreFlowGraph = buildOreFlowGraph(realRepository, "iron");
 const ironOreFlowGraphWithHammers = buildOreFlowGraph(realRepository, "iron", { showHammerRoutes: true });
@@ -169,6 +171,18 @@ const uraniniteOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "ur
 const uraniniteFastOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "uraninite", {
   routeStrategy: "fast",
   showQuickSmelts: true
+});
+const dieselProcessFlow = buildProcessFlow(realRepository, { goodsId: "gtceu:diesel", amountPerMinute: 6000 }, {
+  externalGoods: processExternalGoods
+});
+const expandedDieselProcessFlow = buildProcessFlow(realRepository, { goodsId: "gtceu:diesel", amountPerMinute: 6000 }, {
+  externalGoods: getBoundaryPresetGoods(realRepository, new Set(["base-materials", "stock-parts", "circuits"]))
+});
+const zeroMachineDieselProcessFlow = buildProcessFlow(realRepository, { goodsId: "gtceu:diesel", amountPerMinute: 6000 }, {
+  externalGoods: processExternalGoods,
+  machineCounts: {
+    [dieselProcessFlow.plan.recipeRows[0].recipe.id]: 0
+  }
 });
 const diamondOreRoute = buildOreRoute(realRepository, "diamond");
 const realMachineRecipe = realRepository.recipes.find((recipe) => {
@@ -279,6 +293,34 @@ if (!uraniniteOreFlowGraph.recommendedOperationIds.includes("refined-ore-dust-gt
 
 if (uraniniteFastOreFlowGraphWithShortcuts.recommendedOperationIds.join("|") !== "ore-dust-minecraft-blasting") {
   throw new Error("Expected the fastest uraninite highlight to use the visible direct blasting shortcut.");
+}
+
+if (dieselProcessFlow.plan.recipeRows.length !== 1) {
+  throw new Error(`Expected supplied-fluid diesel process planning to stay compact, got ${dieselProcessFlow.plan.recipeRows.length} recipes.`);
+}
+
+if (!dieselProcessFlow.plan.externalRows.some((row) => row.goodsId === "gtceu:light_fuel")) {
+  throw new Error("Expected compact diesel process planning to list light fuel as a supplied input.");
+}
+
+if (!dieselProcessFlow.plan.externalRows.some((row) => row.goodsId === "gtceu:heavy_fuel")) {
+  throw new Error("Expected compact diesel process planning to list heavy fuel as a supplied input.");
+}
+
+if (expandedDieselProcessFlow.plan.recipeRows.length <= dieselProcessFlow.plan.recipeRows.length) {
+  throw new Error("Expected diesel process planning to expand when fluid boundaries are disabled.");
+}
+
+if (dieselProcessFlow.capacityOutputPerMinute <= dieselProcessFlow.idealOutputPerMinute) {
+  throw new Error("Expected one built diesel process machine to have spare capacity at the default target rate.");
+}
+
+if (zeroMachineDieselProcessFlow.capacityOutputPerMinute !== 0 || zeroMachineDieselProcessFlow.bottleneck?.builtCount !== 0) {
+  throw new Error("Expected zero built process machines to report a zero-output bottleneck.");
+}
+
+if (!zeroMachineDieselProcessFlow.bottleneck?.underbuilt) {
+  throw new Error("Expected a zero-machine process bottleneck to be marked as underbuilt.");
 }
 
 const expectedRealDefaults = new Map([
