@@ -1,8 +1,8 @@
 .process-detail-card:has(.process-detail-grid) {
-  gap: 10px;
+  gap: 12px;
   width: fit-content;
-  max-width: min(100%, 780px);
-  padding: 10px;
+  max-width: min(100%, 1040px);
+  padding: 12px;
   background: #c6c6c6;
   box-shadow:
     0 0 0 2px #1f1f1f,
@@ -12,7 +12,7 @@
 
 .process-detail-card:has(.process-detail-grid) > header {
   align-items: center;
-  padding: 6px 8px;
+  padding: 8px 10px;
   background: #8b8b8b;
   box-shadow:
     inset 2px 2px 0 #b8b8b8,
@@ -21,13 +21,13 @@
 
 .process-detail-card:has(.process-detail-grid) > header h2 {
   color: #ffffff;
-  font-size: 15px;
+  font-size: 17px;
   text-shadow: 2px 2px 0 #342c34;
   text-transform: uppercase;
 }
 
 .process-detail-card:has(.process-detail-grid) > header p {
-  max-width: 520px;
+  max-width: 680px;
   overflow: hidden;
   color: #d7d7d7;
   text-overflow: ellipsis;
@@ -37,10 +37,10 @@
 
 .process-detail-card:has(.process-detail-grid) > header > strong {
   min-width: max-content;
-  padding: 4px 7px;
+  padding: 5px 8px;
   background: #315a73;
   color: #ffffa0;
-  font-size: 11px;
+  font-size: 12px;
   text-shadow: 1px 1px 0 #000000;
   box-shadow:
     inset 2px 2px 0 #6b8fa5,
@@ -54,13 +54,13 @@
 .process-detail-grid {
   position: relative;
   display: grid;
-  grid-template-columns: max-content 58px max-content;
+  grid-template-columns: max-content 78px max-content;
   align-items: center;
   justify-content: start;
-  gap: 14px;
+  gap: 18px;
   width: fit-content;
   max-width: 100%;
-  padding: 12px;
+  padding: 16px;
   background: #b1b1b1;
   box-shadow:
     inset 3px 3px 0 #555555,
@@ -71,8 +71,8 @@
   content: "";
   grid-column: 2;
   justify-self: center;
-  width: 46px;
-  height: 28px;
+  width: 64px;
+  height: 38px;
   background: #6f6f6f;
   clip-path: polygon(0 39%, 48% 39%, 48% 14%, 100% 50%, 48% 86%, 48% 61%, 0 61%);
   image-rendering: pixelated;
@@ -80,7 +80,7 @@
 
 .process-detail-grid > div {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -96,22 +96,22 @@
 
 .process-detail-grid .section-label {
   color: #3f3f3f;
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   text-shadow: 1px 1px 0 #ffffff;
 }
 
 .process-detail-grid .chip-flow {
   display: grid;
-  grid-template-columns: repeat(3, 36px);
-  grid-auto-rows: 36px;
+  grid-template-columns: repeat(3, 46px);
+  grid-auto-rows: 46px;
   align-content: start;
   justify-content: start;
   width: max-content;
-  min-width: 108px;
-  max-width: 252px;
-  min-height: 36px;
-  padding: 7px;
+  min-width: 138px;
+  max-width: 322px;
+  min-height: 46px;
+  padding: 8px;
   background: #8b8b8b;
   box-shadow:
     inset 3px 3px 0 #373737,
@@ -119,27 +119,27 @@
 }
 
 .process-detail-grid > div:nth-child(2) .chip-flow {
-  grid-template-columns: repeat(2, 36px);
-  min-width: 72px;
+  grid-template-columns: repeat(2, 46px);
+  min-width: 92px;
 }
 
 .process-detail-grid .good-chip {
   position: relative;
   display: grid;
   place-items: center;
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
-  min-height: 36px;
-  padding: 2px;
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  min-height: 46px;
+  padding: 3px;
   border: 0;
   border-radius: 0;
   background: #8b8b8b;
   box-shadow:
-    inset 2px 2px 0 #373737,
-    inset -2px -2px 0 #ffffff,
-    inset 4px 4px 0 #8b8b8b,
-    inset -4px -4px 0 #b8b8b8;
+    inset 3px 3px 0 #373737,
+    inset -3px -3px 0 #ffffff,
+    inset 6px 6px 0 #8b8b8b,
+    inset -6px -6px 0 #b8b8b8;
   text-shadow: none;
 }
 
@@ -150,16 +150,16 @@
 
 .process-detail-grid .good-chip .good-icon,
 .process-detail-grid .good-chip .good-swatch {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
 }
 
 .process-detail-grid .good-chip strong {
   position: absolute;
-  right: 1px;
-  bottom: 0;
+  right: 3px;
+  bottom: 2px;
   color: #ffffff;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1;
   text-shadow: 1px 1px 0 #000000;
 }
@@ -177,12 +177,12 @@
 .process-detail-card:has(.process-detail-grid) .recipe-meta span {
   display: grid;
   place-items: center;
-  min-height: 34px;
-  min-width: 92px;
-  padding: 5px 7px;
+  min-height: 38px;
+  min-width: 112px;
+  padding: 6px 8px;
   background: #d2d2d2;
   color: #202020;
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
   text-shadow: 1px 1px 0 #ffffff;
   box-shadow:
