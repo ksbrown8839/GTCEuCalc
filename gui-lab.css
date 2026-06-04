@@ -1,0 +1,86 @@
+.gui-lab-shell {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.gui-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.gui-asset-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  background: #c6c6c6;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #555555;
+}
+
+.gui-asset-preview-box {
+  display: grid;
+  place-items: center;
+  min-height: 116px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 8px;
+  background:
+    linear-gradient(45deg, #d4d4d4 25%, transparent 25%),
+    linear-gradient(-45deg, #d4d4d4 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d4d4d4 75%),
+    linear-gradient(-45deg, transparent 75%, #d4d4d4 75%);
+  background-color: #efefef;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+  box-shadow:
+    inset 3px 3px 0 #555555,
+    inset -3px -3px 0 #eeeeee;
+}
+
+.gui-asset-preview {
+  display: block;
+  width: calc(var(--gui-width, 16px) * var(--gui-scale, 2));
+  height: calc(var(--gui-height, 16px) * var(--gui-scale, 2));
+  max-width: none;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.gui-asset-card strong,
+.gui-asset-card code,
+.gui-asset-card span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gui-asset-card strong {
+  color: #202020;
+  font-size: 12px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.gui-asset-card code,
+.gui-asset-card span {
+  color: #4f4f4f;
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.gui-asset-meta {
+  display: grid;
+  gap: 3px;
+}
+
+@media (max-width: 980px) {
+  .gui-lab-shell {
+    grid-template-columns: 1fr;
+  }
+}
