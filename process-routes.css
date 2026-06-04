@@ -440,7 +440,7 @@
 
 .process-recipe-node {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr);
   grid-template-rows: auto auto auto;
   align-items: center;
   gap: 2px 5px;
@@ -456,20 +456,58 @@
   text-align: left;
 }
 
-.process-recipe-node .machine-icon {
+.process-recipe-node .machine-icon-stack {
   display: grid;
   grid-row: 1 / 4;
+  grid-template-columns: repeat(2, 17px);
+  place-content: center;
+  gap: 2px;
+  width: 38px;
+  min-height: 36px;
+}
+
+.process-recipe-node .machine-icon-stack.single {
+  grid-template-columns: 30px;
+}
+
+.process-recipe-node .machine-icon-stack.empty {
+  opacity: 0.45;
+}
+
+.process-recipe-node .machine-icon {
+  display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 17px;
+  height: 17px;
   background: #d7e7ee;
   box-shadow:
     inset 2px 2px 0 #ffffff,
     inset -2px -2px 0 #6c7e86;
   color: #315a73;
-  font-size: 11px;
+  font-size: 7px;
   font-weight: 900;
   text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-recipe-node .machine-icon-stack.single .machine-icon {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
+}
+
+.process-recipe-node .machine-stack-extra {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  background: #315a73;
+  color: #ffffa0;
+  font-size: 7px;
+  font-weight: 900;
+  text-shadow: 1px 1px 0 #000000;
+  box-shadow:
+    inset 1px 1px 0 #6b8fa5,
+    inset -1px -1px 0 #1c3545;
 }
 
 .process-recipe-node strong,
@@ -807,6 +845,44 @@
   gap: 8px;
 }
 
+.process-node-machine-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+  align-items: stretch;
+  gap: 10px;
+  padding: 9px;
+  background: #b8b8b8;
+  box-shadow:
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #777777;
+}
+
+.process-node-machine-control > div {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.process-node-machine-control > div span,
+.process-node-machine-control > div em {
+  color: #4f4f4f;
+  font-size: 10px;
+  font-style: normal;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-node-machine-control > div strong {
+  overflow: hidden;
+  color: #202020;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .process-recipe-choice {
   display: grid;
   gap: 5px;
@@ -951,6 +1027,10 @@
 
   .process-config-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .process-node-machine-control {
+    grid-template-columns: 1fr;
   }
 
   .process-supply-row {

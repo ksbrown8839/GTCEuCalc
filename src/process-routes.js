@@ -1,5 +1,5 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
+import { loadRepository } from "./repository.js?v=process-simple-defaults-2026-06-04";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 import { buildProcessFlow } from "./process-flow-model.js?v=process-unlimited-supplies-2026-06-04";
 
@@ -293,11 +293,13 @@ function recipeNode(node, flow) {
   const bottleneck = machineRow?.weakestMachine ? " bottleneck" : "";
   const underbuilt = machineRow?.underbuilt ? " underbuilt" : "";
   const secondary = secondaryOutputs(node.recipe, node.goodsId).slice(0, 2);
+  const builtCount = machineRow?.builtCount ?? node.machineCount ?? 1;
+  const machineLabel = machineInitials(node);
   return `
-    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}" type="button" style="left:${node.x}px;top:${node.y}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
-      <span class="machine-icon">${machineInitials(node)}</span>
+    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
+      ${machineStackMarkup(machineLabel, builtCount)}
       <strong>${escapeHtml(node.label)}</strong>
-      <span>${formatRate(node.runsPerMinute)} runs</span>
+      <span>${formatRate(node.runsPerMinute)} runs / ${formatAmount(builtCount)} built</span>
       ${secondary.length ? `<em>${secondary.map((output) => goodIconMarkup(output.id)).join("")}</em>` : ""}
     </button>
   `;
@@ -391,12 +393,13 @@ function renderSelectedDetail(flow) {
   }
 
   elements.detail.innerHTML = node.type === "recipe"
-    ? recipeDetail(node)
+    ? recipeDetail(node, flow)
     : goodDetail(node);
 }
 
-function recipeDetail(node) {
+function recipeDetail(node, flow) {
   const recipe = node.recipe;
+  const machineRow = machineRowForRecipe(flow, recipe.id);
   const progress = progressBarForRecipe(recipe);
   const inputs = recipe.inputs
     .filter((input) => !input.notConsumed)
@@ -430,8 +433,27 @@ function recipeDetail(node) {
         <span>${formatAmount(recipe.eut)} EU/t</span>
         <span>${escapeHtml(machineName(node.machine, node.voltageTier, recipeTypeName(recipe)))}</span>
       </div>
+      ${machineBuildControl(machineRow)}
       ${recipeChoiceControl(node.goodsId, recipe.id)}
     </section>
+  `;
+}
+
+function machineBuildControl(row) {
+  if (!row) return "";
+  const machine = machineFamilyName(row.machine, "Machine");
+  return `
+    <div class="process-node-machine-control">
+      <div>
+        <span>Built machines</span>
+        <strong>${escapeHtml(machine)}</strong>
+        <em>${formatAmount(row.requiredCount)} needed / ${formatAmount(row.capacityFactor)}x capacity</em>
+      </div>
+      <label class="process-config-input">
+        <span>Built machines <em>configurable</em></span>
+        <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.machineKey)}">
+      </label>
+    </div>
   `;
 }
 
@@ -607,6 +629,21 @@ function goodIconMarkup(goodsId, displaySize = 18) {
   const atlasIcon = atlasIconMarkup(goodsId, kind, "good-icon", displaySize);
   if (atlasIcon) return atlasIcon;
   return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(good?.color ?? "#7d8790")}"></span>`;
+}
+
+function machineStackMarkup(label, count) {
+  const builtCount = Math.max(0, Math.floor(Number(count) || 0));
+  const visibleCount = Math.min(Math.max(builtCount, 1), 4);
+  const extraCount = Math.max(0, builtCount - visibleCount);
+  const single = builtCount === 1 ? " single" : "";
+  const empty = builtCount === 0 ? " empty" : "";
+  const icons = Array.from({ length: visibleCount }, () => `<span class="machine-icon">${escapeHtml(label)}</span>`).join("");
+  return `
+    <span class="machine-icon-stack${single}${empty}" title="${formatAmount(builtCount)} built machines">
+      ${icons}
+      ${extraCount > 0 ? `<span class="machine-stack-extra">+${formatAmount(extraCount)}</span>` : ""}
+    </span>
+  `;
 }
 
 function slotIconMarkup(goodsId, kind, color, label) {

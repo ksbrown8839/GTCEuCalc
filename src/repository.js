@@ -1,3 +1,9 @@
+const PROCESS_COMPLEXITY_PENALTIES = new Map([
+  ["gtceu:large_chemical_reactor", 2_500],
+  ["gtceu:distillation_tower", 2_500],
+  ["gtceu:fusion_reactor", 10_000]
+]);
+
 export class Repository {
   constructor(data) {
     if (data.schema !== "gtceu-planner-pack-v1") {
@@ -239,9 +245,14 @@ function scoreRecipeForOutput(repository, goodsId, recipe, avoidGoods) {
   if (recipe.type === "gtceu:extractor") score += 3_000;
   if (recipe.type === "gtceu:macerator" && !inputs.some(isOreProcessingIngredient)) score += 3_000;
   if (/disassembl|recycl/i.test(recipe.id)) score += 3_000;
+  score += processComplexityPenalty(recipe.type);
 
   score += forwardProductionBonus(outputForm, recipe, inputForms);
   return score;
+}
+
+function processComplexityPenalty(recipeType) {
+  return PROCESS_COMPLEXITY_PENALTIES.get(recipeType) ?? 0;
 }
 
 function forwardProductionBonus(outputForm, recipe, inputForms) {
