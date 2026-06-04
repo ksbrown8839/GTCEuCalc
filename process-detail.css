@@ -1,62 +1,74 @@
 :root {
   --gtceu-gui-bg: url("assets/gui/gtceu/base/background.png");
-  --gtceu-gui-border: url("assets/gui/gtceu/base/bordered_background.png");
   --gtceu-gui-display: url("assets/gui/gtceu/base/display.png");
   --gtceu-gui-slot: url("assets/gui/gtceu/base/slot.png");
-  --gtceu-gui-slot-dark: url("assets/gui/gtceu/base/slot_dark.png");
   --gtceu-gui-fluid-slot: url("assets/gui/gtceu/base/fluid_slot.png");
   --gtceu-gui-title: url("assets/gui/gtceu/base/title_bar_background.png");
-  --gtceu-gui-progress: url("assets/gui/gtceu/progress_bar/progress_bar_arrow.png");
-  --gtceu-gui-input-overlay: url("assets/gui/gtceu/overlay/in_slot_overlay.png");
-  --gtceu-gui-output-overlay: url("assets/gui/gtceu/overlay/out_slot_overlay.png");
-  --gtceu-gui-circuit-overlay: url("assets/gui/gtceu/overlay/circuit_overlay.png");
+  --gtceu-progress: url("assets/gui/gtceu/progress_bar/progress_bar_arrow.png");
+  --gtceu-progress-width: 52px;
+  --gtceu-progress-height: 52px;
+  --gtceu-progress-sheet-height: 104px;
 }
 
-.process-detail-card:has(.process-detail-grid) {
-  gap: 12px;
-  width: fit-content;
-  max-width: min(100%, 1060px);
-  padding: 12px;
-  background-color: #c6c6c6;
-  background-image: var(--gtceu-gui-bg);
-  background-repeat: repeat;
+.process-recipe-detail-card {
+  gap: 0;
+  width: min(100%, 900px);
+  max-width: 900px;
+  padding: 0;
+  overflow: hidden;
+  background: #c2c2c2;
+  border: 2px solid #1f1f1f;
   box-shadow:
-    0 0 0 2px #1f1f1f,
-    inset 2px 2px 0 #ffffff,
-    inset -2px -2px 0 #555555;
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #686868;
   image-rendering: pixelated;
 }
 
-.process-detail-card:has(.process-detail-grid) > header {
+.process-recipe-detail-card > header {
+  display: flex;
   align-items: center;
-  min-height: 36px;
-  padding: 7px 10px;
-  background-color: #616161;
-  background-image: var(--gtceu-gui-title);
-  background-repeat: repeat-x;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 52px;
+  padding: 11px 12px 9px;
+  background-color: #5e5e5e;
   box-shadow:
-    inset 2px 2px 0 rgba(255, 255, 255, 0.45),
-    inset -2px -2px 0 rgba(0, 0, 0, 0.45);
+    inset 0 -2px 0 #2f2f2f,
+    inset 0 2px 0 rgba(255, 255, 255, 0.35);
 }
 
-.process-detail-card:has(.process-detail-grid) > header h2 {
-  color: #ffffff;
-  font-size: 17px;
-  letter-spacing: 0.02em;
-  text-shadow: 2px 2px 0 #342c34;
-  text-transform: uppercase;
+.process-recipe-detail-card > header > div {
+  min-width: 0;
 }
 
-.process-detail-card:has(.process-detail-grid) > header p {
-  max-width: 700px;
+.process-recipe-detail-card > header h2,
+.process-recipe-detail-card > header p {
+  margin: 0;
+}
+
+.process-recipe-detail-card > header h2 {
   overflow: hidden;
-  color: #d7d7d7;
+  color: #ffffff;
+  font-size: 16px;
+  line-height: 1.2;
   text-overflow: ellipsis;
-  text-shadow: 1px 1px 0 #342c34;
+  text-shadow: 2px 2px 0 #242424;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.process-detail-card:has(.process-detail-grid) > header > strong {
+.process-recipe-detail-card > header p {
+  max-width: 640px;
+  overflow: hidden;
+  color: #dcdcdc;
+  font-size: 10px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  text-shadow: 1px 1px 0 #242424;
+  white-space: nowrap;
+}
+
+.process-recipe-detail-card > header > strong {
   min-width: max-content;
   padding: 5px 8px;
   background: #315a73;
@@ -68,89 +80,76 @@
     inset -2px -2px 0 #1c3545;
 }
 
-.process-detail-card:has(.process-detail-grid) .process-method-picker {
-  order: 4;
-}
-
-.process-detail-grid {
-  position: relative;
+.process-recipe-detail-card .process-detail-grid {
   display: grid;
-  grid-template-columns: max-content 88px max-content;
+  grid-template-columns: minmax(170px, max-content) minmax(72px, 106px) minmax(116px, max-content);
   align-items: center;
-  justify-content: start;
-  gap: 20px;
-  width: fit-content;
+  justify-content: center;
+  gap: 18px;
+  width: auto;
   max-width: 100%;
-  padding: 18px;
-  background-color: #b8b8b8;
-  background-image: var(--gtceu-gui-border), var(--gtceu-gui-bg);
-  background-repeat: repeat, repeat;
+  padding: 18px 20px;
+  background: #b7b7b7;
   box-shadow:
-    inset 3px 3px 0 #555555,
-    inset -3px -3px 0 #eeeeee;
+    inset 0 2px 0 #f0f0f0,
+    inset 0 -2px 0 #727272;
 }
 
-.process-detail-grid::before {
-  content: "";
-  grid-column: 2;
-  justify-self: center;
-  width: 72px;
-  height: 44px;
-  background-image: var(--gtceu-gui-progress);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  image-rendering: pixelated;
-}
-
-.process-detail-grid > div {
+.process-recipe-detail-card .recipe-goods-column {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
 }
 
-.process-detail-grid > div:first-child {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.process-detail-grid > div:nth-child(2) {
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.process-detail-grid .section-label {
-  color: #2a2a2a;
-  font-size: 11px;
+.process-recipe-detail-card .section-label {
+  color: #303030;
+  font-size: 10px;
+  line-height: 1;
   text-transform: uppercase;
   text-shadow: 1px 1px 0 #ffffff;
 }
 
-.process-detail-grid .chip-flow {
+.process-recipe-detail-card .chip-flow {
   display: grid;
-  grid-template-columns: repeat(3, 54px);
   grid-auto-rows: 54px;
   align-content: start;
   justify-content: start;
+  gap: 2px;
   width: max-content;
-  min-width: 162px;
-  max-width: 378px;
+  max-width: 100%;
   min-height: 54px;
-  padding: 8px;
-  background-color: #777777;
-  background-image: var(--gtceu-gui-display);
-  background-repeat: repeat;
+  padding: 6px;
+  background: #9f9f9f;
+  border: 2px solid #474747;
   box-shadow:
-    inset 3px 3px 0 #373737,
-    inset -3px -3px 0 #ffffff;
+    inset 2px 2px 0 #6a6a6a,
+    inset -2px -2px 0 #e8e8e8;
 }
 
-.process-detail-grid > div:nth-child(2) .chip-flow {
+.process-recipe-detail-card .recipe-inputs .chip-flow {
+  grid-template-columns: repeat(3, 54px);
+  max-height: 172px;
+  overflow: auto;
+}
+
+.process-recipe-detail-card .recipe-outputs .chip-flow {
   grid-template-columns: repeat(2, 54px);
-  min-width: 108px;
+  max-height: 172px;
+  overflow: auto;
 }
 
-.process-detail-grid .good-chip {
+.process-recipe-detail-card .recipe-progress {
+  justify-self: center;
+  width: var(--gtceu-progress-width);
+  height: var(--gtceu-progress-height);
+  background-image: var(--gtceu-progress);
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-size: var(--gtceu-progress-width) var(--gtceu-progress-sheet-height);
+  image-rendering: pixelated;
+}
+
+.process-recipe-detail-card .good-chip.detail-slot {
   position: relative;
   display: grid;
   place-items: center;
@@ -158,91 +157,125 @@
   min-width: 54px;
   height: 54px;
   min-height: 54px;
-  padding: 7px;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background-color: transparent;
   background-image: var(--gtceu-gui-slot);
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background-size: 54px 54px;
   box-shadow: none;
   image-rendering: pixelated;
-  text-shadow: none;
 }
 
-.process-detail-grid > div:first-child .good-chip::before,
-.process-detail-grid > div:nth-child(2) .good-chip::before {
-  content: "";
-  position: absolute;
-  inset: 7px;
-  z-index: 1;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 28px 28px;
-  image-rendering: pixelated;
-  opacity: 0.55;
-  pointer-events: none;
+.process-recipe-detail-card .good-chip.detail-slot.fluid {
+  background-image: var(--gtceu-gui-fluid-slot);
 }
 
-.process-detail-grid > div:first-child .good-chip::before {
-  background-image: var(--gtceu-gui-input-overlay);
-}
-
-.process-detail-grid > div:nth-child(2) .good-chip::before {
-  background-image: var(--gtceu-gui-output-overlay);
-}
-
-.process-detail-grid .good-chip > span:not(.good-icon):not(.good-swatch),
-.process-detail-grid .good-chip .good-swatch span {
+.process-recipe-detail-card .good-chip.detail-slot > span:not(.good-icon):not(.good-swatch),
+.process-recipe-detail-card .good-chip.detail-slot .good-swatch span {
   display: none;
 }
 
-.process-detail-grid .good-chip .good-icon,
-.process-detail-grid .good-chip .good-swatch {
+.process-recipe-detail-card .good-chip.detail-slot .good-icon,
+.process-recipe-detail-card .good-chip.detail-slot .good-swatch {
   position: relative;
-  z-index: 2;
-  width: 38px;
-  height: 38px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
 }
 
-.process-detail-grid .good-chip strong {
+.process-recipe-detail-card .good-chip.detail-slot .good-swatch {
+  border-radius: 2px;
+  border-color: rgba(0, 0, 0, 0.35);
+}
+
+.process-recipe-detail-card .good-chip.detail-slot.fluid .good-swatch {
+  width: 30px;
+  height: 36px;
+  border-radius: 2px;
+}
+
+.process-recipe-detail-card .good-chip.detail-slot strong {
   position: absolute;
   right: 4px;
   bottom: 3px;
-  z-index: 3;
+  z-index: 2;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1;
-  text-shadow: 1px 1px 0 #000000;
+  text-shadow:
+    1px 1px 0 #000000,
+    0 1px 0 #000000,
+    1px 0 0 #000000;
 }
 
-.process-detail-grid .good-chip strong:empty {
+.process-recipe-detail-card .good-chip.detail-slot strong:empty {
   display: none;
 }
 
-.process-detail-card:has(.process-detail-grid) .recipe-meta {
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
+.process-recipe-detail-card .recipe-meta {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  padding: 0 20px 16px;
+  background: #b7b7b7;
 }
 
-.process-detail-card:has(.process-detail-grid) .recipe-meta span {
+.process-recipe-detail-card .recipe-meta span {
   display: grid;
   place-items: center;
-  min-height: 38px;
-  min-width: 112px;
-  padding: 6px 8px;
-  background-color: #d2d2d2;
-  background-image: var(--gtceu-gui-display);
-  background-repeat: repeat;
+  min-height: 30px;
+  min-width: 106px;
+  padding: 5px 8px;
+  background: #d2d2d2;
   color: #202020;
-  font-size: 11px;
+  font-size: 10px;
   text-align: center;
   text-shadow: 1px 1px 0 #ffffff;
   box-shadow:
     inset 2px 2px 0 #eeeeee,
     inset -2px -2px 0 #8b8b8b;
+}
+
+.process-recipe-detail-card .process-method-picker {
+  margin: 0;
+  padding: 10px 12px 12px;
+  background: #adadad;
+  box-shadow:
+    inset 0 2px 0 #767676,
+    inset 0 -2px 0 #eeeeee;
+}
+
+.process-recipe-detail-card .process-method-picker > span {
+  font-size: 9px;
+}
+
+.process-recipe-detail-card .process-method-menu {
+  grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
+  gap: 5px;
+}
+
+.process-recipe-detail-card .process-method-button {
+  min-height: 36px;
+  padding: 5px;
+  grid-template-columns: 24px minmax(0, 1fr);
+}
+
+.process-recipe-detail-card .process-method-button .machine-icon {
+  width: 22px;
+  height: 22px;
+  font-size: 9px;
+}
+
+.process-recipe-detail-card .process-method-button strong {
+  font-size: 10px;
+}
+
+.process-recipe-detail-card .process-recipe-choice select {
+  max-width: 100%;
 }
 
 .process-machine-row {
@@ -275,39 +308,35 @@
 }
 
 @media (max-width: 1100px) {
-  .process-detail-card:has(.process-detail-grid),
-  .process-detail-grid {
-    width: auto;
+  .process-recipe-detail-card {
+    width: 100%;
   }
 
-  .process-detail-grid {
+  .process-recipe-detail-card > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .process-recipe-detail-card > header h2,
+  .process-recipe-detail-card > header p {
+    white-space: normal;
+  }
+
+  .process-recipe-detail-card .process-detail-grid {
     grid-template-columns: 1fr;
+    justify-items: start;
   }
 
-  .process-detail-grid::before {
-    grid-column: 1;
-    grid-row: 2;
+  .process-recipe-detail-card .recipe-progress {
     transform: rotate(90deg);
+    justify-self: center;
   }
 
-  .process-detail-grid > div:first-child {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .process-detail-grid > div:nth-child(2) {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .process-detail-grid .chip-flow,
-  .process-detail-grid > div:nth-child(2) .chip-flow {
+  .process-recipe-detail-card .chip-flow,
+  .process-recipe-detail-card .recipe-inputs .chip-flow,
+  .process-recipe-detail-card .recipe-outputs .chip-flow {
     width: max-content;
     max-width: 100%;
-  }
-
-  .process-detail-card:has(.process-detail-grid) .recipe-meta {
-    grid-template-columns: 1fr;
   }
 
   .process-machine-row {

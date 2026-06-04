@@ -383,10 +383,16 @@ function renderSelectedDetail(flow) {
 
 function recipeDetail(node) {
   const recipe = node.recipe;
-  const inputs = recipe.inputs.filter((input) => !input.notConsumed).map(ingredientChip).join("");
-  const outputs = recipe.outputs.map((output) => goodChip(output.id, formatAmount(output.amount))).join("");
+  const progress = progressBarForRecipe(recipe);
+  const inputs = recipe.inputs
+    .filter((input) => !input.notConsumed)
+    .map((input) => ingredientChip(input, { detailSlot: true }))
+    .join("");
+  const outputs = recipe.outputs
+    .map((output) => goodChip(output.id, formatAmount(output.amount), { detailSlot: true }))
+    .join("");
   return `
-    <section class="process-detail-card">
+    <section class="process-detail-card process-recipe-detail-card" style="${progressStyle(progress)}">
       <header>
         <div>
           <h2>${escapeHtml(recipeTypeName(recipe))}</h2>
@@ -394,13 +400,13 @@ function recipeDetail(node) {
         </div>
         <strong>${formatRate(node.runsPerMinute)} runs</strong>
       </header>
-      ${recipeChoiceControl(node.goodsId, recipe.id)}
       <div class="process-detail-grid">
-        <div>
+        <div class="recipe-goods-column recipe-inputs">
           <span class="section-label">Inputs</span>
           <div class="chip-flow">${inputs || "None"}</div>
         </div>
-        <div>
+        <div class="recipe-progress" aria-hidden="true"></div>
+        <div class="recipe-goods-column recipe-outputs">
           <span class="section-label">Outputs</span>
           <div class="chip-flow">${outputs || "None"}</div>
         </div>
@@ -410,6 +416,7 @@ function recipeDetail(node) {
         <span>${formatAmount(recipe.eut)} EU/t</span>
         <span>${escapeHtml(machineName(node.machine, node.voltageTier, recipeTypeName(recipe)))}</span>
       </div>
+      ${recipeChoiceControl(node.goodsId, recipe.id)}
     </section>
   `;
 }
@@ -539,23 +546,27 @@ function goodLine(goodsId, amountText, options = {}) {
   `;
 }
 
-function goodChip(goodsId, amountText = "") {
+function goodChip(goodsId, amountText = "", options = {}) {
   const good = state.repository.getGood(goodsId);
   const name = good?.name ?? goodsId;
+  const kind = good?.kind ?? "item";
+  const detailClass = options.detailSlot ? " detail-slot" : "";
+  const iconSize = options.detailSlot ? 32 : 18;
   return `
-    <span class="good-chip" ${goodTooltipAttrs(good, goodsId, amountText)}>
-      ${goodIconMarkup(goodsId)}
+    <span class="good-chip ${escapeHtml(kind)}${detailClass}" ${goodTooltipAttrs(good, goodsId, amountText)}>
+      ${goodIconMarkup(goodsId, iconSize)}
       <span>${escapeHtml(name)}</span>
       ${amountText ? `<strong>${escapeHtml(amountText)}</strong>` : ""}
     </span>
   `;
 }
 
-function ingredientChip(ingredient) {
+function ingredientChip(ingredient, options = {}) {
   const resolved = state.repository.resolveIngredient(ingredient);
-  if (resolved.good) return goodChip(resolved.id, formatAmount(ingredient.amount));
+  const detailClass = options.detailSlot ? " detail-slot" : "";
+  if (resolved.good) return goodChip(resolved.id, formatAmount(ingredient.amount), options);
   return `
-    <span class="good-chip muted">
+    <span class="good-chip muted${detailClass}">
       <span class="good-swatch tag"></span>
       <span>${escapeHtml(state.repository.getIngredientName(ingredient))}</span>
       <strong>${formatAmount(ingredient.amount)}</strong>
@@ -575,10 +586,10 @@ function goodSlot(goodsId, amountText) {
   `;
 }
 
-function goodIconMarkup(goodsId) {
+function goodIconMarkup(goodsId, displaySize = 18) {
   const good = state.repository.getGood(goodsId);
   const kind = good?.kind ?? "item";
-  const atlasIcon = atlasIconMarkup(goodsId, kind, "good-icon", 18);
+  const atlasIcon = atlasIconMarkup(goodsId, kind, "good-icon", displaySize);
   if (atlasIcon) return atlasIcon;
   return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(good?.color ?? "#7d8790")}"></span>`;
 }
@@ -636,6 +647,42 @@ function machineFamilyName(machine, fallback = "Unknown machine") {
 
 function recipeTypeName(recipe) {
   return state.repository.getRecipeType(recipe.type).name;
+}
+
+function progressBarForRecipe(recipe) {
+  const key = `${recipe.type} ${recipeTypeName(recipe)}`.toLowerCase();
+  const base = "assets/gui/gtceu/progress_bar/";
+  const choices = [
+    [/circuit[_\s-]*assembler/, "progress_bar_circuit_assembler.png", 20, 20],
+    [/distillation/, "progress_bar_distillation_tower.png", 65, 75],
+    [/cracking/, "progress_bar_cracking.png", 20, 20],
+    [/macerat/, "progress_bar_macerate.png", 20, 20],
+    [/compress/, "progress_bar_compress.png", 20, 20],
+    [/assembler/, "progress_bar_assembler.png", 20, 20],
+    [/mixer/, "progress_bar_mixer.png", 20, 20],
+    [/bath/, "progress_bar_bath.png", 20, 20]
+  ];
+  const match = choices.find(([pattern]) => pattern.test(key));
+  const [, file, frameWidth, frameHeight] = match ?? [null, "progress_bar_arrow.png", 20, 20];
+  const scale = file === "progress_bar_distillation_tower.png" ? 1.2 : 2.6;
+  const width = Math.round(frameWidth * scale);
+  const height = Math.round(frameHeight * scale);
+
+  return {
+    url: `${base}${file}`,
+    width,
+    height,
+    sheetHeight: height * 2
+  };
+}
+
+function progressStyle(progress) {
+  return [
+    `--gtceu-progress:url(${progress.url})`,
+    `--gtceu-progress-width:${progress.width}px`,
+    `--gtceu-progress-height:${progress.height}px`,
+    `--gtceu-progress-sheet-height:${progress.sheetHeight}px`
+  ].join(";");
 }
 
 function secondaryOutputs(recipe, primaryGoodsId) {
