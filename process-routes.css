@@ -332,6 +332,7 @@
 }
 
 .process-machine-row,
+.process-supply-row,
 .process-good-line,
 .process-detail-card {
   background: #d2d2d2;
@@ -341,7 +342,8 @@
     inset -2px -2px 0 #8b8b8b;
 }
 
-.process-machine-row {
+.process-machine-row,
+.process-supply-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 116px;
   align-items: center;
@@ -350,14 +352,27 @@
   padding: 9px;
 }
 
-.process-machine-row.bottleneck {
+.process-supply-row {
+  grid-template-columns: minmax(0, 1fr) 118px auto;
+}
+
+.process-supply-row .good-chip {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.process-machine-row.bottleneck,
+.process-supply-row.bottleneck,
+.process-good-node.bottleneck {
   box-shadow:
     0 0 0 3px #e0bd35,
     inset 2px 2px 0 #f8f1b7,
     inset -2px -2px 0 #7d6c27;
 }
 
-.process-machine-row.underbuilt {
+.process-machine-row.underbuilt,
+.process-supply-row.underbuilt,
+.process-good-node.underbuilt {
   box-shadow:
     0 0 0 3px #d65f4f,
     inset 2px 2px 0 #ffe0d8,
@@ -365,7 +380,9 @@
 }
 
 .process-machine-row div,
-.process-machine-row label {
+.process-machine-row label,
+.process-supply-row div,
+.process-supply-row label {
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -389,6 +406,8 @@
 .process-machine-row span,
 .process-machine-row em,
 .process-machine-row label span,
+.process-supply-row em,
+.process-supply-row label span,
 .process-muted {
   color: #4f4f4f;
   font-size: 10px;
@@ -478,6 +497,10 @@
   .process-stat-grid,
   .process-lower-grid,
   .process-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .process-supply-row {
     grid-template-columns: 1fr;
   }
 }

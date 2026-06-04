@@ -184,6 +184,13 @@ const zeroMachineDieselProcessFlow = buildProcessFlow(realRepository, { goodsId:
     [dieselProcessFlow.plan.recipeRows[0].recipe.id]: 0
   }
 });
+const lightFuelDemand = dieselProcessFlow.supplyRows.find((row) => row.goodsId === "gtceu:light_fuel")?.requiredAmountPerMinute ?? 0;
+const constrainedSupplyDieselProcessFlow = buildProcessFlow(realRepository, { goodsId: "gtceu:diesel", amountPerMinute: 6000 }, {
+  externalGoods: processExternalGoods,
+  supplyRates: {
+    "gtceu:light_fuel": lightFuelDemand / 2
+  }
+});
 const diamondOreRoute = buildOreRoute(realRepository, "diamond");
 const realMachineRecipe = realRepository.recipes.find((recipe) => {
   return recipe.durationTicks > 0 && realRepository.getMachinesForRecipeType(recipe.type).length > 0;
@@ -311,8 +318,20 @@ if (expandedDieselProcessFlow.plan.recipeRows.length <= dieselProcessFlow.plan.r
   throw new Error("Expected diesel process planning to expand when fluid boundaries are disabled.");
 }
 
-if (dieselProcessFlow.capacityOutputPerMinute <= dieselProcessFlow.idealOutputPerMinute) {
-  throw new Error("Expected one built diesel process machine to have spare capacity at the default target rate.");
+if (dieselProcessFlow.capacityOutputPerMinute !== dieselProcessFlow.idealOutputPerMinute) {
+  throw new Error("Expected default supplied input availability to meet the target diesel output exactly.");
+}
+
+if (dieselProcessFlow.machineCapacityOutputPerMinute <= dieselProcessFlow.idealOutputPerMinute) {
+  throw new Error("Expected one built diesel process machine to have spare machine capacity at the default target rate.");
+}
+
+if (constrainedSupplyDieselProcessFlow.capacityOutputPerMinute !== 3000) {
+  throw new Error(`Expected half light fuel availability to cap diesel output at 3000/min, got ${constrainedSupplyDieselProcessFlow.capacityOutputPerMinute}.`);
+}
+
+if (constrainedSupplyDieselProcessFlow.bottleneck?.type !== "supply" || constrainedSupplyDieselProcessFlow.bottleneck?.goodsId !== "gtceu:light_fuel") {
+  throw new Error("Expected constrained diesel planning to report light fuel as the supply bottleneck.");
 }
 
 if (zeroMachineDieselProcessFlow.capacityOutputPerMinute !== 0 || zeroMachineDieselProcessFlow.bottleneck?.builtCount !== 0) {

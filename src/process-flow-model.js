@@ -16,10 +16,16 @@ export function buildProcessFlow(repository, target, options = {}) {
   });
   const graph = buildProcessGraph(repository, plan);
   const machineRows = buildMachineRows(plan, options.machineCounts ?? {});
-  const bottleneck = machineRows
-    .filter((row) => Number.isFinite(row.capacityFactor))
-    .sort((a, b) => a.capacityFactor - b.capacityFactor)[0] ?? null;
+  const supplyRows = buildSupplyRows(plan, options.supplyRates ?? {});
+  const machineBottleneck = bottleneckFor(machineRows);
+  const supplyBottleneck = bottleneckFor(supplyRows);
+  const bottleneck = bottleneckFor([...machineRows, ...supplyRows]);
+  const machineLineFactor = machineBottleneck?.capacityFactor ?? 1;
+  const supplyLineFactor = supplyBottleneck?.capacityFactor ?? 1;
   const lineFactor = bottleneck?.capacityFactor ?? 1;
+  markBottlenecks(machineRows, bottleneck, machineBottleneck);
+  markBottlenecks(supplyRows, bottleneck, supplyBottleneck);
+  applyActualRates(supplyRows, lineFactor, product.amountPerMinute);
   const generatorEuT = Math.max(1, Number(options.generatorEuT) || 32);
   const targetPowerEut = plan.totalAverageEut;
   const capacityPowerEut = targetPowerEut * lineFactor;
@@ -29,9 +35,15 @@ export function buildProcessFlow(repository, target, options = {}) {
     plan,
     graph,
     machineRows,
+    supplyRows,
     bottleneck,
+    machineBottleneck,
+    supplyBottleneck,
     lineFactor,
+    machineLineFactor,
+    supplyLineFactor,
     idealOutputPerMinute: product.amountPerMinute,
+    machineCapacityOutputPerMinute: product.amountPerMinute * machineLineFactor,
     capacityOutputPerMinute: product.amountPerMinute * lineFactor,
     targetPowerEut,
     capacityPowerEut,
@@ -50,23 +62,84 @@ function buildMachineRows(plan, machineCounts) {
       const capacityFactor = idealLoad > 0 ? builtCount / idealLoad : Infinity;
 
       return {
+        type: "machine",
+        bottleneckKey: `machine:${row.recipe.id}`,
         ...row,
         idealLoad,
         requiredCount,
         builtCount,
         capacityFactor,
-        bottleneck: false
+        bottleneck: false,
+        weakestMachine: false,
+        underbuilt: false
       };
     })
     .sort((a, b) => {
       const capacitySort = finiteSortValue(a.capacityFactor) - finiteSortValue(b.capacityFactor);
       return capacitySort || b.idealLoad - a.idealLoad || a.recipe.id.localeCompare(b.recipe.id);
+    });
+}
+
+function buildSupplyRows(plan, supplyRates) {
+  return plan.externalRows
+    .map((row) => {
+      const requiredAmountPerMinute = row.amountPerMinute;
+      const configured = Number(supplyRates[row.goodsId]);
+      const availableAmountPerMinute = Number.isFinite(configured)
+        ? Math.max(0, configured)
+        : requiredAmountPerMinute;
+      const capacityFactor = requiredAmountPerMinute > 0 ? availableAmountPerMinute / requiredAmountPerMinute : Infinity;
+
+      return {
+        type: "supply",
+        bottleneckKey: `supply:${row.goodsId}`,
+        goodsId: row.goodsId,
+        requiredAmountPerMinute,
+        availableAmountPerMinute,
+        actualUsedAmountPerMinute: 0,
+        maxOutputPerMinute: 0,
+        capacityFactor,
+        bottleneck: false,
+        weakestSupply: false,
+        underbuilt: false
+      };
     })
-    .map((row, index) => ({
-      ...row,
-      bottleneck: index === 0 && Number.isFinite(row.capacityFactor),
-      underbuilt: index === 0 && Number.isFinite(row.capacityFactor) && row.capacityFactor < 1
-    }));
+    .sort((a, b) => {
+      const capacitySort = finiteSortValue(a.capacityFactor) - finiteSortValue(b.capacityFactor);
+      return capacitySort || b.requiredAmountPerMinute - a.requiredAmountPerMinute || a.goodsId.localeCompare(b.goodsId);
+    });
+}
+
+function bottleneckFor(rows) {
+  return rows
+    .filter((row) => Number.isFinite(row.capacityFactor))
+    .sort((a, b) => {
+      const capacitySort = a.capacityFactor - b.capacityFactor;
+      return capacitySort || bottleneckLabel(a).localeCompare(bottleneckLabel(b));
+    })[0] ?? null;
+}
+
+function markBottlenecks(rows, globalBottleneck, localBottleneck) {
+  for (const row of rows) {
+    row.bottleneck = Boolean(globalBottleneck && row.bottleneckKey === globalBottleneck.bottleneckKey);
+    row.weakestMachine = Boolean(localBottleneck && row.type === "machine" && row.bottleneckKey === localBottleneck.bottleneckKey);
+    row.weakestSupply = Boolean(localBottleneck && row.type === "supply" && row.bottleneckKey === localBottleneck.bottleneckKey);
+    row.underbuilt = row.bottleneck && Number.isFinite(row.capacityFactor) && row.capacityFactor < 1;
+  }
+}
+
+function applyActualRates(supplyRows, lineFactor, targetAmountPerMinute) {
+  for (const row of supplyRows) {
+    row.actualUsedAmountPerMinute = row.requiredAmountPerMinute * lineFactor;
+    row.maxOutputPerMinute = row.requiredAmountPerMinute > 0
+      ? targetAmountPerMinute * row.capacityFactor
+      : Infinity;
+  }
+}
+
+function bottleneckLabel(row) {
+  if (row.type === "machine") return row.recipe.id;
+  return row.goodsId;
 }
 
 function finiteSortValue(value) {

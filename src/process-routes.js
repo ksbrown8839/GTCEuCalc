@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-lines-bottleneck-2026-06-04";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-supply-rates-2026-06-04";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -24,6 +24,7 @@ const state = {
   manualMadeGoods: new Set(),
   activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
   machineCounts: {},
+  supplyRates: {},
   generatorEuT: 32,
   selectedNodeId: null
 };
@@ -59,6 +60,7 @@ function currentFlow() {
     preferredRecipeByOutput: state.preferredRecipeByOutput,
     externalGoods: getEffectiveExternalGoods(),
     machineCounts: state.machineCounts,
+    supplyRates: state.supplyRates,
     generatorEuT: state.generatorEuT
   });
 }
@@ -179,9 +181,8 @@ function selectedNode(flow) {
 }
 
 function renderStats(flow) {
-  const bottleneckText = flow.bottleneck
-    ? `${recipeTypeName(flow.bottleneck.recipe)} at ${formatAmount(flow.bottleneck.capacityFactor)}x target`
-    : "No timed bottleneck";
+  const bottleneckText = flow.bottleneck ? bottleneckDescription(flow.bottleneck) : "No active bottleneck";
+  const machineText = flow.machineBottleneck ? bottleneckDescription(flow.machineBottleneck) : "No timed machine demand";
   const assumptionCount = flow.plan.warnings.length + flow.plan.suppressedWarningCount;
   const assumptions = assumptionCount
     ? `<div class="process-stat-card assumptions">
@@ -197,22 +198,30 @@ function renderStats(flow) {
       <em>Requested target rate</em>
     </div>
     <div class="process-stat-card">
-      <span>Built capacity</span>
+      <span>Actual output</span>
       <strong>${formatRate(flow.capacityOutputPerMinute)}</strong>
       <em>${escapeHtml(bottleneckText)}</em>
     </div>
     <div class="process-stat-card">
-      <span>Power draw</span>
-      <strong>${formatAmount(flow.targetPowerEut)} EU/t</strong>
-      <em>${formatAmount(flow.targetGeneratorCount)} generators @ ${formatAmount(flow.generatorEuT)} EU/t</em>
+      <span>Machine ceiling</span>
+      <strong>${formatRate(flow.machineCapacityOutputPerMinute)}</strong>
+      <em>${escapeHtml(machineText)}</em>
     </div>
     <div class="process-stat-card">
-      <span>Capacity power</span>
-      <strong>${formatAmount(flow.capacityPowerEut)} EU/t</strong>
-      <em>${formatAmount(flow.capacityGeneratorCount)} generators at built capacity</em>
+      <span>Power draw</span>
+      <strong>${formatAmount(flow.targetPowerEut)} EU/t</strong>
+      <em>${formatAmount(flow.capacityPowerEut)} EU/t actual / ${formatAmount(flow.targetGeneratorCount)} generators @ ${formatAmount(flow.generatorEuT)} EU/t</em>
     </div>
     ${assumptions}
   `;
+}
+
+function bottleneckDescription(row) {
+  if (row.type === "machine") {
+    return `${recipeTypeName(row.recipe)} at ${formatAmount(row.capacityFactor)}x target`;
+  }
+
+  return `${state.repository.getGoodName(row.goodsId)} supply at ${formatAmount(row.capacityFactor)}x target`;
 }
 
 function renderFlowMap(flow) {
@@ -259,14 +268,17 @@ function nodeOutputPoint(node) {
 
 function processNode(node, flow) {
   if (node.type === "recipe") return recipeNode(node, flow);
-  return goodNode(node);
+  return goodNode(node, flow);
 }
 
-function goodNode(node) {
+function goodNode(node, flow) {
+  const supplyRow = flow.supplyRows.find((row) => row.goodsId === node.goodsId);
   const selected = node.id === state.selectedNodeId ? " selected" : "";
   const supplied = node.reason ? ` ${node.reason}` : "";
+  const bottleneck = supplyRow?.weakestSupply ? " bottleneck" : "";
+  const underbuilt = supplyRow?.underbuilt ? " underbuilt" : "";
   return `
-    <button class="process-good-node${selected}${supplied}" type="button" style="left:${node.x}px;top:${node.y}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
+    <button class="process-good-node${selected}${supplied}${bottleneck}${underbuilt}" type="button" style="left:${node.x}px;top:${node.y}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
       ${goodSlot(node.goodsId, formatRate(node.amountPerMinute))}
       <strong>${escapeHtml(node.label)}</strong>
     </button>
@@ -276,7 +288,7 @@ function goodNode(node) {
 function recipeNode(node, flow) {
   const machineRow = flow.machineRows.find((row) => row.recipe.id === node.recipe.id);
   const selected = node.id === state.selectedNodeId ? " selected" : "";
-  const bottleneck = machineRow?.bottleneck ? " bottleneck" : "";
+  const bottleneck = machineRow?.weakestMachine ? " bottleneck" : "";
   const underbuilt = machineRow?.underbuilt ? " underbuilt" : "";
   const secondary = secondaryOutputs(node.recipe, node.goodsId).slice(0, 2);
   return `
@@ -299,7 +311,7 @@ function renderMachineConfig(flow) {
 
 function machineConfigRow(row) {
   const machine = machineName(row.machine, row.voltageTier, recipeTypeName(row.recipe));
-  const bottleneck = row.bottleneck ? " bottleneck" : "";
+  const bottleneck = row.weakestMachine ? " bottleneck" : "";
   const underbuilt = row.underbuilt ? " underbuilt" : "";
   return `
     <article class="process-machine-row${bottleneck}${underbuilt}">
@@ -317,12 +329,28 @@ function machineConfigRow(row) {
 }
 
 function renderExternalInputs(flow) {
-  elements.externalInputs.innerHTML = flow.plan.externalRows.length
-    ? flow.plan.externalRows.slice(0, 18).map((row) => goodLine(row.goodsId, formatRate(row.amountPerMinute), {
-        action: state.repository.findRecipesProducing(row.goodsId).length ? "make-process-good" : "",
-        actionLabel: "Make"
-      })).join("")
+  elements.externalInputs.innerHTML = flow.supplyRows.length
+    ? flow.supplyRows.slice(0, 18).map((row) => supplyRowMarkup(row)).join("")
     : `<div class="empty-state">No supplied inputs at this boundary.</div>`;
+}
+
+function supplyRowMarkup(row) {
+  const canMake = state.repository.findRecipesProducing(row.goodsId).length > 0;
+  const bottleneck = row.weakestSupply ? " bottleneck" : "";
+  const underbuilt = row.underbuilt ? " underbuilt" : "";
+  return `
+    <article class="process-supply-row${bottleneck}${underbuilt}">
+      <div>
+        ${goodChip(row.goodsId, `${formatRate(row.requiredAmountPerMinute)} required`)}
+        <em>Uses ${formatRate(row.actualUsedAmountPerMinute)} / max ${formatRate(row.maxOutputPerMinute)} output</em>
+      </div>
+      <label>
+        <span>Available</span>
+        <input type="number" min="0" step="1" value="${formatNumericInput(row.availableAmountPerMinute)}" data-action="set-process-supply-rate" data-id="${escapeHtml(row.goodsId)}">
+      </label>
+      ${canMake ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(row.goodsId)}">Make</button>` : ""}
+    </article>
+  `;
 }
 
 function renderByproducts(flow) {
@@ -526,6 +554,11 @@ function formatMachineInput(value) {
   return Number.isFinite(value) ? String(Math.max(0, Math.floor(value))) : "0";
 }
 
+function formatNumericInput(value) {
+  if (!Number.isFinite(value)) return "0";
+  return String(Math.round(Math.max(0, value) * 1000) / 1000);
+}
+
 function slotInitials(name, fallback) {
   const words = String(name).split(/[^a-z0-9]+/i).filter(Boolean);
   return (words.length > 1 ? words.slice(0, 2).map((word) => word[0]).join("") : (words[0] ?? fallback).slice(0, 2)).toUpperCase();
@@ -589,11 +622,22 @@ function setupEvents() {
   document.addEventListener("input", (event) => {
     const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) return;
-    if (target.dataset.action !== "set-process-machine-count") return;
-    const recipeId = target.dataset.recipeId;
-    if (!recipeId) return;
-    state.machineCounts[recipeId] = Math.max(0, Number(target.value) || 0);
-    renderProcess();
+    const action = target.dataset.action;
+
+    if (action === "set-process-machine-count") {
+      const recipeId = target.dataset.recipeId;
+      if (!recipeId) return;
+      state.machineCounts[recipeId] = Math.max(0, Number(target.value) || 0);
+      renderProcess();
+      return;
+    }
+
+    if (action === "set-process-supply-rate") {
+      const goodsId = target.dataset.id;
+      if (!goodsId) return;
+      state.supplyRates[goodsId] = Math.max(0, Number(target.value) || 0);
+      renderProcess();
+    }
   });
 
   document.addEventListener("change", (event) => {
@@ -630,6 +674,7 @@ function setupEvents() {
       state.manualMadeGoods.add(goodsId);
       state.manualExternalGoods.delete(goodsId);
       state.machineCounts = {};
+      state.supplyRates = {};
       state.targetSearch = "";
       elements.targetSearch.value = "";
       renderAll();
