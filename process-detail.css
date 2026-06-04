@@ -1,5 +1,7 @@
 .process-detail-card:has(.process-detail-grid) {
   gap: 10px;
+  width: fit-content;
+  max-width: min(100%, 780px);
   padding: 10px;
   background: #c6c6c6;
   box-shadow:
@@ -25,8 +27,12 @@
 }
 
 .process-detail-card:has(.process-detail-grid) > header p {
+  max-width: 520px;
+  overflow: hidden;
   color: #d7d7d7;
+  text-overflow: ellipsis;
   text-shadow: 1px 1px 0 #342c34;
+  white-space: nowrap;
 }
 
 .process-detail-card:has(.process-detail-grid) > header > strong {
@@ -48,9 +54,12 @@
 .process-detail-grid {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(164px, 1fr) 76px minmax(164px, 1fr);
+  grid-template-columns: max-content 58px max-content;
   align-items: center;
-  gap: 12px;
+  justify-content: start;
+  gap: 14px;
+  width: fit-content;
+  max-width: 100%;
   padding: 12px;
   background: #b1b1b1;
   box-shadow:
@@ -62,8 +71,8 @@
   content: "";
   grid-column: 2;
   justify-self: center;
-  width: 58px;
-  height: 34px;
+  width: 46px;
+  height: 28px;
   background: #6f6f6f;
   clip-path: polygon(0 39%, 48% 39%, 48% 14%, 100% 50%, 48% 86%, 48% 61%, 0 61%);
   image-rendering: pixelated;
@@ -93,16 +102,25 @@
 }
 
 .process-detail-grid .chip-flow {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 36px);
+  grid-auto-rows: 36px;
   align-content: start;
-  gap: 0;
-  min-height: 108px;
+  justify-content: start;
+  width: max-content;
+  min-width: 108px;
+  max-width: 252px;
+  min-height: 36px;
   padding: 7px;
   background: #8b8b8b;
   box-shadow:
     inset 3px 3px 0 #373737,
     inset -3px -3px 0 #ffffff;
+}
+
+.process-detail-grid > div:nth-child(2) .chip-flow {
+  grid-template-columns: repeat(2, 36px);
+  min-width: 72px;
 }
 
 .process-detail-grid .good-chip {
@@ -152,7 +170,7 @@
 
 .process-detail-card:has(.process-detail-grid) .recipe-meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, max-content);
   gap: 8px;
 }
 
@@ -160,6 +178,7 @@
   display: grid;
   place-items: center;
   min-height: 34px;
+  min-width: 92px;
   padding: 5px 7px;
   background: #d2d2d2;
   color: #202020;
@@ -200,6 +219,11 @@
 }
 
 @media (max-width: 1100px) {
+  .process-detail-card:has(.process-detail-grid),
+  .process-detail-grid {
+    width: auto;
+  }
+
   .process-detail-grid {
     grid-template-columns: 1fr;
   }
@@ -218,6 +242,12 @@
   .process-detail-grid > div:nth-child(2) {
     grid-column: 1;
     grid-row: 3;
+  }
+
+  .process-detail-grid .chip-flow,
+  .process-detail-grid > div:nth-child(2) .chip-flow {
+    width: max-content;
+    max-width: 100%;
   }
 
   .process-detail-card:has(.process-detail-grid) .recipe-meta {
