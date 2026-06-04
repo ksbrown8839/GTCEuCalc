@@ -165,23 +165,14 @@ function renderFlowMap(graph) {
     const source = layout.stages.get(operation.inputStage);
     const target = layout.stages.get(operation.outputStage);
     if (!source || !target) return [];
-    const connectorClass = operation.recommended ? ` class="recommended"` : "";
     return [
-      `<path${connectorClass} d="${connectorPath(stageOutputPoint(source), operationInputPoint(operation))}"></path>`,
-      `<path${connectorClass} d="${connectorPath(operationOutputPoint(operation), stageInputPoint(target))}" marker-end="url(#ore-flow-arrow${operation.recommended ? "-recommended" : ""})"></path>`
+      connectorLine(stageOutputPoint(source), operationInputPoint(operation), operation.recommended),
+      connectorArrow(operationOutputPoint(operation), stageInputPoint(target), operation.recommended)
     ];
   }).join("");
 
   elements.flowCanvas.innerHTML = `
     <svg class="ore-flow-connectors" viewBox="0 0 ${FLOW_MAP_WIDTH} ${FLOW_MAP_HEIGHT}" aria-hidden="true">
-      <defs>
-        <marker id="ore-flow-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
-          <path d="M 0 0 L 9 4.5 L 0 9 z"></path>
-        </marker>
-        <marker id="ore-flow-arrow-recommended" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
-          <path class="recommended-arrow" d="M 0 0 L 9 4.5 L 0 9 z"></path>
-        </marker>
-      </defs>
       ${connectors}
     </svg>
     ${graph.stages.map((stage) => stageNode(stage, layout.stages.get(stage.id), graph.recommendedStageIds.includes(stage.id))).join("")}
@@ -209,7 +200,7 @@ function layoutFlowGraph(graph) {
   for (const [pair, pairOperations] of groupedOperations) {
     const [inputStage, outputStage] = pair.split("->");
     const base = OPERATION_LAYOUT[pair] ?? fallbackOperationPosition(stages.get(inputStage), stages.get(outputStage));
-    const gap = pairOperations.length > 2 ? 62 : 68;
+    const gap = pairOperations.length > 1 ? 94 : 68;
 
     pairOperations.forEach((operation, index) => {
       operations.push({
@@ -232,6 +223,21 @@ function fallbackOperationPosition(source, target) {
     x: Math.round(((source?.x ?? 40) + (target?.x ?? 1240)) / 2),
     y: Math.round(((source?.y ?? 260) + (target?.y ?? 260)) / 2)
   };
+}
+
+function connectorLine(start, end, recommended) {
+  return `<path class="ore-flow-line${recommended ? " recommended" : ""}" d="${connectorPath(start, end)}"></path>`;
+}
+
+function connectorArrow(start, end, recommended) {
+  const availableWidth = Math.max(0, end.x - start.x);
+  const width = Math.max(8, Math.min(recommended ? 30 : 24, availableWidth - 2));
+  const halfHeight = Math.max(6, Math.round(width * (recommended ? 0.58 : 0.5)));
+  const base = { x: end.x - width, y: end.y };
+  return [
+    connectorLine(start, base, recommended),
+    `<path class="ore-flow-arrowhead${recommended ? " recommended" : ""}" d="M ${base.x} ${end.y - halfHeight} L ${end.x} ${end.y} L ${base.x} ${end.y + halfHeight} Z"></path>`
+  ].join("");
 }
 
 function connectorPath(start, end) {
@@ -573,7 +579,7 @@ function machineIconId(machine, recipe) {
 }
 
 function miniIcon(goodsId) {
-  return atlasIconMarkup(goodsId, "ore-mini-icon", 18)
+  return atlasIconMarkup(goodsId, "ore-mini-icon", 32)
     || `<span class="ore-mini-icon" style="background:#7d8790"></span>`;
 }
 

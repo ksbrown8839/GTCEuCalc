@@ -141,7 +141,7 @@
   pointer-events: none;
 }
 
-.ore-flow-connectors path {
+.ore-flow-line {
   fill: none;
   stroke: #202020;
   stroke-linecap: square;
@@ -149,17 +149,17 @@
   stroke-width: 4;
 }
 
-.ore-flow-connectors path.recommended {
+.ore-flow-line.recommended {
   stroke: #e0bd35;
   stroke-width: 7;
 }
 
-.ore-flow-connectors marker path {
+.ore-flow-arrowhead {
   fill: #202020;
   stroke: none;
 }
 
-.ore-flow-connectors marker path.recommended-arrow {
+.ore-flow-arrowhead.recommended {
   fill: #e0bd35;
 }
 
@@ -297,17 +297,17 @@
 
 .ore-operation-byproducts {
   position: absolute;
-  right: -9px;
-  bottom: -15px;
+  right: -18px;
+  bottom: -30px;
   display: flex;
-  gap: 1px;
+  gap: 2px;
 }
 
 .ore-mini-byproduct {
   position: relative;
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 36px;
   background: #d2d2d2;
   box-shadow:
     0 0 0 1px #4a4a4a,
@@ -316,17 +316,17 @@
 }
 
 .ore-operation-byproducts .ore-mini-icon {
-  width: 18px;
-  height: 18px;
-  margin: 1px;
+  width: 32px;
+  height: 32px;
+  margin: 2px;
 }
 
 .ore-mini-byproduct strong {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: -4px;
+  bottom: -4px;
   color: #ffffff;
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1;
   text-shadow:
     1px 1px 0 #000000,
