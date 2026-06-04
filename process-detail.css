@@ -279,7 +279,7 @@
 }
 
 .process-machine-row {
-  grid-template-columns: 34px minmax(0, 1fr) 118px;
+  grid-template-columns: 34px minmax(0, 1fr) 150px;
 }
 
 .process-machine-row::before {
@@ -305,6 +305,10 @@
 .process-generator-control input {
   min-height: 24px;
   padding: 4px 6px;
+}
+
+.process-recipe-detail-card .process-method-help {
+  font-size: 9px;
 }
 
 @media (max-width: 1100px) {

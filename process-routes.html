@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-machine-menu-2026-06-04">
-    <link rel="stylesheet" href="process-detail.css?v=gtceu-detail-clean-2026-06-04">
+    <link rel="stylesheet" href="process-routes.css?v=process-optimizer-guide-2026-06-04">
+    <link rel="stylesheet" href="process-detail.css?v=process-config-width-2026-06-04">
   </head>
   <body>
     <main class="process-route-shell">
@@ -24,21 +24,36 @@
           </div>
         </div>
 
-        <details class="help-panel" open>
-          <summary>What this shows</summary>
+        <details class="help-panel process-workflow-help" open>
+          <summary>Optimize in 5 steps</summary>
           <ol>
-            <li>Choose a fluid, chemical, or long processing target.</li>
-            <li>Set the desired output per minute.</li>
-            <li>Use boundaries to decide what counts as supplied.</li>
-            <li>Adjust built machines to find the line bottleneck.</li>
-            <li>Use recipe choices for alternate diesel, fuel, and chemistry paths.</li>
+            <li>
+              <strong>Pick the target.</strong>
+              <span>Choose the product and the output rate you want.</span>
+            </li>
+            <li>
+              <strong>Set boundaries.</strong>
+              <span>Decide what your base already supplies, such as fluids, circuits, or stock parts.</span>
+            </li>
+            <li>
+              <strong>Choose recipe methods.</strong>
+              <span>Click a flow-map node, then choose the machine path or recipe variant.</span>
+            </li>
+            <li>
+              <strong>Enter built machines.</strong>
+              <span>Set how many machines you actually placed. Underbuilt groups cap real output.</span>
+            </li>
+            <li>
+              <strong>Limit input supply.</strong>
+              <span>Set available rates for supplied inputs, or click Make to expand them upstream.</span>
+            </li>
           </ol>
         </details>
 
-        <section class="panel">
+        <section class="panel process-control-panel" id="process-target-panel">
           <h2>Target</h2>
           <label class="process-rate-control">
-            <span>Output rate</span>
+            <span>Output rate <em>configurable</em></span>
             <input data-role="process-target-rate" type="number" min="0" step="100">
           </label>
           <input data-role="process-target-search" type="search" placeholder="Search process targets">
@@ -46,8 +61,9 @@
           <div class="process-target-list" data-role="process-target-results"></div>
         </section>
 
-        <section class="panel">
+        <section class="panel process-control-panel" id="process-boundaries-panel">
           <h2>Supplied Boundaries</h2>
+          <p class="process-panel-note">Checked groups are treated as already available. Uncheck a group when you want the planner to build more of it inside the line.</p>
           <div class="boundary-list" data-role="process-boundary-preset-list"></div>
           <p class="boundary-summary" data-role="process-boundary-summary"></p>
         </section>
@@ -65,13 +81,65 @@
           </div>
         </div>
 
+        <section class="process-optimizer-guide" aria-label="Optimization workflow">
+          <header>
+            <span>Configurable controls</span>
+            <h2>Use the map to choose the route, then tune the real factory.</h2>
+            <p>Controls marked configurable change the planned rates, bottlenecks, machine counts, and power estimates for this process line.</p>
+          </header>
+          <div class="process-config-grid">
+            <a class="process-config-card" href="#process-target-panel">
+              <strong>1</strong>
+              <span>
+                <b>Target rate</b>
+                <em>Desired output per minute.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-boundaries-panel">
+              <strong>2</strong>
+              <span>
+                <b>Supplied boundaries</b>
+                <em>What starts outside the line.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-detail-panel">
+              <strong>3</strong>
+              <span>
+                <b>Recipe method</b>
+                <em>Machine path and recipe variant.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-machine-panel">
+              <strong>4</strong>
+              <span>
+                <b>Built machines</b>
+                <em>Actual capacity and bottlenecks.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-supply-panel">
+              <strong>5</strong>
+              <span>
+                <b>Supply rates</b>
+                <em>External input limits.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-machine-panel">
+              <strong>6</strong>
+              <span>
+                <b>Generator EU/t</b>
+                <em>Generator count and power planning.</em>
+              </span>
+            </a>
+          </div>
+        </section>
+
         <section class="process-stat-grid" data-role="process-stats"></section>
 
         <section class="section-band process-flow-section">
           <header class="section-header">
             <div>
               <h2>Rate Flow Map</h2>
-              <span class="ore-route-note">Ideal demand flows left to right. Machine counts below show actual built capacity.</span>
+              <span class="ore-route-note">Click a good or machine node to configure how that part of the line is supplied or made.</span>
             </div>
           </header>
           <div class="process-flow-frame" data-role="process-flow-frame">
@@ -88,11 +156,14 @@
         </section>
 
         <div class="process-lower-grid">
-          <section class="section-band">
+          <section class="section-band" id="process-machine-panel">
             <header class="section-header">
-              <h2>Machine Configuration</h2>
+              <div>
+                <h2>Machine Configuration</h2>
+                <span class="ore-route-note">Enter your built machine counts. The lowest-capacity group becomes the line bottleneck.</span>
+              </div>
               <label class="process-generator-control">
-                <span>Generator EU/t</span>
+                <span>Generator EU/t <em>configurable</em></span>
                 <input data-role="process-generator-eut" type="number" min="1" step="1">
               </label>
             </header>
@@ -100,27 +171,35 @@
           </section>
 
           <aside>
-            <section class="section-band">
-              <h2>Supplied Inputs</h2>
+            <section class="section-band" id="process-supply-panel">
+              <header class="compact-section-header">
+                <h2>Supplied Inputs</h2>
+                <span class="ore-route-note">Set available rates, or expand an input into the line.</span>
+              </header>
               <div class="process-stacked-list" data-role="process-external-inputs"></div>
             </section>
             <section class="section-band">
-              <h2>Byproducts</h2>
+              <header class="compact-section-header">
+                <h2>Byproducts</h2>
+                <span class="ore-route-note">Extra outputs created by the selected route.</span>
+              </header>
               <div class="process-stacked-list" data-role="process-byproducts"></div>
             </section>
           </aside>
         </div>
 
-        <section class="section-band process-detail-section">
+        <section class="section-band process-detail-section" id="process-detail-panel">
           <header class="section-header">
-            <h2>Selected Step</h2>
-            <span class="ore-route-note">Select a node on the map to inspect recipes, inputs, outputs, and choices.</span>
+            <div>
+              <h2>Selected Step</h2>
+              <span class="ore-route-note">Recipe choices appear here after selecting a processing node on the map.</span>
+            </div>
           </header>
           <div data-role="process-detail"></div>
         </section>
       </section>
     </main>
 
-    <script type="module" src="src/process-routes.js?v=gtceu-detail-progress-2026-06-04"></script>
+    <script type="module" src="src/process-routes.js?v=process-config-controls-2026-06-04"></script>
   </body>
 </html>

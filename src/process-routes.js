@@ -325,13 +325,14 @@ function machineConfigRow(row) {
   const underbuilt = row.underbuilt ? " underbuilt" : "";
   return `
     <article class="process-machine-row${bottleneck}${underbuilt}">
-      <div>
+      <div class="process-row-copy">
+        <span class="process-row-kicker">Machine group</span>
         <strong>${escapeHtml(machine)}</strong>
         <span>${escapeHtml(detail || stepText)}</span>
         <em>${stepText} / ${formatRate(row.runsPerMinute)} runs / ${formatAmount(row.idealLoad)} load / ${formatAmount(row.capacityFactor)}x capacity</em>
       </div>
-      <label>
-        <span>Built</span>
+      <label class="process-config-input">
+        <span>Built machines <em>configurable</em></span>
         <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.machineKey)}">
       </label>
     </article>
@@ -350,15 +351,16 @@ function supplyRowMarkup(row) {
   const underbuilt = row.underbuilt ? " underbuilt" : "";
   return `
     <article class="process-supply-row${bottleneck}${underbuilt}">
-      <div>
+      <div class="process-row-copy">
+        <span class="process-row-kicker">Supplied input</span>
         ${goodChip(row.goodsId, `${formatRate(row.requiredAmountPerMinute)} required`)}
         <em>Uses ${formatRate(row.actualUsedAmountPerMinute)} / max ${formatRate(row.maxOutputPerMinute)} output</em>
       </div>
-      <label>
-        <span>Available</span>
+      <label class="process-config-input">
+        <span>Available rate <em>configurable</em></span>
         <input type="number" min="0" step="1" value="${formatNumericInput(row.availableAmountPerMinute)}" data-action="set-process-supply-rate" data-id="${escapeHtml(row.goodsId)}">
       </label>
-      ${canMake ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(row.goodsId)}">Make</button>` : ""}
+      ${canMake ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(row.goodsId)}">Make upstream</button>` : ""}
     </article>
   `;
 }
@@ -434,8 +436,8 @@ function goodDetail(node) {
         <strong>${formatRate(node.amountPerMinute)}</strong>
       </header>
       <div class="process-detail-actions">
-        ${producedBy.length ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(node.goodsId)}">Make in line</button>` : ""}
-        ${node.goodsId !== state.targetGoodsId ? `<button class="secondary-button" type="button" data-action="supply-process-good" data-id="${escapeHtml(node.goodsId)}">Treat supplied</button>` : ""}
+        ${producedBy.length ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(node.goodsId)}">Make upstream</button>` : ""}
+        ${node.goodsId !== state.targetGoodsId ? `<button class="secondary-button" type="button" data-action="supply-process-good" data-id="${escapeHtml(node.goodsId)}">Treat as supplied</button>` : ""}
       </div>
       <p class="process-muted">${external ? "Currently treated as supplied by the active boundaries." : "Currently allowed to expand into upstream recipes."}</p>
       ${producedBy.length ? recipeChoiceControl(node.goodsId, state.preferredRecipeByOutput[node.goodsId] ?? producedBy[0].id) : ""}
@@ -450,7 +452,8 @@ function recipeChoiceControl(goodsId, currentRecipeId) {
   const selectedGroup = groups.find((group) => group.recipes.some((recipe) => recipe.id === currentRecipeId)) ?? groups[0];
   return `
     <div class="process-method-picker">
-      <span>Machine method</span>
+      <span>Recipe method <em>configurable</em></span>
+      <p class="process-method-help">Pick the machine route first, then choose a variant when that machine has multiple recipes.</p>
       <div class="process-method-menu">
         ${groups.map((group) => methodButton(goodsId, group, selectedGroup, recipes[0])).join("")}
       </div>
