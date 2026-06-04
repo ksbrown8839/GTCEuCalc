@@ -590,6 +590,18 @@
   min-height: 34px;
 }
 
+.process-supply-actions {
+  display: flex;
+  align-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.process-supply-actions .secondary-button {
+  min-height: 34px;
+}
+
 .process-supply-row .good-chip {
   min-width: 0;
   max-width: 100%;
@@ -611,6 +623,13 @@
     0 0 0 3px #d65f4f,
     inset 2px 2px 0 #ffe0d8,
     inset -2px -2px 0 #7d3328;
+}
+
+.process-supply-row.unlimited:not(.bottleneck):not(.underbuilt) {
+  box-shadow:
+    0 0 0 2px #315a73,
+    inset 2px 2px 0 #e8f7ff,
+    inset -2px -2px 0 #6b8fa5;
 }
 
 .process-machine-row div,
@@ -702,6 +721,33 @@
   box-shadow:
     inset 1px 1px 0 #a4a4a4,
     inset -1px -1px 0 #ffffff;
+}
+
+.process-infinite-value {
+  display: grid;
+  gap: 2px;
+  min-height: 28px;
+  padding: 5px 7px;
+  background: #d7e7ee;
+  color: #263b46;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #6c7e86;
+}
+
+.process-infinite-value strong {
+  color: #315a73;
+  font-size: 12px;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-infinite-value span {
+  color: #4f4f4f;
+  font-size: 9px;
+  line-height: 1.1;
+  text-shadow: 1px 1px 0 #ffffff;
 }
 
 .process-good-line {

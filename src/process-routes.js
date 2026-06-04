@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-machine-menu-2026-06-04";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-unlimited-supplies-2026-06-04";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -25,6 +25,7 @@ const state = {
   activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
   machineCounts: {},
   supplyRates: {},
+  unlimitedSupplyGoods: new Set(),
   generatorEuT: 32,
   selectedNodeId: null
 };
@@ -61,6 +62,7 @@ function currentFlow() {
     externalGoods: getEffectiveExternalGoods(),
     machineCounts: state.machineCounts,
     supplyRates: state.supplyRates,
+    unlimitedSupplyGoods: state.unlimitedSupplyGoods,
     generatorEuT: state.generatorEuT
   });
 }
@@ -349,18 +351,28 @@ function supplyRowMarkup(row) {
   const canMake = state.repository.findRecipesProducing(row.goodsId).length > 0;
   const bottleneck = row.weakestSupply ? " bottleneck" : "";
   const underbuilt = row.underbuilt ? " underbuilt" : "";
+  const unlimited = row.unlimited ? " unlimited" : "";
+  const supplyLimitText = row.unlimited
+    ? `Uses ${formatRate(row.actualUsedAmountPerMinute)} / no supply limit`
+    : `Uses ${formatRate(row.actualUsedAmountPerMinute)} / max ${formatRate(row.maxOutputPerMinute)} output`;
+  const limitControl = row.unlimited
+    ? `<div class="process-infinite-value"><strong>No limit</strong><span>Handled separately</span></div>`
+    : `<input type="number" min="0" step="1" value="${formatNumericInput(row.availableAmountPerMinute)}" data-action="set-process-supply-rate" data-id="${escapeHtml(row.goodsId)}">`;
   return `
-    <article class="process-supply-row${bottleneck}${underbuilt}">
+    <article class="process-supply-row${bottleneck}${underbuilt}${unlimited}">
       <div class="process-row-copy">
         <span class="process-row-kicker">Supplied input</span>
         ${goodChip(row.goodsId, `${formatRate(row.requiredAmountPerMinute)} required`)}
-        <em>Uses ${formatRate(row.actualUsedAmountPerMinute)} / max ${formatRate(row.maxOutputPerMinute)} output</em>
+        <em>${escapeHtml(supplyLimitText)}</em>
       </div>
       <label class="process-config-input">
         <span>Available rate <em>configurable</em></span>
-        <input type="number" min="0" step="1" value="${formatNumericInput(row.availableAmountPerMinute)}" data-action="set-process-supply-rate" data-id="${escapeHtml(row.goodsId)}">
+        ${limitControl}
       </label>
-      ${canMake ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(row.goodsId)}">Make upstream</button>` : ""}
+      <div class="process-supply-actions">
+        <button class="secondary-button" type="button" data-action="toggle-process-supply-limit" data-id="${escapeHtml(row.goodsId)}">${row.unlimited ? "Set rate limit" : "No limit"}</button>
+        ${canMake ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(row.goodsId)}">Make upstream</button>` : ""}
+      </div>
     </article>
   `;
 }
@@ -815,6 +827,7 @@ function setupEvents() {
       state.manualExternalGoods.delete(goodsId);
       state.machineCounts = {};
       state.supplyRates = {};
+      state.unlimitedSupplyGoods = new Set();
       state.targetSearch = "";
       elements.targetSearch.value = "";
       renderAll();
@@ -836,6 +849,7 @@ function setupEvents() {
     if (action === "make-process-good" && goodsId) {
       state.manualMadeGoods.add(goodsId);
       state.manualExternalGoods.delete(goodsId);
+      state.unlimitedSupplyGoods.delete(goodsId);
       renderAll();
       return;
     }
@@ -845,6 +859,13 @@ function setupEvents() {
       state.manualMadeGoods.delete(goodsId);
       delete state.preferredRecipeByOutput[goodsId];
       renderAll();
+      return;
+    }
+
+    if (action === "toggle-process-supply-limit" && goodsId) {
+      if (state.unlimitedSupplyGoods.has(goodsId)) state.unlimitedSupplyGoods.delete(goodsId);
+      else state.unlimitedSupplyGoods.add(goodsId);
+      renderProcess();
     }
   });
 }

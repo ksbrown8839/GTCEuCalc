@@ -16,7 +16,7 @@ export function buildProcessFlow(repository, target, options = {}) {
   });
   const graph = buildProcessGraph(repository, plan);
   const machineRows = buildMachineRows(plan, options.machineCounts ?? {});
-  const supplyRows = buildSupplyRows(plan, options.supplyRates ?? {});
+  const supplyRows = buildSupplyRows(plan, options.supplyRates ?? {}, new Set(options.unlimitedSupplyGoods ?? []));
   const machineBottleneck = bottleneckFor(machineRows);
   const supplyBottleneck = bottleneckFor(supplyRows);
   const bottleneck = bottleneckFor([...machineRows, ...supplyRows]);
@@ -109,20 +109,24 @@ function buildMachineRows(plan, machineCounts) {
     });
 }
 
-function buildSupplyRows(plan, supplyRates) {
+function buildSupplyRows(plan, supplyRates, unlimitedSupplyGoods) {
   return plan.externalRows
     .map((row) => {
       const requiredAmountPerMinute = row.amountPerMinute;
       const configured = Number(supplyRates[row.goodsId]);
-      const availableAmountPerMinute = Number.isFinite(configured)
-        ? Math.max(0, configured)
-        : requiredAmountPerMinute;
-      const capacityFactor = requiredAmountPerMinute > 0 ? availableAmountPerMinute / requiredAmountPerMinute : Infinity;
+      const unlimited = unlimitedSupplyGoods.has(row.goodsId);
+      const availableAmountPerMinute = unlimited ? Infinity : (
+        Number.isFinite(configured) ? Math.max(0, configured) : requiredAmountPerMinute
+      );
+      const capacityFactor = unlimited || requiredAmountPerMinute <= 0
+        ? Infinity
+        : availableAmountPerMinute / requiredAmountPerMinute;
 
       return {
         type: "supply",
         bottleneckKey: `supply:${row.goodsId}`,
         goodsId: row.goodsId,
+        unlimited,
         requiredAmountPerMinute,
         availableAmountPerMinute,
         actualUsedAmountPerMinute: 0,
