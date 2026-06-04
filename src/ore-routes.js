@@ -1,5 +1,5 @@
 import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
-import { buildOreFlowGraph, classifyOreRouteIngredient, getOreRouteMaterials } from "./ore-routes-model.js?v=ore-yield-map-2026-06-03";
+import { buildOreFlowGraph, classifyOreRouteIngredient, getOreRouteMaterials } from "./ore-routes-model.js?v=ore-primary-output-2026-06-04";
 import { escapeHtml, formatAmount, formatDuration } from "./format.js?v=machine-build-counts-2026-05-31";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -18,7 +18,7 @@ const STAGE_LAYOUT = {
   purified_ore: { x: 670, y: 76 },
   refined_ore: { x: 1000, y: 66 },
   impure_dust: { x: 670, y: 522 },
-  pure_dust: { x: 1000, y: 438 },
+  pure_dust: { x: 1000, y: 388 },
   dust: { x: 1340, y: 306 },
   ingot: { x: 1660, y: 306 },
   gem: { x: 1660, y: 306 }

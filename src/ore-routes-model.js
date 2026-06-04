@@ -53,7 +53,7 @@ export function buildOreRoute(repository, material) {
     if (!inputs.length || !outputs.length) continue;
 
     const inputStage = inputs.reduce(maximumStage, inputs[0]);
-    const outputStage = outputs.reduce(maximumStage, outputs[0]);
+    const outputStage = primaryOutputStage(inputStage, outputs);
     if (outputStage.order <= inputStage.order) continue;
 
     steps.push({
@@ -95,11 +95,12 @@ export function buildOreRoute(repository, material) {
 
 export function buildOreFlowGraph(repository, material, options = {}) {
   const route = buildOreRoute(repository, material);
+  const terminalStage = routeTerminalStage(route.steps);
   const groupedSteps = new Map();
 
   for (const step of route.steps) {
     if (!options.showHammerRoutes && isHammerRoute(step.recipe)) continue;
-    if (!options.showQuickSmelts && isQuickSmeltShortcut(step)) continue;
+    if (!options.showQuickSmelts && isQuickSmeltShortcut(step, terminalStage)) continue;
 
     const key = `${step.inputStage}->${step.outputStage}|${step.recipe.type}`;
     const variants = groupedSteps.get(key) ?? [];
@@ -122,7 +123,7 @@ export function buildOreFlowGraph(repository, material, options = {}) {
         recipeType: representative.recipe.type,
         recipe: representative.recipe,
         variants,
-        isQuickSmelt: isQuickSmeltShortcut(representative),
+        isQuickSmelt: isQuickSmeltShortcut(representative, terminalStage),
         isFallbackRoute: isHammerRoute(representative.recipe)
       };
     })
@@ -135,7 +136,7 @@ export function buildOreFlowGraph(repository, material, options = {}) {
   const usedStages = new Set(operations.flatMap((operation) => [operation.inputStage, operation.outputStage]));
   const stages = route.stages.filter((stage) => usedStages.has(stage.id));
   const routeStrategy = options.routeStrategy === "fast" ? "fast" : "yield";
-  const recommendedPath = findRecommendedPath(repository, material, operations, routeStrategy);
+  const recommendedPath = findRecommendedPath(repository, material, operations, routeStrategy, terminalStage);
   const recommendedOperationIds = recommendedPath.map((operation) => operation.id);
   const recommendedIds = new Set(recommendedOperationIds);
   const recommendedStageIds = [...new Set(recommendedPath.flatMap((operation) => [operation.inputStage, operation.outputStage]))];
@@ -152,6 +153,7 @@ export function buildOreFlowGraph(repository, material, options = {}) {
     recommendedStageIds,
     recommendedByproducts: aggregateByproducts(repository, material, recommendedPath),
     possibleByproducts: aggregatePossibleByproducts(repository, material, processingOperations),
+    terminalStage,
     routeStrategy
   };
 }
@@ -233,6 +235,19 @@ function maximumStage(a, b) {
   return a.order >= b.order ? a : b;
 }
 
+function primaryOutputStage(inputStage, outputs) {
+  const advancingOutputs = outputs.filter((output) => output.order > inputStage.order);
+  if (!advancingOutputs.length) return outputs.reduce(maximumStage, outputs[0]);
+
+  return [...advancingOutputs].sort((a, b) => primaryOutputScore(inputStage, a) - primaryOutputScore(inputStage, b))[0];
+}
+
+function primaryOutputScore(inputStage, output) {
+  const chance = output.ingredient.chance ?? 1;
+  const chancePenalty = chance >= 1 ? 0 : 100;
+  return chancePenalty + output.order - inputStage.order;
+}
+
 function stageOrder(id) {
   return ROUTE_STAGES.get(id)?.order ?? Number.MAX_SAFE_INTEGER;
 }
@@ -241,19 +256,22 @@ function isHammerRoute(recipe) {
   return recipe.type === "gtceu:forge_hammer" || recipe.type.includes("crafting");
 }
 
-function isQuickSmeltShortcut(step) {
-  return ["ingot", "gem"].includes(step.outputStage)
-    && step.inputStage !== "dust"
-    && step.recipe.type !== "gtceu:sifter";
+function isQuickSmeltShortcut(step, terminalStage) {
+  if (step.outputStage !== terminalStage) return false;
+  if (step.recipe.type === "gtceu:sifter") return false;
+  if (terminalStage === "dust") {
+    if (["minecraft:smelting", "minecraft:blasting"].includes(step.recipe.type)) return step.inputStage !== terminalStage;
+    return ["ore", "raw_material", "crushed_ore"].includes(step.inputStage);
+  }
+  return ["ingot", "gem"].includes(terminalStage) && step.inputStage !== "dust";
 }
 
-function findRecommendedPath(repository, material, operations, strategy) {
-  const terminalStage = operations.some((operation) => operation.outputStage === "ingot") ? "ingot" : "gem";
-  const sourceStage = operations.some((operation) => operation.inputStage === "ore") ? "ore" : "raw_material";
+function findRecommendedPath(repository, material, operations, strategy, terminalStage) {
   const allowedOperations = operations.filter((operation) => {
     if (isHammerRoute(operation.recipe)) return false;
     return strategy === "fast" || !operation.isQuickSmelt;
   });
+  const sourceStage = recommendedSourceStage(allowedOperations);
   const operationsByInput = new Map();
 
   for (const operation of allowedOperations) {
@@ -282,6 +300,23 @@ function findRecommendedPath(repository, material, operations, strategy) {
   };
 
   return bestFrom(sourceStage)?.operations ?? [];
+}
+
+function recommendedSourceStage(operations) {
+  if (operations.some((operation) => operation.inputStage === "ore")) return "ore";
+  if (operations.some((operation) => operation.inputStage === "raw_material")) return "raw_material";
+  return operations
+    .map((operation) => operation.inputStage)
+    .sort((a, b) => stageOrder(a) - stageOrder(b))[0] ?? "ore";
+}
+
+function routeTerminalStage(steps) {
+  if (steps.some((step) => step.outputStage === "ingot")) return "ingot";
+  if (steps.some((step) => step.outputStage === "gem")) return "gem";
+  if (steps.some((step) => step.outputStage === "dust")) return "dust";
+  return steps
+    .map((step) => step.outputStage)
+    .sort((a, b) => stageOrder(b) - stageOrder(a))[0] ?? "dust";
 }
 
 function recommendationScore(repository, material, operation, strategy) {

@@ -164,6 +164,12 @@ const ironFastOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "iro
   routeStrategy: "fast",
   showQuickSmelts: true
 });
+const uraniniteOreFlowGraph = buildOreFlowGraph(realRepository, "uraninite");
+const uraniniteOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "uraninite", { showQuickSmelts: true });
+const uraniniteFastOreFlowGraphWithShortcuts = buildOreFlowGraph(realRepository, "uraninite", {
+  routeStrategy: "fast",
+  showQuickSmelts: true
+});
 const diamondOreRoute = buildOreRoute(realRepository, "diamond");
 const realMachineRecipe = realRepository.recipes.find((recipe) => {
   return recipe.durationTicks > 0 && realRepository.getMachinesForRecipeType(recipe.type).length > 0;
@@ -249,6 +255,30 @@ if (!ironOreFlowGraph.possibleByproducts.some((output) => output.id === "gtceu:g
 
 if (ironFastOreFlowGraphWithShortcuts.recommendedOperationIds.join("|") !== "ore-ingot-minecraft-blasting") {
   throw new Error("Expected the fastest iron highlight to use the visible direct blasting shortcut.");
+}
+
+if (uraniniteOreFlowGraph.terminalStage !== "dust") {
+  throw new Error(`Expected uraninite to finish at dust, got ${uraniniteOreFlowGraph.terminalStage}.`);
+}
+
+if (!uraniniteOreFlowGraph.operations.some((operation) => operation.key === "ore->crushed_ore|gtceu:macerator")) {
+  throw new Error("Expected uraninite macerating to advance ore into crushed ore, not collapse into a dust route.");
+}
+
+if (uraniniteOreFlowGraph.operations.some((operation) => operation.key === "ore->dust|minecraft:smelting")) {
+  throw new Error("Expected direct uraninite smelting shortcuts to stay hidden in the default ore graph.");
+}
+
+if (!uraniniteOreFlowGraphWithShortcuts.operations.some((operation) => operation.key === "ore->dust|minecraft:smelting" && operation.isQuickSmelt)) {
+  throw new Error("Expected uraninite direct smelting to appear as a shortcut when requested.");
+}
+
+if (!uraniniteOreFlowGraph.recommendedOperationIds.includes("refined-ore-dust-gtceu-macerator")) {
+  throw new Error("Expected uraninite's highlighted yield path to finish through refined ore macerating.");
+}
+
+if (uraniniteFastOreFlowGraphWithShortcuts.recommendedOperationIds.join("|") !== "ore-dust-minecraft-blasting") {
+  throw new Error("Expected the fastest uraninite highlight to use the visible direct blasting shortcut.");
 }
 
 const expectedRealDefaults = new Map([
