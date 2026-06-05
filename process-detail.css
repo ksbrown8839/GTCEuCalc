@@ -279,7 +279,7 @@
 }
 
 .process-machine-row {
-  grid-template-columns: 34px minmax(0, 1fr) 150px;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(150px, 190px);
 }
 
 .process-machine-row::before {
@@ -300,6 +300,7 @@
 }
 
 .process-machine-row label input,
+.process-machine-row label select,
 .process-supply-row label input,
 .process-rate-control input,
 .process-generator-control input {

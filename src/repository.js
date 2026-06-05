@@ -16,6 +16,7 @@ export class Repository {
     this.tags = new Map(data.tags.map((tag) => [tag.id, tag]));
     this.recipeTypes = new Map(data.recipeTypes.map((type) => [type.id, type]));
     this.voltageTiers = new Map(data.voltageTiers.map((tier) => [tier.id, tier]));
+    this.voltageTierList = [...data.voltageTiers].sort((a, b) => a.voltage - b.voltage);
     this.machines = new Map();
     this.machinesByRecipeType = new Map();
     this.recipes = data.recipes;
@@ -69,20 +70,38 @@ export class Repository {
     return this.machinesByRecipeType.get(recipeType) ?? [];
   }
 
-  chooseMachineForRecipe(recipe) {
+  getVoltageTierDistance(fromTier, toTier) {
+    if (!fromTier || !toTier) return 0;
+    const fromIndex = this.voltageTierList.findIndex((tier) => tier.id === fromTier.id);
+    const toIndex = this.voltageTierList.findIndex((tier) => tier.id === toTier.id);
+    if (fromIndex < 0 || toIndex < 0) return 0;
+    return Math.max(0, toIndex - fromIndex);
+  }
+
+  chooseMachineForRecipe(recipe, preferences = {}) {
     const requiredVoltageTier = this.getVoltageTierForEut(recipe.eut);
+    const preferredTier = this.getVoltageTier(preferences.machineTierByRecipeType?.[recipe.type]);
+    const requestedVoltageTier = preferredTier
+      && (!requiredVoltageTier || preferredTier.voltage >= requiredVoltageTier.voltage)
+      ? preferredTier
+      : requiredVoltageTier;
     const candidates = this.getMachinesForRecipeType(recipe.type);
     const tiered = candidates
       .filter((machine) => {
         const tier = this.getVoltageTier(machine.voltageTier);
-        return tier && (!requiredVoltageTier || tier.voltage >= requiredVoltageTier.voltage);
+        return tier && (!requestedVoltageTier || tier.voltage >= requestedVoltageTier.voltage);
       })
       .sort((a, b) => this.getVoltageTier(a.voltageTier).voltage - this.getVoltageTier(b.voltageTier).voltage);
-    const machine = tiered[0] ?? candidates.find((candidate) => !candidate.voltageTier) ?? candidates[0] ?? null;
+    const machine = tiered.find((candidate) => candidate.voltageTier === requestedVoltageTier?.id)
+      ?? tiered[0]
+      ?? candidates.find((candidate) => !candidate.voltageTier)
+      ?? candidates[0]
+      ?? null;
 
     return {
       machine,
-      voltageTier: machine?.voltageTier ? this.getVoltageTier(machine.voltageTier) : requiredVoltageTier
+      voltageTier: machine?.voltageTier ? this.getVoltageTier(machine.voltageTier) : requestedVoltageTier,
+      minimumVoltageTier: requiredVoltageTier
     };
   }
 

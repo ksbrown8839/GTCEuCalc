@@ -639,7 +639,7 @@
 .process-machine-row,
 .process-supply-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
   align-items: stretch;
   gap: 12px;
   min-height: 58px;
@@ -768,6 +768,12 @@
     inset -2px -2px 0 #9f9f9f;
 }
 
+.process-config-stack {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
 .process-config-input > span {
   display: flex;
   align-items: center;
@@ -782,7 +788,9 @@
   flex: 0 0 auto;
 }
 
-.process-config-input input {
+.process-config-input input,
+.process-config-input select {
+  width: 100%;
   border-color: #315a73;
   background: #ffffff;
   color: #202020;
@@ -790,6 +798,11 @@
   box-shadow:
     inset 1px 1px 0 #a4a4a4,
     inset -1px -1px 0 #ffffff;
+}
+
+.process-config-input select {
+  min-height: 28px;
+  padding: 4px 6px;
 }
 
 .process-infinite-value {

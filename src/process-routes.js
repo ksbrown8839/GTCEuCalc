@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=process-simple-defaults-2026-06-04";
+import { loadRepository } from "./repository.js?v=process-machine-tiers-2026-06-05";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-map-separate-machines-2026-06-04";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-machine-tiers-2026-06-05";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -20,6 +20,7 @@ const state = {
   targetRate: 6000,
   targetSearch: "",
   preferredRecipeByOutput: {},
+  machineTierByRecipeType: {},
   manualExternalGoods: new Set(),
   manualMadeGoods: new Set(),
   activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
@@ -61,6 +62,7 @@ function currentFlow() {
     amountPerMinute: state.targetRate
   }, {
     preferredRecipeByOutput: state.preferredRecipeByOutput,
+    machineTierByRecipeType: state.machineTierByRecipeType,
     externalGoods: getEffectiveExternalGoods(),
     machineCounts: state.machineCounts,
     supplyRates: state.supplyRates,
@@ -348,6 +350,7 @@ function machineConfigRow(row) {
   const stepText = `${formatAmount(row.recipeCount)} recipe ${row.recipeCount === 1 ? "step" : "steps"}`;
   const bottleneck = row.weakestMachine ? " bottleneck" : "";
   const underbuilt = row.underbuilt ? " underbuilt" : "";
+  const recipeType = row.recipeTypes[0] ?? row.recipeRows[0]?.recipe.type ?? "";
   return `
     <article class="process-machine-row${bottleneck}${underbuilt}">
       <div class="process-row-copy">
@@ -356,12 +359,50 @@ function machineConfigRow(row) {
         <span>${escapeHtml(detail || stepText)}</span>
         <em>${stepText} / ${formatRate(row.runsPerMinute)} runs / ${formatAmount(row.idealLoad)} load / ${formatAmount(row.capacityFactor)}x capacity</em>
       </div>
-      <label class="process-config-input">
-        <span>Built machines <em>configurable</em></span>
-        <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.machineKey)}">
-      </label>
+      <div class="process-config-stack">
+        ${machineTierControl(row, recipeType)}
+        ${machineCountControl(row)}
+      </div>
     </article>
   `;
+}
+
+function machineCountControl(row) {
+  return `
+    <label class="process-config-input">
+      <span>Built machines <em>configurable</em></span>
+      <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.configKey ?? row.machineKey)}">
+    </label>
+  `;
+}
+
+function machineTierControl(row, recipeType) {
+  if (!recipeType) return "";
+  const overrideTierId = state.machineTierByRecipeType[recipeType] ?? "";
+  const selectedTierId = overrideTierId || row.voltageTier?.id || "";
+  const minimumTier = row.minimumVoltageTier ?? row.voltageTier ?? null;
+  const tierOptions = eligibleVoltageTiers(minimumTier);
+  const autoLabel = row.voltageTier ? `Auto (${row.voltageTier.name})` : "Auto";
+
+  return `
+    <label class="process-config-input process-tier-input">
+      <span>Machine tier <em>configurable</em></span>
+      <select data-action="set-process-machine-tier" data-recipe-type="${escapeHtml(recipeType)}">
+        <option value=""${overrideTierId ? "" : " selected"}>${escapeHtml(autoLabel)}</option>
+        ${tierOptions.map((tier) => {
+          const selected = overrideTierId && tier.id === selectedTierId ? " selected" : "";
+          return `<option value="${escapeHtml(tier.id)}"${selected}>${escapeHtml(tier.name)} / ${formatAmount(tier.voltage)} EU/t</option>`;
+        }).join("")}
+      </select>
+    </label>
+  `;
+}
+
+function eligibleVoltageTiers(minimumTier) {
+  const tiers = [...state.repository.voltageTiers.values()]
+    .sort((a, b) => a.voltage - b.voltage);
+  if (!minimumTier) return tiers;
+  return tiers.filter((tier) => tier.voltage >= minimumTier.voltage);
 }
 
 function renderExternalInputs(flow) {
@@ -450,9 +491,10 @@ function recipeDetail(node, flow) {
         </div>
       </div>
       <div class="recipe-meta">
-        <span>${formatDuration(recipe.durationTicks)}</span>
-        <span>${formatAmount(recipe.eut)} EU/t</span>
+        <span>${formatDuration(node.effectiveDurationTicks ?? recipe.durationTicks)}</span>
+        <span>${formatAmount(node.effectiveEut ?? recipe.eut)} EU/t</span>
         <span>${escapeHtml(machineName(node.machine, node.voltageTier, recipeTypeName(recipe)))}</span>
+        ${node.overclockSteps ? `<span>${formatAmount(node.overclockSteps)}x overclock</span>` : ""}
       </div>
       ${machineBuildControl(machineRow)}
       ${recipeChoiceControl(node.goodsId, recipe.id)}
@@ -463,6 +505,7 @@ function recipeDetail(node, flow) {
 function machineBuildControl(row) {
   if (!row) return "";
   const machine = machineFamilyName(row.machine, "Machine");
+  const recipeType = row.recipeTypes[0] ?? row.recipeRows[0]?.recipe.type ?? "";
   return `
     <div class="process-node-machine-control">
       <div>
@@ -470,10 +513,10 @@ function machineBuildControl(row) {
         <strong>${escapeHtml(machine)}</strong>
         <em>${formatAmount(row.requiredCount)} needed / ${formatAmount(row.capacityFactor)}x capacity</em>
       </div>
-      <label class="process-config-input">
-        <span>Built machines <em>configurable</em></span>
-        <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.machineKey)}">
-      </label>
+      <div class="process-config-stack">
+        ${machineTierControl(row, recipeType)}
+        ${machineCountControl(row)}
+      </div>
     </div>
   `;
 }
@@ -860,6 +903,14 @@ function setupEvents() {
       const outputId = target.dataset.outputId;
       if (!outputId) return;
       chooseProcessRecipe(outputId, target.value);
+      renderProcess();
+    }
+
+    if (action === "set-process-machine-tier") {
+      const recipeType = target.dataset.recipeType;
+      if (!recipeType) return;
+      if (target.value) state.machineTierByRecipeType[recipeType] = target.value;
+      else delete state.machineTierByRecipeType[recipeType];
       renderProcess();
     }
   });

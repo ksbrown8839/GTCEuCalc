@@ -91,10 +91,15 @@ export function createPlan(repository, products, options = {}) {
     const runsPerMinute = amountPerMinute / matchingOutputAmount;
     node.recipe = recipe;
     node.runsPerMinute = runsPerMinute;
-    const assignment = repository.chooseMachineForRecipe(recipe);
+    const assignment = repository.chooseMachineForRecipe(recipe, options);
+    const overclockSteps = overclockStepsFor(repository, recipe, assignment.voltageTier);
     node.machine = assignment.machine;
     node.voltageTier = assignment.voltageTier;
-    node.machineLoad = machineLoad(recipe, runsPerMinute, assignment.machine?.parallel ?? 1);
+    node.minimumVoltageTier = assignment.minimumVoltageTier;
+    node.overclockSteps = overclockSteps;
+    node.effectiveDurationTicks = effectiveDurationTicks(recipe, overclockSteps);
+    node.effectiveEut = effectiveEut(recipe, overclockSteps);
+    node.machineLoad = machineLoad(recipe, runsPerMinute, assignment.machine?.parallel ?? 1, overclockSteps);
     node.machineCount = requiredMachineCount(node.machineLoad);
     recordRecipe(recipe, runsPerMinute, goodsId, amountPerMinute);
 
@@ -164,11 +169,17 @@ export function createPlan(repository, products, options = {}) {
   const machineRates = new Map();
 
   for (const row of recipeRows) {
-    const assignment = repository.chooseMachineForRecipe(row.recipe);
+    const assignment = repository.chooseMachineForRecipe(row.recipe, options);
     const parallel = assignment.machine?.parallel ?? 1;
+    const overclockSteps = overclockStepsFor(repository, row.recipe, assignment.voltageTier);
     row.machine = assignment.machine;
     row.voltageTier = assignment.voltageTier;
-    row.machineLoad = machineLoad(row.recipe, row.runsPerMinute, parallel);
+    row.minimumVoltageTier = assignment.minimumVoltageTier;
+    row.overclockSteps = overclockSteps;
+    row.effectiveDurationTicks = effectiveDurationTicks(row.recipe, overclockSteps);
+    row.effectiveEut = effectiveEut(row.recipe, overclockSteps);
+    row.averageEut = averageEut(row.recipe, row.runsPerMinute, overclockSteps);
+    row.machineLoad = machineLoad(row.recipe, row.runsPerMinute, parallel, overclockSteps);
     row.machineCount = requiredMachineCount(row.machineLoad);
 
     if (row.machineLoad <= 0 || !row.machine) continue;
@@ -201,9 +212,7 @@ export function createPlan(repository, products, options = {}) {
     }))
     .sort((a, b) => b.machineCount - a.machineCount || b.machineLoad - a.machineLoad);
 
-  const totalAverageEut = recipeRows.reduce((sum, row) => {
-    return sum + averageEut(row.recipe, row.runsPerMinute);
-  }, 0);
+  const totalAverageEut = recipeRows.reduce((sum, row) => sum + (row.averageEut ?? 0), 0);
 
   return {
     products,
@@ -218,20 +227,35 @@ export function createPlan(repository, products, options = {}) {
   };
 }
 
-export function averageEut(recipe, runsPerMinute) {
+export function averageEut(recipe, runsPerMinute, overclockSteps = 0) {
   if (!recipe.eut || !recipe.durationTicks) return 0;
-  return (recipe.eut * recipe.durationTicks * runsPerMinute) / 1200;
+  return (effectiveEut(recipe, overclockSteps) * effectiveDurationTicks(recipe, overclockSteps) * runsPerMinute) / 1200;
 }
 
-export function machineLoad(recipe, runsPerMinute, parallel = 1) {
+export function machineLoad(recipe, runsPerMinute, parallel = 1, overclockSteps = 0) {
   if (!recipe.durationTicks || !runsPerMinute || parallel <= 0) return 0;
-  return (recipe.durationTicks * runsPerMinute) / (1200 * parallel);
+  return (effectiveDurationTicks(recipe, overclockSteps) * runsPerMinute) / (1200 * parallel);
 }
 
 export function requiredMachineCount(load) {
   return load > 0 ? Math.ceil(load) : 0;
 }
 
-export function machineCount(recipe, runsPerMinute, parallel = 1) {
-  return requiredMachineCount(machineLoad(recipe, runsPerMinute, parallel));
+export function machineCount(recipe, runsPerMinute, parallel = 1, overclockSteps = 0) {
+  return requiredMachineCount(machineLoad(recipe, runsPerMinute, parallel, overclockSteps));
+}
+
+export function effectiveDurationTicks(recipe, overclockSteps = 0) {
+  if (!recipe.durationTicks) return 0;
+  return Math.max(1, recipe.durationTicks / (2 ** Math.max(0, overclockSteps)));
+}
+
+export function effectiveEut(recipe, overclockSteps = 0) {
+  if (!recipe.eut) return 0;
+  return recipe.eut * (4 ** Math.max(0, overclockSteps));
+}
+
+function overclockStepsFor(repository, recipe, voltageTier) {
+  const minimumTier = repository.getVoltageTierForEut(recipe.eut);
+  return repository.getVoltageTierDistance(minimumTier, voltageTier);
 }

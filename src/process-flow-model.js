@@ -1,4 +1,4 @@
-import { createPlan, requiredMachineCount } from "./planner.js?v=process-lines-2026-06-04";
+import { createPlan, requiredMachineCount } from "./planner.js?v=process-machine-tiers-2026-06-05";
 
 const GRAPH_LIMIT = 96;
 const MAX_VISUAL_MACHINE_NODES = 48;
@@ -12,6 +12,7 @@ export function buildProcessFlow(repository, target, options = {}) {
   externalGoods.delete(product.goodsId);
   const plan = createPlan(repository, [product], {
     preferredRecipeByOutput: options.preferredRecipeByOutput ?? {},
+    machineTierByRecipeType: options.machineTierByRecipeType ?? {},
     externalGoods,
     maxWarnings: options.maxWarnings ?? 60
   });
@@ -61,19 +62,23 @@ function buildMachineRows(plan, machineCounts) {
     if (row.machineLoad <= 0 || !row.machine) continue;
 
     const machineKey = machineGroupKey(row.machine, row.voltageTier, row.recipe.type);
+    const configKey = machineConfigKey(row.machine, row.recipe.type);
     const current = groups.get(machineKey);
     if (current) {
       current.runsPerMinute += row.runsPerMinute;
       current.idealLoad += row.machineLoad ?? 0;
       current.recipeRows.push(row);
       current.recipeTypes.add(row.recipe.type);
+      current.minimumVoltageTier = higherVoltageTier(current.minimumVoltageTier, row.minimumVoltageTier);
     } else {
       groups.set(machineKey, {
         type: "machine",
         bottleneckKey: `machine:${machineKey}`,
         machineKey,
+        configKey,
         machine: row.machine,
         voltageTier: row.voltageTier,
+        minimumVoltageTier: row.minimumVoltageTier,
         recipeTypes: new Set([row.recipe.type]),
         recipeRows: [row],
         runsPerMinute: row.runsPerMinute,
@@ -89,7 +94,7 @@ function buildMachineRows(plan, machineCounts) {
     .map((row) => {
       const idealLoad = row.idealLoad;
       const requiredCount = requiredMachineCount(idealLoad);
-      const builtCount = Math.max(0, Number(machineCounts[row.machineKey] ?? requiredCount));
+      const builtCount = Math.max(0, Number(machineCounts[row.configKey] ?? machineCounts[row.machineKey] ?? requiredCount));
       const capacityFactor = idealLoad > 0 ? builtCount / idealLoad : Infinity;
 
       return {
@@ -177,7 +182,17 @@ function bottleneckLabel(row) {
 }
 
 function machineGroupKey(machine, voltageTier, fallback) {
-  return `${machine?.id ?? fallback}:${voltageTier?.id ?? "untiered"}`;
+  return `${machine?.id ?? fallback}:${voltageTier?.id ?? "untiered"}:${fallback}`;
+}
+
+function machineConfigKey(machine, recipeType) {
+  return `${machine?.id ?? recipeType}:${recipeType}`;
+}
+
+function higherVoltageTier(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return a.voltage >= b.voltage ? a : b;
 }
 
 function finiteSortValue(value) {
@@ -270,7 +285,12 @@ function buildProcessGraph(repository, plan, machineRows = []) {
         label: repository.getRecipeType(treeNode.recipe.type).name,
         machine: treeNode.machine,
         voltageTier: treeNode.voltageTier,
+        minimumVoltageTier: treeNode.minimumVoltageTier,
+        overclockSteps: treeNode.overclockSteps ?? 0,
+        effectiveDurationTicks: treeNode.effectiveDurationTicks ?? treeNode.recipe.durationTicks,
+        effectiveEut: treeNode.effectiveEut ?? treeNode.recipe.eut,
         machineGroupKey: machineGroupKey(treeNode.machine, treeNode.voltageTier, treeNode.recipe.type),
+        machineConfigKey: machineConfigKey(treeNode.machine, treeNode.recipe.type),
         depth,
         runsPerMinute: perMachineRuns * machineShare,
         totalRunsPerMinute: treeNode.runsPerMinute,
