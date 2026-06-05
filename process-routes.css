@@ -337,14 +337,67 @@
   margin-top: 16px;
 }
 
+.process-map-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.process-map-controls button,
+.process-map-controls label {
+  min-height: 30px;
+  background: #d2d2d2;
+  color: #202020;
+  font-size: 10px;
+  font-weight: 900;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #8b8b8b;
+}
+
+.process-map-controls button {
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 0;
+}
+
+.process-map-controls label {
+  display: grid;
+  grid-template-columns: auto 88px;
+  align-items: center;
+  width: auto;
+  flex: 0 1 140px;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.process-map-controls input {
+  min-height: 18px;
+  padding: 0;
+  accent-color: #315a73;
+}
+
 .process-flow-frame {
   min-width: 0;
   overflow: auto;
   padding: 8px;
   background: #9f9f9f;
+  cursor: grab;
   box-shadow:
     inset 3px 3px 0 #555555,
     inset -3px -3px 0 #eeeeee;
+}
+
+.process-flow-frame.panning {
+  cursor: grabbing;
 }
 
 .process-flow-track {
@@ -440,12 +493,12 @@
 
 .process-recipe-node {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  align-items: center;
-  gap: 2px 5px;
-  width: 136px;
-  min-height: 78px;
+  grid-template-columns: 1fr;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  width: 154px;
+  min-height: 104px;
   padding: 6px;
   background: #aebfc8;
   box-shadow:
@@ -453,65 +506,11 @@
     inset 2px 2px 0 #dbe8ee,
     inset -2px -2px 0 #5e7078;
   color: #263b46;
-  text-align: left;
-}
-
-.process-recipe-node .machine-icon-stack {
-  display: grid;
-  grid-row: 1 / 4;
-  grid-template-columns: repeat(2, 17px);
-  place-content: center;
-  gap: 2px;
-  width: 38px;
-  min-height: 36px;
-}
-
-.process-recipe-node .machine-icon-stack.single {
-  grid-template-columns: 30px;
-}
-
-.process-recipe-node .machine-icon-stack.empty {
-  opacity: 0.45;
-}
-
-.process-recipe-node .machine-icon {
-  display: grid;
-  place-items: center;
-  width: 17px;
-  height: 17px;
-  background: #d7e7ee;
-  box-shadow:
-    inset 2px 2px 0 #ffffff,
-    inset -2px -2px 0 #6c7e86;
-  color: #315a73;
-  font-size: 7px;
-  font-weight: 900;
-  text-shadow: 1px 1px 0 #ffffff;
-}
-
-.process-recipe-node .machine-icon-stack.single .machine-icon {
-  width: 30px;
-  height: 30px;
-  font-size: 11px;
-}
-
-.process-recipe-node .machine-stack-extra {
-  display: grid;
-  place-items: center;
-  width: 17px;
-  height: 17px;
-  background: #315a73;
-  color: #ffffa0;
-  font-size: 7px;
-  font-weight: 900;
-  text-shadow: 1px 1px 0 #000000;
-  box-shadow:
-    inset 1px 1px 0 #6b8fa5,
-    inset -1px -1px 0 #1c3545;
+  text-align: center;
 }
 
 .process-recipe-node strong,
-.process-recipe-node span,
+.process-recipe-node > span:not(.machine-tile-rack),
 .process-recipe-node em {
   min-width: 0;
   overflow: hidden;
@@ -524,7 +523,7 @@
   text-transform: uppercase;
 }
 
-.process-recipe-node span {
+.process-recipe-node > span:not(.machine-tile-rack) {
   color: #315a73;
   font-size: 9px;
   font-weight: 900;
@@ -534,6 +533,50 @@
   display: flex;
   gap: 1px;
   font-style: normal;
+}
+
+.process-recipe-node .machine-tile-rack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  width: 100%;
+  min-height: 30px;
+}
+
+.process-recipe-node .machine-tile-rack.empty {
+  opacity: 0.45;
+}
+
+.process-recipe-node .machine-tile,
+.process-recipe-node .machine-tile-extra {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #6c7e86;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.process-recipe-node .machine-tile {
+  background: #d7e7ee;
+  color: #315a73;
+  font-size: 9px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-recipe-node .machine-tile-extra {
+  background: #315a73;
+  color: #ffffa0;
+  font-size: 8px;
+  text-shadow: 1px 1px 0 #000000;
+  box-shadow:
+    inset 1px 1px 0 #6b8fa5,
+    inset -1px -1px 0 #1c3545;
 }
 
 .process-good-node:hover,
@@ -586,6 +629,10 @@
   font-size: 10px;
   line-height: 1.35;
   text-shadow: 1px 1px 0 #ffffff;
+}
+
+.section-header > .process-map-controls {
+  display: flex;
 }
 
 .process-machine-list,

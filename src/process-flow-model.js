@@ -14,8 +14,8 @@ export function buildProcessFlow(repository, target, options = {}) {
     externalGoods,
     maxWarnings: options.maxWarnings ?? 60
   });
-  const graph = buildProcessGraph(repository, plan);
   const machineRows = buildMachineRows(plan, options.machineCounts ?? {});
+  const graph = buildProcessGraph(repository, plan, machineRows);
   const supplyRows = buildSupplyRows(plan, options.supplyRates ?? {}, new Set(options.unlimitedSupplyGoods ?? []));
   const machineBottleneck = bottleneckFor(machineRows);
   const supplyBottleneck = bottleneckFor(supplyRows);
@@ -183,10 +183,28 @@ function finiteSortValue(value) {
   return Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER;
 }
 
-function buildProcessGraph(repository, plan) {
+function recipeNodeSize(builtCount) {
+  const visibleCount = Math.min(Math.max(Math.floor(Number(builtCount) || 0), 1), 8);
+  const columns = Math.min(4, visibleCount);
+  const rows = Math.ceil(visibleCount / columns);
+
+  return {
+    width: Math.max(154, 46 + columns * 31),
+    height: 72 + rows * 32
+  };
+}
+
+function buildProcessGraph(repository, plan, machineRows = []) {
   const nodes = new Map();
   const edges = new Map();
   const traversed = new Set();
+  const machineRowByRecipeId = new Map();
+
+  for (const row of machineRows) {
+    for (const recipeRow of row.recipeRows) {
+      machineRowByRecipeId.set(recipeRow.recipe.id, row);
+    }
+  }
 
   function addGoodNode(goodsId, depth, amountPerMinute, reason = "") {
     const key = `good:${goodsId}`;
@@ -215,11 +233,16 @@ function buildProcessGraph(repository, plan) {
 
   function addRecipeNode(treeNode, depth) {
     const key = `recipe:${treeNode.recipe.id}`;
+    const machineRow = machineRowByRecipeId.get(treeNode.recipe.id);
+    const builtCount = machineRow?.builtCount ?? treeNode.machineCount ?? 0;
+    const size = recipeNodeSize(builtCount);
     const current = nodes.get(key);
     if (current) {
       current.depth = Math.max(current.depth, depth);
       current.runsPerMinute += treeNode.runsPerMinute;
       current.amountPerMinute += treeNode.amountPerMinute;
+      current.builtCount = Math.max(current.builtCount, builtCount);
+      Object.assign(current, recipeNodeSize(current.builtCount));
       return current;
     }
 
@@ -236,7 +259,9 @@ function buildProcessGraph(repository, plan) {
       runsPerMinute: treeNode.runsPerMinute,
       amountPerMinute: treeNode.amountPerMinute,
       machineLoad: treeNode.machineLoad,
-      machineCount: treeNode.machineCount
+      machineCount: treeNode.machineCount,
+      builtCount,
+      ...size
     };
     nodes.set(key, node);
     return node;
@@ -292,24 +317,41 @@ function layoutGraph(graph) {
     levels.set(node.depth, nodes);
   }
 
-  const columnGap = 174;
-  const rowGap = 96;
+  const columnGap = 220;
+  const rowGap = 34;
   const margin = 24;
-  let maxRows = 1;
+  const columnHeights = new Map();
 
   for (const [depth, nodes] of levels) {
     nodes.sort((a, b) => nodeSortLabel(a).localeCompare(nodeSortLabel(b)) || a.id.localeCompare(b.id));
-    maxRows = Math.max(maxRows, nodes.length);
-    nodes.forEach((node, index) => {
+    let y = margin;
+    for (const node of nodes) {
+      const size = nodeSize(node);
       node.x = margin + (maxDepth - depth) * columnGap;
-      node.y = margin + index * rowGap;
-    });
+      node.y = y;
+      y += size.height + rowGap;
+    }
+    columnHeights.set(depth, Math.max(y - rowGap + margin, margin * 2));
   }
 
   return {
     ...graph,
-    width: Math.max(980, margin * 2 + (maxDepth + 1) * columnGap),
-    height: Math.max(520, margin * 2 + maxRows * rowGap)
+    width: Math.max(980, margin * 2 + maxDepth * columnGap + 180),
+    height: Math.max(520, Math.max(...columnHeights.values(), margin * 2))
+  };
+}
+
+function nodeSize(node) {
+  if (node.type === "recipe") {
+    return {
+      width: node.width ?? 154,
+      height: node.height ?? 104
+    };
+  }
+
+  return {
+    width: 98,
+    height: 72
   };
 }
 

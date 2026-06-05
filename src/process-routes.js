@@ -1,13 +1,13 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=process-simple-defaults-2026-06-04";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-unlimited-supplies-2026-06-04";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-map-tiles-zoom-2026-06-04";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
 const NODE_SIZES = {
   good: { width: 98, height: 72 },
-  recipe: { width: 136, height: 78 }
+  recipe: { width: 154, height: 104 }
 };
 const TARGET_LIMIT = 64;
 const MACHINE_LIMIT = 18;
@@ -27,6 +27,7 @@ const state = {
   supplyRates: {},
   unlimitedSupplyGoods: new Set(),
   generatorEuT: 32,
+  flowZoom: 1,
   selectedNodeId: null
 };
 
@@ -46,6 +47,7 @@ const elements = {
   flowFrame: document.querySelector("[data-role='process-flow-frame']"),
   flowTrack: document.querySelector("[data-role='process-flow-track']"),
   flowCanvas: document.querySelector("[data-role='process-flow-canvas']"),
+  flowZoom: document.querySelector("[data-role='process-flow-zoom']"),
   machineConfig: document.querySelector("[data-role='process-machine-config']"),
   externalInputs: document.querySelector("[data-role='process-external-inputs']"),
   byproducts: document.querySelector("[data-role='process-byproducts']"),
@@ -228,16 +230,19 @@ function bottleneckDescription(row) {
 
 function renderFlowMap(flow) {
   const connectors = flow.graph.edges.map((edge) => connector(edge, flow.graph.nodes)).join("");
+  const zoom = state.flowZoom;
   elements.flowCanvas.style.width = `${flow.graph.width}px`;
   elements.flowCanvas.style.height = `${flow.graph.height}px`;
+  elements.flowCanvas.style.transform = `scale(${zoom})`;
   elements.flowCanvas.innerHTML = `
     <svg class="process-flow-connectors" viewBox="0 0 ${flow.graph.width} ${flow.graph.height}" style="width:${flow.graph.width}px;height:${flow.graph.height}px" aria-hidden="true">
       ${connectors}
     </svg>
     ${flow.graph.nodes.map((node) => processNode(node, flow)).join("")}
   `;
-  elements.flowTrack.style.width = `${flow.graph.width}px`;
-  elements.flowTrack.style.height = `${flow.graph.height}px`;
+  elements.flowTrack.style.width = `${Math.ceil(flow.graph.width * zoom)}px`;
+  elements.flowTrack.style.height = `${Math.ceil(flow.graph.height * zoom)}px`;
+  elements.flowZoom.value = String(zoom);
 }
 
 function connector(edge, nodes) {
@@ -259,13 +264,20 @@ function connector(edge, nodes) {
 }
 
 function nodeInputPoint(node) {
-  const size = NODE_SIZES[node.type];
+  const size = nodeSize(node);
   return { x: node.x, y: node.y + size.height / 2 };
 }
 
 function nodeOutputPoint(node) {
-  const size = NODE_SIZES[node.type];
+  const size = nodeSize(node);
   return { x: node.x + size.width, y: node.y + size.height / 2 };
+}
+
+function nodeSize(node) {
+  return {
+    width: node.width ?? NODE_SIZES[node.type].width,
+    height: node.height ?? NODE_SIZES[node.type].height
+  };
 }
 
 function processNode(node, flow) {
@@ -295,9 +307,10 @@ function recipeNode(node, flow) {
   const secondary = secondaryOutputs(node.recipe, node.goodsId).slice(0, 2);
   const builtCount = machineRow?.builtCount ?? node.machineCount ?? 1;
   const machineLabel = machineInitials(node);
+  const size = nodeSize(node);
   return `
-    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
-      ${machineStackMarkup(machineLabel, builtCount)}
+    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px;width:${size.width}px;min-height:${size.height}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
+      ${machineTileRackMarkup(machineLabel, builtCount)}
       <strong>${escapeHtml(node.label)}</strong>
       <span>${formatRate(node.runsPerMinute)} runs / ${formatAmount(builtCount)} built</span>
       ${secondary.length ? `<em>${secondary.map((output) => goodIconMarkup(output.id)).join("")}</em>` : ""}
@@ -631,17 +644,18 @@ function goodIconMarkup(goodsId, displaySize = 18) {
   return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(good?.color ?? "#7d8790")}"></span>`;
 }
 
-function machineStackMarkup(label, count) {
+function machineTileRackMarkup(label, count) {
   const builtCount = Math.max(0, Math.floor(Number(count) || 0));
-  const visibleCount = Math.min(Math.max(builtCount, 1), 4);
+  const visibleCount = Math.min(Math.max(builtCount, 1), 8);
   const extraCount = Math.max(0, builtCount - visibleCount);
-  const single = builtCount === 1 ? " single" : "";
   const empty = builtCount === 0 ? " empty" : "";
-  const icons = Array.from({ length: visibleCount }, () => `<span class="machine-icon">${escapeHtml(label)}</span>`).join("");
+  const tiles = Array.from({ length: visibleCount }, (_, index) => {
+    return `<span class="machine-tile" aria-label="Machine ${index + 1}">${escapeHtml(label)}</span>`;
+  }).join("");
   return `
-    <span class="machine-icon-stack${single}${empty}" title="${formatAmount(builtCount)} built machines">
-      ${icons}
-      ${extraCount > 0 ? `<span class="machine-stack-extra">+${formatAmount(extraCount)}</span>` : ""}
+    <span class="machine-tile-rack${empty}" title="${formatAmount(builtCount)} built machines">
+      ${tiles}
+      ${extraCount > 0 ? `<span class="machine-tile-extra">+${formatAmount(extraCount)}</span>` : ""}
     </span>
   `;
 }
@@ -810,6 +824,12 @@ function setupEvents() {
     renderProcess();
   });
 
+  elements.flowZoom.addEventListener("input", (event) => {
+    setFlowZoom(event.target.value);
+  });
+
+  setupFlowPan();
+
   document.addEventListener("input", (event) => {
     const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) return;
@@ -883,6 +903,21 @@ function setupEvents() {
       return;
     }
 
+    if (action === "process-zoom-out") {
+      setFlowZoom(state.flowZoom - 0.1);
+      return;
+    }
+
+    if (action === "process-zoom-in") {
+      setFlowZoom(state.flowZoom + 0.1);
+      return;
+    }
+
+    if (action === "process-zoom-reset") {
+      setFlowZoom(1);
+      return;
+    }
+
     if (action === "make-process-good" && goodsId) {
       state.manualMadeGoods.add(goodsId);
       state.manualExternalGoods.delete(goodsId);
@@ -905,6 +940,48 @@ function setupEvents() {
       renderProcess();
     }
   });
+}
+
+function setFlowZoom(value) {
+  const nextZoom = Math.round(Math.min(1.75, Math.max(0.5, Number(value) || 1)) * 100) / 100;
+  if (nextZoom === state.flowZoom) {
+    elements.flowZoom.value = String(state.flowZoom);
+    return;
+  }
+  state.flowZoom = nextZoom;
+  renderProcess();
+}
+
+function setupFlowPan() {
+  let pan = null;
+
+  elements.flowFrame.addEventListener("pointerdown", (event) => {
+    if (!(event.target instanceof Element)) return;
+    if (event.target.closest(".process-good-node, .process-recipe-node")) return;
+    pan = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      scrollLeft: elements.flowFrame.scrollLeft,
+      scrollTop: elements.flowFrame.scrollTop
+    };
+    elements.flowFrame.setPointerCapture(event.pointerId);
+    elements.flowFrame.classList.add("panning");
+  });
+
+  elements.flowFrame.addEventListener("pointermove", (event) => {
+    if (!pan || pan.pointerId !== event.pointerId) return;
+    elements.flowFrame.scrollLeft = pan.scrollLeft - (event.clientX - pan.x);
+    elements.flowFrame.scrollTop = pan.scrollTop - (event.clientY - pan.y);
+  });
+
+  for (const eventName of ["pointerup", "pointercancel"]) {
+    elements.flowFrame.addEventListener(eventName, (event) => {
+      if (!pan || pan.pointerId !== event.pointerId) return;
+      pan = null;
+      elements.flowFrame.classList.remove("panning");
+    });
+  }
 }
 
 function chooseProcessRecipe(outputId, recipeId) {

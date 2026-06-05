@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-machine-node-config-2026-06-04">
+    <link rel="stylesheet" href="process-routes.css?v=process-map-tiles-zoom-2026-06-04">
     <link rel="stylesheet" href="process-detail.css?v=process-config-width-2026-06-04">
   </head>
   <body>
@@ -139,7 +139,16 @@
           <header class="section-header">
             <div>
               <h2>Rate Flow Map</h2>
-              <span class="ore-route-note">Click a good or machine node to configure how that part of the line is supplied or made.</span>
+              <span class="ore-route-note">Click a good or machine node to configure it. Drag the empty map space to pan.</span>
+            </div>
+            <div class="process-map-controls" aria-label="Flow map zoom controls">
+              <button type="button" data-action="process-zoom-out" title="Zoom out">-</button>
+              <label>
+                <span>Zoom</span>
+                <input data-role="process-flow-zoom" type="range" min="0.5" max="1.75" step="0.05" value="1">
+              </label>
+              <button type="button" data-action="process-zoom-in" title="Zoom in">+</button>
+              <button type="button" data-action="process-zoom-reset">Reset</button>
             </div>
           </header>
           <div class="process-flow-frame" data-role="process-flow-frame">
@@ -200,6 +209,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/process-routes.js?v=process-machine-node-config-2026-06-04"></script>
+    <script type="module" src="src/process-routes.js?v=process-map-tiles-zoom-2026-06-04"></script>
   </body>
 </html>
