@@ -1,6 +1,7 @@
 import { createPlan, requiredMachineCount } from "./planner.js?v=process-lines-2026-06-04";
 
 const GRAPH_LIMIT = 96;
+const MAX_VISUAL_MACHINE_NODES = 48;
 
 export function buildProcessFlow(repository, target, options = {}) {
   const product = {
@@ -183,17 +184,10 @@ function finiteSortValue(value) {
   return Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER;
 }
 
-function recipeNodeSize(builtCount) {
-  const visibleCount = Math.min(Math.max(Math.floor(Number(builtCount) || 0), 1), 24);
-  const columns = Math.min(3, visibleCount);
-  const rows = Math.ceil(visibleCount / columns);
-  const tileWidth = 132;
-  const tileHeight = 72;
-  const tileGap = 8;
-
+function recipeNodeSize() {
   return {
-    width: columns * tileWidth + (columns - 1) * tileGap,
-    height: rows * tileHeight + (rows - 1) * tileGap
+    width: 132,
+    height: 72
   };
 }
 
@@ -202,6 +196,7 @@ function buildProcessGraph(repository, plan, machineRows = []) {
   const edges = new Map();
   const traversed = new Set();
   const machineRowByRecipeId = new Map();
+  const recipeNodesByRecipeId = new Map();
 
   for (const row of machineRows) {
     for (const recipeRow of row.recipeRows) {
@@ -234,40 +229,67 @@ function buildProcessGraph(repository, plan, machineRows = []) {
     return node;
   }
 
-  function addRecipeNode(treeNode, depth) {
-    const key = `recipe:${treeNode.recipe.id}`;
+  function addRecipeNodes(treeNode, depth) {
     const machineRow = machineRowByRecipeId.get(treeNode.recipe.id);
     const builtCount = machineRow?.builtCount ?? treeNode.machineCount ?? 0;
-    const size = recipeNodeSize(builtCount);
-    const current = nodes.get(key);
+    const builtMachineCount = Math.max(0, Math.floor(Number(builtCount) || 0));
+    const loadMachineCount = Math.max(1, builtMachineCount);
+    const visibleMachineCount = Math.max(1, Math.min(loadMachineCount, MAX_VISUAL_MACHINE_NODES));
+    const overflowMachineCount = Math.max(0, loadMachineCount - visibleMachineCount);
+    const current = recipeNodesByRecipeId.get(treeNode.recipe.id);
     if (current) {
-      current.depth = Math.max(current.depth, depth);
-      current.runsPerMinute += treeNode.runsPerMinute;
-      current.amountPerMinute += treeNode.amountPerMinute;
-      current.builtCount = Math.max(current.builtCount, builtCount);
-      Object.assign(current, recipeNodeSize(current.builtCount));
-      return current;
+      const perMachineRuns = treeNode.runsPerMinute / loadMachineCount;
+      const perMachineAmount = treeNode.amountPerMinute / loadMachineCount;
+      for (const node of current.nodes) {
+        const machineShare = node.overflowMachineCount || 1;
+        node.depth = Math.max(node.depth, depth);
+        node.runsPerMinute += perMachineRuns * machineShare;
+        node.amountPerMinute += perMachineAmount * machineShare;
+        node.builtCount = Math.max(node.builtCount, builtCount);
+      }
+      return current.nodes;
     }
 
-    const node = {
-      id: key,
-      type: "recipe",
-      recipe: treeNode.recipe,
-      goodsId: treeNode.goodsId,
-      label: repository.getRecipeType(treeNode.recipe.type).name,
-      machine: treeNode.machine,
-      voltageTier: treeNode.voltageTier,
-      machineGroupKey: machineGroupKey(treeNode.machine, treeNode.voltageTier, treeNode.recipe.type),
-      depth,
-      runsPerMinute: treeNode.runsPerMinute,
-      amountPerMinute: treeNode.amountPerMinute,
-      machineLoad: treeNode.machineLoad,
-      machineCount: treeNode.machineCount,
-      builtCount,
-      ...size
-    };
-    nodes.set(key, node);
-    return node;
+    const size = recipeNodeSize();
+    const perMachineRuns = treeNode.runsPerMinute / loadMachineCount;
+    const perMachineAmount = treeNode.amountPerMinute / loadMachineCount;
+    const visualNodeCount = visibleMachineCount + (overflowMachineCount > 0 ? 1 : 0);
+    const createdNodes = Array.from({ length: visualNodeCount }, (_, index) => {
+      const isOverflowNode = overflowMachineCount > 0 && index === visualNodeCount - 1;
+      const machineShare = isOverflowNode ? overflowMachineCount : 1;
+      const id = index === 0
+        ? `recipe:${treeNode.recipe.id}`
+        : isOverflowNode
+          ? `recipe:${treeNode.recipe.id}:machine:overflow`
+          : `recipe:${treeNode.recipe.id}:machine:${index + 1}`;
+      const node = {
+        id,
+        type: "recipe",
+        recipe: treeNode.recipe,
+        goodsId: treeNode.goodsId,
+        label: repository.getRecipeType(treeNode.recipe.type).name,
+        machine: treeNode.machine,
+        voltageTier: treeNode.voltageTier,
+        machineGroupKey: machineGroupKey(treeNode.machine, treeNode.voltageTier, treeNode.recipe.type),
+        depth,
+        runsPerMinute: perMachineRuns * machineShare,
+        totalRunsPerMinute: treeNode.runsPerMinute,
+        amountPerMinute: perMachineAmount * machineShare,
+        totalAmountPerMinute: treeNode.amountPerMinute,
+        machineLoad: ((treeNode.machineLoad ?? 0) / loadMachineCount) * machineShare,
+        totalMachineLoad: treeNode.machineLoad ?? 0,
+        machineCount: treeNode.machineCount,
+        builtCount,
+        visibleMachineCount,
+        overflowMachineCount: isOverflowNode ? overflowMachineCount : 0,
+        machineIndex: isOverflowNode ? null : index + 1,
+        ...size
+      };
+      nodes.set(id, node);
+      return node;
+    });
+    recipeNodesByRecipeId.set(treeNode.recipe.id, { nodes: createdNodes });
+    return createdNodes;
   }
 
   function addEdge(from, to, amountPerMinute, kind) {
@@ -289,12 +311,18 @@ function buildProcessGraph(repository, plan, machineRows = []) {
     if (traversed.has(visitKey)) return;
     traversed.add(visitKey);
 
-    const recipeNode = addRecipeNode(treeNode, depth * 2 + 1);
-    addEdge(recipeNode.id, outputNode.id, treeNode.amountPerMinute, "output");
+    const recipeNodes = addRecipeNodes(treeNode, depth * 2 + 1);
+    const outputAmountPerMachine = treeNode.amountPerMinute / recipeNodes.length;
+    for (const recipeNode of recipeNodes) {
+      addEdge(recipeNode.id, outputNode.id, outputAmountPerMachine, "output");
+    }
 
     for (const child of treeNode.children) {
       const inputNode = addGoodNode(child.goodsId, (depth + 1) * 2, child.amountPerMinute, child.reason);
-      addEdge(inputNode.id, recipeNode.id, child.amountPerMinute, "input");
+      const inputAmountPerMachine = child.amountPerMinute / recipeNodes.length;
+      for (const recipeNode of recipeNodes) {
+        addEdge(inputNode.id, recipeNode.id, inputAmountPerMachine, "input");
+      }
       visit(child, depth + 1);
     }
   }

@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=process-simple-defaults-2026-06-04";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-map-box-replicas-2026-06-04";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-map-separate-machines-2026-06-04";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -305,11 +305,22 @@ function recipeNode(node, flow) {
   const bottleneck = machineRow?.weakestMachine ? " bottleneck" : "";
   const underbuilt = machineRow?.underbuilt ? " underbuilt" : "";
   const secondary = secondaryOutputs(node.recipe, node.goodsId).slice(0, 2);
-  const builtCount = machineRow?.builtCount ?? node.machineCount ?? 1;
   const size = nodeSize(node);
+  const empty = (machineRow?.builtCount ?? node.builtCount ?? 1) === 0 ? " empty" : "";
+  const machineCount = Math.max(0, Math.floor(Number(machineRow?.builtCount ?? node.builtCount ?? 0)));
+  const machinePosition = node.overflowMachineCount
+    ? `${formatAmount(node.overflowMachineCount)} more built`
+    : machineCount > 1
+      ? `${formatAmount(node.machineIndex)} / ${formatAmount(machineCount)} built`
+      : "";
+  const label = node.overflowMachineCount
+    ? `+${formatAmount(node.overflowMachineCount)} more`
+    : node.label;
   return `
-    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px;width:${size.width}px;min-height:${size.height}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
-      ${machineBlockClusterMarkup(node, builtCount)}
+    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}${empty}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px;width:${size.width}px;min-height:${size.height}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
+      <strong>${escapeHtml(label)}</strong>
+      <em>${formatRate(node.runsPerMinute)} runs</em>
+      ${machinePosition ? `<span>${escapeHtml(machinePosition)}</span>` : ""}
       ${secondary.length ? `<span class="machine-block-byproducts">${secondary.map((output) => goodIconMarkup(output.id)).join("")}</span>` : ""}
     </button>
   `;
@@ -639,27 +650,6 @@ function goodIconMarkup(goodsId, displaySize = 18) {
   const atlasIcon = atlasIconMarkup(goodsId, kind, "good-icon", displaySize);
   if (atlasIcon) return atlasIcon;
   return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(good?.color ?? "#7d8790")}"></span>`;
-}
-
-function machineBlockClusterMarkup(node, count) {
-  const builtCount = Math.max(0, Math.floor(Number(count) || 0));
-  const visibleCount = Math.min(Math.max(builtCount, 1), 24);
-  const extraCount = Math.max(0, builtCount - visibleCount);
-  const empty = builtCount === 0 ? " empty" : "";
-  const blocks = Array.from({ length: visibleCount }, (_, index) => {
-    return `
-      <span class="machine-block-tile" aria-label="${escapeHtml(node.label)} machine ${index + 1}">
-        <strong>${escapeHtml(node.label)}</strong>
-        <em>${formatRate(node.runsPerMinute)} runs</em>
-      </span>
-    `;
-  }).join("");
-  return `
-    <span class="machine-block-cluster${empty}" title="${formatAmount(builtCount)} built machines">
-      ${blocks}
-      ${extraCount > 0 ? `<span class="machine-block-tile machine-block-extra">+${formatAmount(extraCount)}</span>` : ""}
-    </span>
-  `;
 }
 
 function slotIconMarkup(goodsId, kind, color, label) {

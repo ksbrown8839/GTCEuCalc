@@ -387,6 +387,7 @@
 
 .process-flow-frame {
   min-width: 0;
+  height: clamp(420px, 58vh, 620px);
   overflow: auto;
   padding: 8px;
   background: #9f9f9f;
@@ -496,50 +497,28 @@
   grid-template-columns: 1fr;
   align-content: center;
   justify-items: center;
-  width: 132px;
-  min-height: 72px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: #263b46;
-  text-align: center;
-}
-
-.process-recipe-node .machine-block-cluster {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, 132px);
-  align-items: start;
-  justify-content: start;
-  gap: 3px;
-  width: 100%;
-  height: 100%;
-}
-
-.process-recipe-node .machine-block-cluster.empty {
-  opacity: 0.45;
-}
-
-.process-recipe-node .machine-block-tile {
-  display: grid;
-  align-content: center;
-  place-items: center;
   gap: 4px;
   width: 132px;
   min-height: 72px;
   padding: 8px;
+  border: 0;
+  border-radius: 0;
   background: #aebfc8;
-  color: #263b46;
-  text-align: center;
   box-shadow:
     0 0 0 2px #4a4a4a,
     inset 2px 2px 0 #dbe8ee,
     inset -2px -2px 0 #5e7078;
+  color: #263b46;
+  text-align: center;
 }
 
-.process-recipe-node .machine-block-tile strong,
-.process-recipe-node .machine-block-tile em {
+.process-recipe-node.empty {
+  opacity: 0.45;
+}
+
+.process-recipe-node > strong,
+.process-recipe-node > em,
+.process-recipe-node > span:not(.machine-block-byproducts) {
   max-width: 108px;
   min-width: 0;
   overflow: hidden;
@@ -547,7 +526,7 @@
   white-space: nowrap;
 }
 
-.process-recipe-node .machine-block-tile strong {
+.process-recipe-node > strong {
   color: #263b46;
   font-size: 11px;
   line-height: 1.1;
@@ -555,24 +534,13 @@
   text-transform: uppercase;
 }
 
-.process-recipe-node .machine-block-tile em {
+.process-recipe-node > em,
+.process-recipe-node > span:not(.machine-block-byproducts) {
   color: #315a73;
   font-size: 9px;
   font-style: normal;
   font-weight: 900;
   text-shadow: 1px 1px 0 #ffffff;
-}
-
-.process-recipe-node .machine-block-extra {
-  background: #315a73;
-  color: #ffffa0;
-  font-size: 14px;
-  font-weight: 900;
-  text-shadow: 1px 1px 0 #000000;
-  box-shadow:
-    0 0 0 2px #1f1f1f,
-    inset 2px 2px 0 #6b8fa5,
-    inset -2px -2px 0 #1c3545;
 }
 
 .process-recipe-node .machine-block-byproducts {
@@ -597,22 +565,22 @@
     inset -2px -2px 0 #5e7078;
 }
 
-.process-recipe-node:hover .machine-block-tile,
-.process-recipe-node.selected .machine-block-tile {
+.process-recipe-node:hover,
+.process-recipe-node.selected {
   box-shadow:
     0 0 0 3px #ffffa0,
     inset 2px 2px 0 #f2fbff,
     inset -2px -2px 0 #5e7078;
 }
 
-.process-recipe-node.bottleneck .machine-block-tile {
+.process-recipe-node.bottleneck {
   box-shadow:
     0 0 0 3px #e0bd35,
     inset 2px 2px 0 #f8f1b7,
     inset -2px -2px 0 #7d6c27;
 }
 
-.process-recipe-node.underbuilt .machine-block-tile {
+.process-recipe-node.underbuilt {
   box-shadow:
     0 0 0 3px #d65f4f,
     inset 2px 2px 0 #ffe0d8,
