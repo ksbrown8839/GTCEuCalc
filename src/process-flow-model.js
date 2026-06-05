@@ -184,13 +184,16 @@ function finiteSortValue(value) {
 }
 
 function recipeNodeSize(builtCount) {
-  const visibleCount = Math.min(Math.max(Math.floor(Number(builtCount) || 0), 1), 8);
-  const columns = Math.min(4, visibleCount);
+  const visibleCount = Math.min(Math.max(Math.floor(Number(builtCount) || 0), 1), 24);
+  const columns = Math.min(3, visibleCount);
   const rows = Math.ceil(visibleCount / columns);
+  const tileWidth = 132;
+  const tileHeight = 72;
+  const tileGap = 8;
 
   return {
-    width: Math.max(154, 46 + columns * 31),
-    height: 72 + rows * 32
+    width: columns * tileWidth + (columns - 1) * tileGap,
+    height: rows * tileHeight + (rows - 1) * tileGap
   };
 }
 
@@ -317,17 +320,29 @@ function layoutGraph(graph) {
     levels.set(node.depth, nodes);
   }
 
-  const columnGap = 220;
+  const columnGap = 86;
   const rowGap = 34;
   const margin = 24;
   const columnHeights = new Map();
+  const columnWidths = new Map();
+  const columnX = new Map();
+
+  for (const [depth, nodes] of levels) {
+    columnWidths.set(depth, Math.max(...nodes.map((node) => nodeSize(node).width)));
+  }
+
+  let x = margin;
+  for (let depth = maxDepth; depth >= 0; depth -= 1) {
+    columnX.set(depth, x);
+    x += (columnWidths.get(depth) ?? 0) + columnGap;
+  }
 
   for (const [depth, nodes] of levels) {
     nodes.sort((a, b) => nodeSortLabel(a).localeCompare(nodeSortLabel(b)) || a.id.localeCompare(b.id));
     let y = margin;
     for (const node of nodes) {
       const size = nodeSize(node);
-      node.x = margin + (maxDepth - depth) * columnGap;
+      node.x = columnX.get(depth) ?? margin;
       node.y = y;
       y += size.height + rowGap;
     }
@@ -336,7 +351,7 @@ function layoutGraph(graph) {
 
   return {
     ...graph,
-    width: Math.max(980, margin * 2 + maxDepth * columnGap + 180),
+    width: Math.max(980, x - columnGap + margin),
     height: Math.max(520, Math.max(...columnHeights.values(), margin * 2))
   };
 }
@@ -345,7 +360,7 @@ function nodeSize(node) {
   if (node.type === "recipe") {
     return {
       width: node.width ?? 154,
-      height: node.height ?? 104
+      height: node.height ?? 72
     };
   }
 

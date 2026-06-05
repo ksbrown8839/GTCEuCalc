@@ -1,13 +1,13 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=process-simple-defaults-2026-06-04";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-map-tiles-zoom-2026-06-04";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-map-box-replicas-2026-06-04";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
 const NODE_SIZES = {
   good: { width: 98, height: 72 },
-  recipe: { width: 154, height: 104 }
+  recipe: { width: 132, height: 72 }
 };
 const TARGET_LIMIT = 64;
 const MACHINE_LIMIT = 18;
@@ -306,14 +306,11 @@ function recipeNode(node, flow) {
   const underbuilt = machineRow?.underbuilt ? " underbuilt" : "";
   const secondary = secondaryOutputs(node.recipe, node.goodsId).slice(0, 2);
   const builtCount = machineRow?.builtCount ?? node.machineCount ?? 1;
-  const machineLabel = machineInitials(node);
   const size = nodeSize(node);
   return `
     <button class="process-recipe-node${selected}${bottleneck}${underbuilt}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px;width:${size.width}px;min-height:${size.height}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
-      ${machineTileRackMarkup(machineLabel, builtCount)}
-      <strong>${escapeHtml(node.label)}</strong>
-      <span>${formatRate(node.runsPerMinute)} runs / ${formatAmount(builtCount)} built</span>
-      ${secondary.length ? `<em>${secondary.map((output) => goodIconMarkup(output.id)).join("")}</em>` : ""}
+      ${machineBlockClusterMarkup(node, builtCount)}
+      ${secondary.length ? `<span class="machine-block-byproducts">${secondary.map((output) => goodIconMarkup(output.id)).join("")}</span>` : ""}
     </button>
   `;
 }
@@ -644,18 +641,23 @@ function goodIconMarkup(goodsId, displaySize = 18) {
   return `<span class="good-swatch ${kind}" style="--swatch:${escapeHtml(good?.color ?? "#7d8790")}"></span>`;
 }
 
-function machineTileRackMarkup(label, count) {
+function machineBlockClusterMarkup(node, count) {
   const builtCount = Math.max(0, Math.floor(Number(count) || 0));
-  const visibleCount = Math.min(Math.max(builtCount, 1), 8);
+  const visibleCount = Math.min(Math.max(builtCount, 1), 24);
   const extraCount = Math.max(0, builtCount - visibleCount);
   const empty = builtCount === 0 ? " empty" : "";
-  const tiles = Array.from({ length: visibleCount }, (_, index) => {
-    return `<span class="machine-tile" aria-label="Machine ${index + 1}">${escapeHtml(label)}</span>`;
+  const blocks = Array.from({ length: visibleCount }, (_, index) => {
+    return `
+      <span class="machine-block-tile" aria-label="${escapeHtml(node.label)} machine ${index + 1}">
+        <strong>${escapeHtml(node.label)}</strong>
+        <em>${formatRate(node.runsPerMinute)} runs</em>
+      </span>
+    `;
   }).join("");
   return `
-    <span class="machine-tile-rack${empty}" title="${formatAmount(builtCount)} built machines">
-      ${tiles}
-      ${extraCount > 0 ? `<span class="machine-tile-extra">+${formatAmount(extraCount)}</span>` : ""}
+    <span class="machine-block-cluster${empty}" title="${formatAmount(builtCount)} built machines">
+      ${blocks}
+      ${extraCount > 0 ? `<span class="machine-block-tile machine-block-extra">+${formatAmount(extraCount)}</span>` : ""}
     </span>
   `;
 }
@@ -942,7 +944,7 @@ function setupEvents() {
   });
 }
 
-function setFlowZoom(value) {
+function setFlowZoom(value, anchor = null) {
   const nextZoom = Math.round(Math.min(1.75, Math.max(0.5, Number(value) || 1)) * 100) / 100;
   if (nextZoom === state.flowZoom) {
     elements.flowZoom.value = String(state.flowZoom);
@@ -950,10 +952,29 @@ function setFlowZoom(value) {
   }
   state.flowZoom = nextZoom;
   renderProcess();
+  if (anchor) {
+    elements.flowFrame.scrollLeft = anchor.contentX * nextZoom - anchor.offsetX;
+    elements.flowFrame.scrollTop = anchor.contentY * nextZoom - anchor.offsetY;
+  }
 }
 
 function setupFlowPan() {
   let pan = null;
+
+  elements.flowFrame.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    const rect = elements.flowFrame.getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
+    const anchor = {
+      offsetX,
+      offsetY,
+      contentX: (elements.flowFrame.scrollLeft + offsetX) / state.flowZoom,
+      contentY: (elements.flowFrame.scrollTop + offsetY) / state.flowZoom
+    };
+    const delta = event.deltaY > 0 ? -0.1 : 0.1;
+    setFlowZoom(state.flowZoom + delta, anchor);
+  }, { passive: false });
 
   elements.flowFrame.addEventListener("pointerdown", (event) => {
     if (!(event.target instanceof Element)) return;
