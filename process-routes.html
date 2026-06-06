@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-compact-layout-2026-06-06">
+    <link rel="stylesheet" href="process-routes.css?v=process-detail-modal-2026-06-06">
     <link rel="stylesheet" href="process-detail.css?v=process-tier-steppers-2026-06-05">
   </head>
   <body>
@@ -106,7 +106,7 @@
                 <em>What starts outside the line.</em>
               </span>
             </a>
-            <a class="process-config-card" href="#process-detail-panel">
+            <a class="process-config-card" href="#process-flow-panel">
               <strong>3</strong>
               <span>
                 <b>Recipe method</b>
@@ -139,7 +139,7 @@
 
         <section class="process-stat-grid" data-role="process-stats"></section>
 
-        <section class="section-band process-flow-section">
+        <section class="section-band process-flow-section" id="process-flow-panel">
           <header class="section-header">
             <div>
               <h2>Rate Flow Map</h2>
@@ -204,19 +204,23 @@
             </section>
           </aside>
         </div>
-
-        <section class="section-band process-detail-section" id="process-detail-panel">
-          <header class="section-header">
-            <div>
-              <h2>Selected Step</h2>
-              <span class="ore-route-note">Recipe choices appear here after selecting a processing node on the map.</span>
-            </div>
-          </header>
-          <div data-role="process-detail"></div>
-        </section>
       </section>
     </main>
 
-    <script type="module" src="src/process-routes.js?v=process-tier-steppers-2026-06-05"></script>
+    <div class="process-detail-window" data-role="process-detail-window" hidden>
+      <div class="process-detail-scrim" data-action="close-process-detail" aria-hidden="true"></div>
+      <section class="process-detail-modal section-band" id="process-detail-panel" role="dialog" aria-modal="true" aria-labelledby="process-detail-heading">
+        <header class="process-detail-window-header">
+          <div>
+            <h2 id="process-detail-heading" data-role="process-detail-heading">Selected Step</h2>
+            <span class="ore-route-note">Recipe choices and machine setup appear here after selecting a flow-map block.</span>
+          </div>
+          <button class="process-detail-close" type="button" data-action="close-process-detail" aria-label="Close selected step">Close</button>
+        </header>
+        <div data-role="process-detail"></div>
+      </section>
+    </div>
+
+    <script type="module" src="src/process-routes.js?v=process-detail-modal-2026-06-06"></script>
   </body>
 </html>

@@ -29,8 +29,7 @@
 
 .process-route-main > .status-band,
 .process-route-main > .process-optimizer-guide,
-.process-route-main > .process-stat-grid,
-.process-route-main > .process-detail-section {
+.process-route-main > .process-stat-grid {
   grid-column: 1 / -1;
 }
 
@@ -487,7 +486,7 @@
 
 .process-flow-frame {
   min-width: 0;
-  height: clamp(240px, 34vh, 330px);
+  height: clamp(500px, 68vh, 780px);
   overflow: auto;
   padding: 6px;
   background: #9f9f9f;
@@ -951,10 +950,6 @@
   min-width: 0;
 }
 
-.process-detail-section {
-  margin-top: 10px;
-}
-
 .process-detail-card {
   display: grid;
   gap: 12px;
@@ -993,6 +988,107 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.process-detail-window[hidden] {
+  display: none;
+}
+
+.process-detail-window {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.process-detail-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.process-detail-modal {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  width: min(940px, calc(100vw - 36px));
+  max-height: min(86vh, 820px);
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  background: #c6c6c6;
+  box-shadow:
+    0 0 0 3px #202020,
+    0 0 0 5px #eeeeee,
+    0 14px 38px rgba(0, 0, 0, 0.45),
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #6f6f6f;
+  image-rendering: pixelated;
+}
+
+.process-detail-window-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  background: #b8b8b8;
+  box-shadow:
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #777777;
+}
+
+.process-detail-window-header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.process-detail-window-header h2 {
+  margin: 0;
+  color: #202020;
+  font-size: 16px;
+  line-height: 1.1;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.process-detail-window-header .ore-route-note {
+  color: #4f4f4f;
+  font-size: 10px;
+  line-height: 1.35;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-detail-close {
+  min-width: 72px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 0;
+  background: #315a73;
+  color: #ffffa0;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #000000;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #6b8fa5,
+    inset -2px -2px 0 #1c3545;
+}
+
+.process-detail-close:active {
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #1c3545,
+    inset -2px -2px 0 #6b8fa5;
 }
 
 .process-node-machine-control {
@@ -1179,6 +1275,19 @@
   .process-lower-grid,
   .process-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .process-flow-frame {
+    height: clamp(360px, 58vh, 560px);
+  }
+
+  .process-detail-window {
+    padding: 10px;
+  }
+
+  .process-detail-modal {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
   }
 
   .process-optimizer-guide {

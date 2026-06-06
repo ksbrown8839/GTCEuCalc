@@ -29,7 +29,8 @@ const state = {
   unlimitedSupplyGoods: new Set(),
   generatorEuT: 32,
   flowZoom: 1,
-  selectedNodeId: null
+  selectedNodeId: null,
+  detailOpen: false
 };
 
 const elements = {
@@ -52,6 +53,8 @@ const elements = {
   machineConfig: document.querySelector("[data-role='process-machine-config']"),
   externalInputs: document.querySelector("[data-role='process-external-inputs']"),
   byproducts: document.querySelector("[data-role='process-byproducts']"),
+  detailWindow: document.querySelector("[data-role='process-detail-window']"),
+  detailHeading: document.querySelector("[data-role='process-detail-heading']"),
   detail: document.querySelector("[data-role='process-detail']"),
   generatorEuT: document.querySelector("[data-role='process-generator-eut']")
 };
@@ -163,7 +166,10 @@ function renderBoundaryControls() {
 function renderProcess() {
   const flow = currentFlow();
   const targetGood = state.repository.getGood(flow.product.goodsId);
-  state.selectedNodeId = selectedNode(flow)?.id ?? flow.graph.nodes.find((node) => node.type === "recipe")?.id ?? flow.graph.nodes[0]?.id ?? null;
+  if (state.selectedNodeId && !selectedNode(flow)) {
+    state.selectedNodeId = null;
+    state.detailOpen = false;
+  }
 
   elements.title.textContent = `${targetGood?.name ?? flow.product.goodsId} Process Line`;
   elements.summary.textContent = [
@@ -457,14 +463,30 @@ function renderByproducts(flow) {
 
 function renderSelectedDetail(flow) {
   const node = selectedNode(flow);
-  if (!node) {
-    elements.detail.innerHTML = `<div class="empty-state">Select a graph node.</div>`;
+  if (!node || !state.detailOpen) {
+    setDetailWindowVisible(false);
+    elements.detail.innerHTML = "";
     return;
   }
 
+  setDetailWindowVisible(true);
+  elements.detailHeading.textContent = node.type === "recipe" ? "Selected Machine Step" : "Selected Good";
   elements.detail.innerHTML = node.type === "recipe"
     ? recipeDetail(node, flow)
     : goodDetail(node);
+}
+
+function setDetailWindowVisible(visible) {
+  elements.detailWindow.hidden = !visible;
+  document.body.classList.toggle("process-detail-open", visible);
+}
+
+function closeProcessDetail() {
+  state.detailOpen = false;
+  state.selectedNodeId = null;
+  setDetailWindowVisible(false);
+  elements.detail.innerHTML = "";
+  renderProcess();
 }
 
 function recipeDetail(node, flow) {
@@ -996,6 +1018,8 @@ function setupEvents() {
       state.machineCounts = {};
       state.supplyRates = {};
       state.unlimitedSupplyGoods = new Set();
+      state.selectedNodeId = null;
+      state.detailOpen = false;
       state.targetSearch = "";
       elements.targetSearch.value = "";
       renderAll();
@@ -1004,7 +1028,13 @@ function setupEvents() {
 
     if (action === "select-process-node") {
       state.selectedNodeId = target.dataset.nodeId ?? null;
+      state.detailOpen = Boolean(state.selectedNodeId);
       renderProcess();
+      return;
+    }
+
+    if (action === "close-process-detail") {
+      closeProcessDetail();
       return;
     }
 
@@ -1050,6 +1080,11 @@ function setupEvents() {
       else state.unlimitedSupplyGoods.add(goodsId);
       renderProcess();
     }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !state.detailOpen) return;
+    closeProcessDetail();
   });
 }
 
