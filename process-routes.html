@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-tier-visuals-2026-06-05">
-    <link rel="stylesheet" href="process-detail.css?v=process-tier-visuals-2026-06-05">
+    <link rel="stylesheet" href="process-routes.css?v=process-tier-steppers-2026-06-05">
+    <link rel="stylesheet" href="process-detail.css?v=process-tier-steppers-2026-06-05">
   </head>
   <body>
     <main class="process-route-shell">
@@ -54,7 +54,11 @@
           <h2>Target</h2>
           <label class="process-rate-control">
             <span>Target output rate</span>
-            <input data-role="process-target-rate" type="number" min="0" step="100">
+            <span class="process-stepper">
+              <button type="button" data-action="step-process-number" data-step-delta="-1" aria-label="Decrease target output rate">-</button>
+              <input data-role="process-target-rate" type="number" min="0" step="100">
+              <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase target output rate">+</button>
+            </span>
           </label>
           <input data-role="process-target-search" type="search" placeholder="Search process targets">
           <p class="match-summary" data-role="process-target-match-summary"></p>
@@ -83,7 +87,7 @@
 
         <section class="process-optimizer-guide" aria-label="Optimization workflow">
           <header>
-            <span>Configurable controls</span>
+            <span>Factory controls</span>
             <h2>Use the map to choose the route, then tune the real factory.</h2>
             <p>The large inputs below change planned rates, bottlenecks, machine counts, and power estimates for this process line.</p>
           </header>
@@ -173,7 +177,11 @@
               </div>
               <label class="process-generator-control">
                 <span>Generator EU/t</span>
-                <input data-role="process-generator-eut" type="number" min="1" step="1">
+                <span class="process-stepper">
+                  <button type="button" data-action="step-process-number" data-step-delta="-1" aria-label="Decrease generator EU/t">-</button>
+                  <input data-role="process-generator-eut" type="number" min="1" step="1">
+                  <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase generator EU/t">+</button>
+                </span>
               </label>
             </header>
             <div class="process-machine-list" data-role="process-machine-config"></div>
@@ -209,6 +217,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/process-routes.js?v=process-tier-visuals-2026-06-05"></script>
+    <script type="module" src="src/process-routes.js?v=process-tier-steppers-2026-06-05"></script>
   </body>
 </html>

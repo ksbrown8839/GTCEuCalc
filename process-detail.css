@@ -279,7 +279,7 @@
 }
 
 .process-machine-row {
-  grid-template-columns: 34px minmax(0, 1fr) minmax(178px, 230px);
+  grid-template-columns: 34px minmax(0, 1fr) minmax(224px, 280px);
 }
 
 .process-machine-row::before {
@@ -304,8 +304,8 @@
 .process-supply-row label input,
 .process-rate-control input,
 .process-generator-control input {
-  min-height: 32px;
-  padding: 6px 8px;
+  min-height: 42px;
+  padding: 7px 9px;
 }
 
 .process-recipe-detail-card .process-method-help {

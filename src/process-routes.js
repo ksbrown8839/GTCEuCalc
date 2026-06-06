@@ -371,7 +371,11 @@ function machineCountControl(row) {
   return `
     <label class="process-config-input">
       <span>Built machines</span>
-      <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.configKey ?? row.machineKey)}">
+      <span class="process-stepper">
+        <button type="button" data-action="step-process-number" data-step-delta="-1" aria-label="Decrease built machines">-</button>
+        <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.configKey ?? row.machineKey)}">
+        <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase built machines">+</button>
+      </span>
     </label>
   `;
 }
@@ -421,7 +425,11 @@ function supplyRowMarkup(row) {
     : `Uses ${formatRate(row.actualUsedAmountPerMinute)} / max ${formatRate(row.maxOutputPerMinute)} output`;
   const limitControl = row.unlimited
     ? `<div class="process-infinite-value"><strong>No limit</strong><span>Handled separately</span></div>`
-    : `<input type="number" min="0" step="1" value="${formatNumericInput(row.availableAmountPerMinute)}" data-action="set-process-supply-rate" data-id="${escapeHtml(row.goodsId)}">`;
+    : `<span class="process-stepper">
+        <button type="button" data-action="step-process-number" data-step-delta="-1" aria-label="Decrease available rate">-</button>
+        <input type="number" min="0" step="1" value="${formatNumericInput(row.availableAmountPerMinute)}" data-action="set-process-supply-rate" data-id="${escapeHtml(row.goodsId)}">
+        <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase available rate">+</button>
+      </span>`;
   return `
     <article class="process-supply-row${bottleneck}${underbuilt}${unlimited}">
       <div class="process-row-copy">
@@ -747,16 +755,16 @@ function machineFamilyName(machine, fallback = "Unknown machine") {
 }
 
 const VOLTAGE_TIER_COLORS = {
-  ulv: "#c80000",
-  lv: "#dcdcdc",
-  mv: "#ff6400",
-  hv: "#ffff1e",
-  ev: "#808080",
-  iv: "#f0f0f5",
-  luv: "#e99797",
-  zpm: "#7ec3c4",
-  uv: "#7eb07e",
-  uhv: "#bf74c0",
+  ulv: "#505050",
+  lv: "#a8a8a8",
+  mv: "#50ffff",
+  hv: "#ffa800",
+  ev: "#a800a8",
+  iv: "#5050ff",
+  luv: "#ff50ff",
+  zpm: "#ff5050",
+  uv: "#00a8a8",
+  uhv: "#a80000",
   uev: "#0b5cfe",
   uiv: "#914e91",
   uxv: "#488748",
@@ -770,9 +778,9 @@ function tierLabel(voltageTier) {
 
 function voltageTierStyle(voltageTier) {
   const accent = VOLTAGE_TIER_COLORS[voltageTier?.id] ?? "#315a73";
-  const background = mixHex(accent, "#d2d2d2", 0.68);
-  const highlight = mixHex(accent, "#ffffff", 0.78);
-  const shadow = mixHex(accent, "#4a4a4a", 0.45);
+  const background = mixHex(accent, "#d2d2d2", 0.5);
+  const highlight = mixHex(accent, "#ffffff", 0.62);
+  const shadow = mixHex(accent, "#303030", 0.38);
   return [
     `--tier-bg:${background}`,
     `--tier-border:${accent}`,
@@ -976,6 +984,11 @@ function setupEvents() {
     const action = target.dataset.action;
     const goodsId = target.dataset.id;
 
+    if (action === "step-process-number") {
+      stepProcessNumber(target);
+      return;
+    }
+
     if (action === "select-process-target" && goodsId) {
       state.targetGoodsId = goodsId;
       state.manualMadeGoods.add(goodsId);
@@ -1153,6 +1166,28 @@ function setupMinecraftTooltips() {
     if (event.relatedTarget instanceof Node && activeTarget.contains(event.relatedTarget)) return;
     hide();
   });
+}
+
+function stepProcessNumber(button) {
+  const input = button.closest(".process-stepper")?.querySelector("input[type='number']");
+  if (!input) return;
+
+  const step = Math.abs(Number(input.step)) || 1;
+  const delta = Number(button.dataset.stepDelta) || 0;
+  const min = input.min === "" ? -Infinity : Number(input.min);
+  const max = input.max === "" ? Infinity : Number(input.max);
+  const current = Number(input.value);
+  const base = Number.isFinite(current) ? current : (Number.isFinite(min) ? min : 0);
+  const next = Math.min(max, Math.max(min, base + step * delta));
+  input.value = formatStepperValue(next, step);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function formatStepperValue(value, step) {
+  const decimals = String(step).includes(".")
+    ? String(step).split(".")[1].length
+    : 0;
+  return String(Number(value.toFixed(Math.min(6, decimals))));
 }
 
 async function main() {
