@@ -311,15 +311,15 @@ function recipeNode(node, flow) {
   const empty = (machineRow?.builtCount ?? node.builtCount ?? 1) === 0 ? " empty" : "";
   const machineCount = Math.max(0, Math.floor(Number(machineRow?.builtCount ?? node.builtCount ?? 0)));
   const machinePosition = node.overflowMachineCount
-    ? `${formatAmount(node.overflowMachineCount)} more built`
+    ? `${tierLabel(node.voltageTier)} / ${formatAmount(node.overflowMachineCount)} more built`
     : machineCount > 1
-      ? `${formatAmount(node.machineIndex)} / ${formatAmount(machineCount)} built`
-      : "";
+      ? `${tierLabel(node.voltageTier)} / ${formatAmount(node.machineIndex)} / ${formatAmount(machineCount)} built`
+      : tierLabel(node.voltageTier);
   const label = node.overflowMachineCount
     ? `+${formatAmount(node.overflowMachineCount)} more`
     : node.label;
   return `
-    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}${empty}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px;width:${size.width}px;min-height:${size.height}px" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
+    <button class="process-recipe-node${selected}${bottleneck}${underbuilt}${empty}" type="button" title="Configure ${escapeHtml(node.label)}" style="left:${node.x}px;top:${node.y}px;width:${size.width}px;min-height:${size.height}px;${voltageTierStyle(node.voltageTier)}" data-action="select-process-node" data-node-id="${escapeHtml(node.id)}">
       <strong>${escapeHtml(label)}</strong>
       <em>${formatRate(node.runsPerMinute)} runs</em>
       ${machinePosition ? `<span>${escapeHtml(machinePosition)}</span>` : ""}
@@ -370,7 +370,7 @@ function machineConfigRow(row) {
 function machineCountControl(row) {
   return `
     <label class="process-config-input">
-      <span>Built machines <em>configurable</em></span>
+      <span>Built machines</span>
       <input type="number" min="0" step="1" value="${formatMachineInput(row.builtCount)}" data-action="set-process-machine-count" data-machine-key="${escapeHtml(row.configKey ?? row.machineKey)}">
     </label>
   `;
@@ -386,7 +386,7 @@ function machineTierControl(row, recipeType) {
 
   return `
     <label class="process-config-input process-tier-input">
-      <span>Machine tier <em>configurable</em></span>
+      <span>Machine tier</span>
       <select data-action="set-process-machine-tier" data-recipe-type="${escapeHtml(recipeType)}">
         <option value=""${overrideTierId ? "" : " selected"}>${escapeHtml(autoLabel)}</option>
         ${tierOptions.map((tier) => {
@@ -430,7 +430,7 @@ function supplyRowMarkup(row) {
         <em>${escapeHtml(supplyLimitText)}</em>
       </div>
       <label class="process-config-input">
-        <span>Available rate <em>configurable</em></span>
+        <span>Available rate</span>
         ${limitControl}
       </label>
       <div class="process-supply-actions">
@@ -550,7 +550,7 @@ function recipeChoiceControl(goodsId, currentRecipeId) {
   const selectedGroup = groups.find((group) => group.recipes.some((recipe) => recipe.id === currentRecipeId)) ?? groups[0];
   return `
     <div class="process-method-picker">
-      <span>Recipe method <em>configurable</em></span>
+      <span>Recipe method</span>
       <p class="process-method-help">Pick the machine route first, then choose a variant when that machine has multiple recipes.</p>
       <div class="process-method-menu">
         ${groups.map((group) => methodButton(goodsId, group, selectedGroup, recipes[0])).join("")}
@@ -744,6 +744,61 @@ function machineName(machine, voltageTier, fallback = "Unknown machine") {
 
 function machineFamilyName(machine, fallback = "Unknown machine") {
   return machine?.name ?? fallback;
+}
+
+const VOLTAGE_TIER_COLORS = {
+  ulv: "#c80000",
+  lv: "#dcdcdc",
+  mv: "#ff6400",
+  hv: "#ffff1e",
+  ev: "#808080",
+  iv: "#f0f0f5",
+  luv: "#e99797",
+  zpm: "#7ec3c4",
+  uv: "#7eb07e",
+  uhv: "#bf74c0",
+  uev: "#0b5cfe",
+  uiv: "#914e91",
+  uxv: "#488748",
+  opv: "#8c0000",
+  max: "#2828f5"
+};
+
+function tierLabel(voltageTier) {
+  return voltageTier?.name ?? "Tier";
+}
+
+function voltageTierStyle(voltageTier) {
+  const accent = VOLTAGE_TIER_COLORS[voltageTier?.id] ?? "#315a73";
+  const background = mixHex(accent, "#d2d2d2", 0.68);
+  const highlight = mixHex(accent, "#ffffff", 0.78);
+  const shadow = mixHex(accent, "#4a4a4a", 0.45);
+  return [
+    `--tier-bg:${background}`,
+    `--tier-border:${accent}`,
+    `--tier-hi:${highlight}`,
+    `--tier-lo:${shadow}`
+  ].join(";");
+}
+
+function mixHex(a, b, bWeight = 0.5) {
+  const left = hexToRgb(a);
+  const right = hexToRgb(b);
+  const aWeight = 1 - bWeight;
+  return `#${[0, 1, 2].map((index) => {
+    const value = Math.round(left[index] * aWeight + right[index] * bWeight);
+    return value.toString(16).padStart(2, "0");
+  }).join("")}`;
+}
+
+function hexToRgb(hex) {
+  const normalized = String(hex).replace("#", "");
+  const value = Number.parseInt(normalized, 16);
+  return [
+    (value >> 16) & 255,
+    (value >> 8) & 255,
+    value & 255
+  ];
 }
 
 function recipeTypeName(recipe) {

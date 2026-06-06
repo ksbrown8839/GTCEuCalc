@@ -503,11 +503,11 @@
   padding: 8px;
   border: 0;
   border-radius: 0;
-  background: #aebfc8;
+  background: var(--tier-bg, #aebfc8);
   box-shadow:
-    0 0 0 2px #4a4a4a,
-    inset 2px 2px 0 #dbe8ee,
-    inset -2px -2px 0 #5e7078;
+    0 0 0 2px var(--tier-border, #4a4a4a),
+    inset 2px 2px 0 var(--tier-hi, #dbe8ee),
+    inset -2px -2px 0 var(--tier-lo, #5e7078);
   color: #263b46;
   text-align: center;
 }
@@ -530,14 +530,14 @@
   color: #263b46;
   font-size: 11px;
   line-height: 1.1;
-  text-shadow: 1px 1px 0 #dbe8ee;
+  text-shadow: 1px 1px 0 var(--tier-hi, #dbe8ee);
   text-transform: uppercase;
 }
 
 .process-recipe-node > em,
 .process-recipe-node > span:not(.machine-block-byproducts) {
   color: #315a73;
-  font-size: 9px;
+  font-size: 8px;
   font-style: normal;
   font-weight: 900;
   text-shadow: 1px 1px 0 #ffffff;
@@ -639,7 +639,7 @@
 .process-machine-row,
 .process-supply-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+  grid-template-columns: minmax(0, 1fr) minmax(178px, 230px);
   align-items: stretch;
   gap: 12px;
   min-height: 58px;
@@ -760,8 +760,8 @@
 
 .process-config-input {
   align-content: center;
-  min-height: 44px;
-  padding: 7px;
+  min-height: 58px;
+  padding: 9px;
   background: #eeeeee;
   box-shadow:
     inset 2px 2px 0 #ffffff,
@@ -770,7 +770,7 @@
 
 .process-config-stack {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -781,6 +781,10 @@
   flex-wrap: wrap;
   gap: 6px;
   overflow: visible;
+  color: #263b46;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
   white-space: normal;
 }
 
@@ -791,9 +795,12 @@
 .process-config-input input,
 .process-config-input select {
   width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
   border-color: #315a73;
   background: #ffffff;
   color: #202020;
+  font-size: 13px;
   font-weight: 900;
   box-shadow:
     inset 1px 1px 0 #a4a4a4,
@@ -801,8 +808,7 @@
 }
 
 .process-config-input select {
-  min-height: 28px;
-  padding: 4px 6px;
+  min-height: 34px;
 }
 
 .process-infinite-value {

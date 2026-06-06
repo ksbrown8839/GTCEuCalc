@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-machine-tiers-2026-06-05">
-    <link rel="stylesheet" href="process-detail.css?v=process-machine-tiers-2026-06-05">
+    <link rel="stylesheet" href="process-routes.css?v=process-tier-visuals-2026-06-05">
+    <link rel="stylesheet" href="process-detail.css?v=process-tier-visuals-2026-06-05">
   </head>
   <body>
     <main class="process-route-shell">
@@ -53,7 +53,7 @@
         <section class="panel process-control-panel" id="process-target-panel">
           <h2>Target</h2>
           <label class="process-rate-control">
-            <span>Output rate <em>configurable</em></span>
+            <span>Target output rate</span>
             <input data-role="process-target-rate" type="number" min="0" step="100">
           </label>
           <input data-role="process-target-search" type="search" placeholder="Search process targets">
@@ -85,7 +85,7 @@
           <header>
             <span>Configurable controls</span>
             <h2>Use the map to choose the route, then tune the real factory.</h2>
-            <p>Controls marked configurable change the planned rates, bottlenecks, machine counts, and power estimates for this process line.</p>
+            <p>The large inputs below change planned rates, bottlenecks, machine counts, and power estimates for this process line.</p>
           </header>
           <div class="process-config-grid">
             <a class="process-config-card" href="#process-target-panel">
@@ -172,7 +172,7 @@
                 <span class="ore-route-note">Enter your built machine counts. The lowest-capacity group becomes the line bottleneck.</span>
               </div>
               <label class="process-generator-control">
-                <span>Generator EU/t <em>configurable</em></span>
+                <span>Generator EU/t</span>
                 <input data-role="process-generator-eut" type="number" min="1" step="1">
               </label>
             </header>
@@ -209,6 +209,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/process-routes.js?v=process-machine-tiers-2026-06-05"></script>
+    <script type="module" src="src/process-routes.js?v=process-tier-visuals-2026-06-05"></script>
   </body>
 </html>
