@@ -1,3 +1,11 @@
+:root {
+  --process-panel-readable: #d8d8d8;
+  --process-panel-readable-light: #f4f4f4;
+  --process-panel-readable-shadow: #878787;
+  --process-map-bg: #adadad;
+  --process-readable-muted: #353535;
+}
+
 .process-route-shell {
   display: grid;
   grid-template-columns: 306px minmax(0, 1fr);
@@ -339,13 +347,13 @@
   gap: 6px;
   min-height: 34px;
   padding: 5px 6px;
-  background: #eeeeee;
+  background: var(--process-panel-readable-light);
   color: #202020;
   text-decoration: none;
   box-shadow:
     0 0 0 2px #4a4a4a,
     inset 2px 2px 0 #ffffff,
-    inset -2px -2px 0 #9f9f9f;
+    inset -2px -2px 0 #9a9a9a;
 }
 
 .process-config-card:hover,
@@ -393,7 +401,7 @@
 
 .process-config-card em {
   display: none;
-  color: #4f4f4f;
+  color: var(--process-readable-muted);
   font-size: 9px;
   font-style: normal;
   text-shadow: 1px 1px 0 #ffffff;
@@ -404,7 +412,7 @@
   gap: 2px;
   min-height: 58px;
   padding: 8px;
-  background: var(--minecraft-panel);
+  background: var(--process-panel-readable);
   box-shadow:
     0 0 0 2px #1f1f1f,
     inset 2px 2px 0 var(--minecraft-panel-light),
@@ -413,7 +421,7 @@
 
 .process-stat-card span,
 .process-stat-card em {
-  color: #4f4f4f;
+  color: var(--process-readable-muted);
   font-size: 9px;
   font-style: normal;
   text-transform: uppercase;
@@ -489,7 +497,7 @@
   height: clamp(500px, 68vh, 780px);
   overflow: auto;
   padding: 6px;
-  background: #9f9f9f;
+  background: var(--process-map-bg);
   cursor: grab;
   box-shadow:
     inset 3px 3px 0 #555555,
@@ -549,7 +557,7 @@
   width: 98px;
   min-height: 72px;
   padding: 7px 5px 5px;
-  background: #b1b1b1;
+  background: #c4c4c4;
   box-shadow:
     0 0 0 2px #4a4a4a,
     inset 2px 2px 0 #eeeeee,
@@ -559,7 +567,7 @@
 .process-good-node.external,
 .process-good-node.missing,
 .process-good-node.unresolved {
-  background: #c6c6c6;
+  background: #dadada;
 }
 
 .process-good-node strong {
@@ -708,7 +716,7 @@
 .section-header .ore-route-note,
 .compact-section-header .ore-route-note {
   display: block;
-  color: #4f4f4f;
+  color: var(--process-readable-muted);
   font-size: 10px;
   line-height: 1.35;
   text-shadow: 1px 1px 0 #ffffff;
@@ -728,11 +736,11 @@
 .process-supply-row,
 .process-good-line,
 .process-detail-card {
-  background: #d2d2d2;
+  background: var(--process-panel-readable);
   box-shadow:
     0 0 0 2px #4a4a4a,
-    inset 2px 2px 0 #eeeeee,
-    inset -2px -2px 0 #8b8b8b;
+    inset 2px 2px 0 var(--process-panel-readable-light),
+    inset -2px -2px 0 var(--process-panel-readable-shadow);
 }
 
 .process-machine-row,
@@ -851,7 +859,7 @@
 .process-supply-row em,
 .process-supply-row label span,
 .process-muted {
-  color: #4f4f4f;
+  color: var(--process-readable-muted);
   font-size: 10px;
   font-style: normal;
   text-shadow: 1px 1px 0 #ffffff;
