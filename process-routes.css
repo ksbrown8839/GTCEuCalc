@@ -15,11 +15,56 @@
 }
 
 .process-route-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  align-content: start;
+  align-items: start;
+  gap: 10px;
   min-width: 0;
   max-height: 100vh;
   overflow: auto;
-  padding: 20px;
+  padding: 14px;
   background: rgba(0, 0, 0, 0.18);
+}
+
+.process-route-main > .status-band,
+.process-route-main > .process-optimizer-guide,
+.process-route-main > .process-stat-grid,
+.process-route-main > .process-detail-section {
+  grid-column: 1 / -1;
+}
+
+.process-route-main > .process-flow-section {
+  grid-column: 1;
+  grid-row: 4;
+}
+
+.process-route-main > .process-lower-grid {
+  grid-column: 2;
+  grid-row: 4;
+}
+
+.process-route-main .status-band {
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.process-route-main .status-band h2 {
+  margin-bottom: 2px;
+  font-size: 17px;
+}
+
+.process-route-main .power-readout {
+  padding: 7px 10px;
+}
+
+.process-route-main .section-band {
+  padding: 10px;
+}
+
+.process-route-main .section-header {
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .process-rate-control,
@@ -230,17 +275,18 @@
 
 .process-stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 8px;
+  margin-top: 0;
 }
 
 .process-optimizer-guide {
   display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-  gap: 16px;
-  margin-top: 16px;
-  padding: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px;
   background: #d2d2d2;
   box-shadow:
     0 0 0 2px #4a4a4a,
@@ -250,8 +296,8 @@
 
 .process-optimizer-guide header {
   display: grid;
-  align-content: start;
-  gap: 5px;
+  align-content: center;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -269,13 +315,11 @@
 }
 
 .process-optimizer-guide h2 {
-  color: #202020;
-  font-size: 17px;
-  line-height: 1.15;
-  text-shadow: 1px 1px 0 #ffffff;
+  display: none;
 }
 
 .process-optimizer-guide p {
+  display: none;
   color: #4f4f4f;
   font-size: 11px;
   line-height: 1.4;
@@ -284,18 +328,18 @@
 
 .process-config-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(132px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(6, minmax(92px, 1fr));
+  gap: 6px;
   min-width: 0;
 }
 
 .process-config-card {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  min-height: 54px;
-  padding: 8px;
+  gap: 6px;
+  min-height: 34px;
+  padding: 5px 6px;
   background: #eeeeee;
   color: #202020;
   text-decoration: none;
@@ -318,11 +362,11 @@
 .process-config-card > strong {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   background: #315a73;
   color: #ffffa0;
-  font-size: 12px;
+  font-size: 10px;
   text-shadow: 1px 1px 0 #000000;
   box-shadow:
     inset 2px 2px 0 #6b8fa5,
@@ -343,12 +387,13 @@
 }
 
 .process-config-card b {
-  font-size: 11px;
+  font-size: 9px;
   text-transform: uppercase;
   text-shadow: 1px 1px 0 #ffffff;
 }
 
 .process-config-card em {
+  display: none;
   color: #4f4f4f;
   font-size: 9px;
   font-style: normal;
@@ -357,9 +402,9 @@
 
 .process-stat-card {
   display: grid;
-  gap: 5px;
-  min-height: 92px;
-  padding: 12px;
+  gap: 2px;
+  min-height: 58px;
+  padding: 8px;
   background: var(--minecraft-panel);
   box-shadow:
     0 0 0 2px #1f1f1f,
@@ -370,7 +415,7 @@
 .process-stat-card span,
 .process-stat-card em {
   color: #4f4f4f;
-  font-size: 10px;
+  font-size: 9px;
   font-style: normal;
   text-transform: uppercase;
   text-shadow: 1px 1px 0 #ffffff;
@@ -378,12 +423,18 @@
 
 .process-stat-card strong {
   color: #315a73;
-  font-size: 17px;
+  font-size: 14px;
   text-shadow: 1px 1px 0 #ffffff;
 }
 
 .process-flow-section {
-  margin-top: 16px;
+  margin-top: 0;
+}
+
+.process-flow-section .ore-flow-legend {
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 9px;
 }
 
 .process-map-controls {
@@ -436,9 +487,9 @@
 
 .process-flow-frame {
   min-width: 0;
-  height: clamp(420px, 58vh, 620px);
+  height: clamp(240px, 34vh, 330px);
   overflow: auto;
-  padding: 8px;
+  padding: 6px;
   background: #9f9f9f;
   cursor: grab;
   box-shadow:
@@ -638,9 +689,9 @@
 
 .process-lower-grid {
   display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(280px, 360px);
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 0;
   align-items: start;
 }
 
@@ -901,7 +952,7 @@
 }
 
 .process-detail-section {
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .process-detail-card {
@@ -1112,6 +1163,16 @@
   .process-route-sidebar,
   .process-route-main {
     max-height: none;
+  }
+
+  .process-route-main {
+    display: block;
+  }
+
+  .process-route-main > .process-flow-section,
+  .process-route-main > .process-lower-grid {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .process-stat-grid,
