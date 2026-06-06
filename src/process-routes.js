@@ -189,34 +189,40 @@ function selectedNode(flow) {
 function renderStats(flow) {
   const bottleneckText = flow.bottleneck ? bottleneckDescription(flow.bottleneck) : "No active bottleneck";
   const machineText = flow.machineBottleneck ? bottleneckDescription(flow.machineBottleneck) : "No timed machine demand";
+  const actualOutputText = flow.bottleneck
+    ? `Real output after current limits. Bottleneck: ${bottleneckText}.`
+    : "Real output matches the target because no machine or supply limit is active.";
+  const machineCeilingText = flow.machineBottleneck
+    ? `Machine-only limit before supplied inputs are considered: ${machineText}.`
+    : "Machine capacity is not limiting this line at the current target.";
   const assumptionCount = flow.plan.warnings.length + flow.plan.suppressedWarningCount;
   const assumptions = assumptionCount
     ? `<div class="process-stat-card assumptions">
         <span>Planner assumptions</span>
         <strong>${formatAmount(assumptionCount)}</strong>
-        <em>${escapeHtml(flow.plan.warnings[0] ?? "Review supplied boundaries and recipe choices")}</em>
+        <em>${escapeHtml(flow.plan.warnings[0] ?? "Review supplied boundaries and recipe choices.")}</em>
       </div>`
     : "";
   elements.stats.innerHTML = `
     <div class="process-stat-card">
       <span>Ideal output</span>
       <strong>${formatRate(flow.idealOutputPerMinute)}</strong>
-      <em>Requested target rate</em>
+      <em>The rate you asked the planner to make every minute.</em>
     </div>
     <div class="process-stat-card">
       <span>Actual output</span>
       <strong>${formatRate(flow.capacityOutputPerMinute)}</strong>
-      <em>${escapeHtml(bottleneckText)}</em>
+      <em>${escapeHtml(actualOutputText)}</em>
     </div>
     <div class="process-stat-card">
       <span>Machine ceiling</span>
       <strong>${formatRate(flow.machineCapacityOutputPerMinute)}</strong>
-      <em>${escapeHtml(machineText)}</em>
+      <em>${escapeHtml(machineCeilingText)}</em>
     </div>
     <div class="process-stat-card">
       <span>Energy cost</span>
       <strong>${formatAmount(flow.targetPowerEut)} EU/t</strong>
-      <em>${formatAmount(flow.capacityPowerEut)} EU/t at current output</em>
+      <em>Average draw to hit the target. Current setup draws ${formatAmount(flow.capacityPowerEut)} EU/t.</em>
     </div>
     ${assumptions}
   `;

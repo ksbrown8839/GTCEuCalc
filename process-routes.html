@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-energy-simplify-2026-06-06">
+    <link rel="stylesheet" href="process-routes.css?v=process-sidebar-controls-2026-06-06">
     <link rel="stylesheet" href="process-detail.css?v=process-energy-simplify-2026-06-06">
   </head>
   <body>
@@ -24,31 +24,57 @@
           </div>
         </div>
 
-        <details class="help-panel process-workflow-help" open>
-          <summary>Optimize in 5 steps</summary>
-          <ol>
-            <li>
-              <strong>Pick the target.</strong>
-              <span>Choose the product and the output rate you want.</span>
-            </li>
-            <li>
-              <strong>Set boundaries.</strong>
-              <span>Decide what your base already supplies, such as fluids, circuits, or stock parts.</span>
-            </li>
-            <li>
-              <strong>Choose recipe methods.</strong>
-              <span>Click a flow-map node, then choose the machine path or recipe variant.</span>
-            </li>
-            <li>
-              <strong>Enter built machines.</strong>
-              <span>Set how many machines you actually placed. Underbuilt groups cap real output.</span>
-            </li>
-            <li>
-              <strong>Limit input supply.</strong>
-              <span>Set available rates, use No limit for separately handled inputs, or click Make to expand them upstream.</span>
-            </li>
-          </ol>
-        </details>
+        <section class="panel process-optimizer-guide process-sidebar-controls" aria-label="Factory controls">
+          <header>
+            <span>Factory controls</span>
+            <h2>Tune the process from these spots.</h2>
+            <p>Use the target and boundary panels first, then click map blocks for recipe and machine choices.</p>
+          </header>
+          <div class="process-config-grid">
+            <a class="process-config-card" href="#process-target-panel">
+              <strong>1</strong>
+              <span>
+                <b>Target rate</b>
+                <em>Desired output per minute.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-boundaries-panel">
+              <strong>2</strong>
+              <span>
+                <b>Supplied boundaries</b>
+                <em>What starts outside the line.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-flow-panel">
+              <strong>3</strong>
+              <span>
+                <b>Recipe method</b>
+                <em>Pick the machine route on the map.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-flow-panel">
+              <strong>4</strong>
+              <span>
+                <b>Machine blocks</b>
+                <em>Click blocks to set tier and count.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-supply-panel">
+              <strong>5</strong>
+              <span>
+                <b>Supply rates</b>
+                <em>External caps or no-limit inputs.</em>
+              </span>
+            </a>
+            <a class="process-config-card" href="#process-stats-panel">
+              <strong>6</strong>
+              <span>
+                <b>Energy cost</b>
+                <em>Target and actual EU/t.</em>
+              </span>
+            </a>
+          </div>
+        </section>
 
         <section class="panel process-control-panel" id="process-target-panel">
           <h2>Target</h2>
@@ -85,59 +111,7 @@
           </div>
         </div>
 
-        <section class="process-optimizer-guide" aria-label="Optimization workflow">
-          <header>
-            <span>Factory controls</span>
-            <h2>Use the map to choose the route, then tune the real factory.</h2>
-            <p>The large inputs below change planned rates, bottlenecks, machine counts, and power estimates for this process line.</p>
-          </header>
-          <div class="process-config-grid">
-            <a class="process-config-card" href="#process-target-panel">
-              <strong>1</strong>
-              <span>
-                <b>Target rate</b>
-                <em>Desired output per minute.</em>
-              </span>
-            </a>
-            <a class="process-config-card" href="#process-boundaries-panel">
-              <strong>2</strong>
-              <span>
-                <b>Supplied boundaries</b>
-                <em>What starts outside the line.</em>
-              </span>
-            </a>
-            <a class="process-config-card" href="#process-flow-panel">
-              <strong>3</strong>
-              <span>
-                <b>Recipe method</b>
-                <em>Machine path and recipe variant.</em>
-              </span>
-            </a>
-            <a class="process-config-card" href="#process-flow-panel">
-              <strong>4</strong>
-              <span>
-                <b>Machine blocks</b>
-                <em>Click map blocks to set tier and count.</em>
-              </span>
-            </a>
-            <a class="process-config-card" href="#process-supply-panel">
-              <strong>5</strong>
-              <span>
-                <b>Supply rates</b>
-                <em>External caps or no-limit inputs.</em>
-              </span>
-            </a>
-            <a class="process-config-card" href="#process-flow-panel">
-              <strong>6</strong>
-              <span>
-                <b>Energy cost</b>
-                <em>Read target and actual EU/t in the stats.</em>
-              </span>
-            </a>
-          </div>
-        </section>
-
-        <section class="process-stat-grid" data-role="process-stats"></section>
+        <section class="process-stat-grid" id="process-stats-panel" data-role="process-stats"></section>
 
         <section class="section-band process-flow-section" id="process-flow-panel">
           <header class="section-header">
@@ -203,6 +177,6 @@
       </section>
     </div>
 
-    <script type="module" src="src/process-routes.js?v=process-energy-simplify-2026-06-06"></script>
+    <script type="module" src="src/process-routes.js?v=process-sidebar-controls-2026-06-06"></script>
   </body>
 </html>
