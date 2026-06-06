@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=process-machine-tiers-2026-06-05";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-machine-tiers-2026-06-05";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-energy-simplify-2026-06-06";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -10,7 +10,6 @@ const NODE_SIZES = {
   recipe: { width: 132, height: 72 }
 };
 const TARGET_LIMIT = 64;
-const MACHINE_LIMIT = 18;
 
 const state = {
   repository: null,
@@ -27,7 +26,6 @@ const state = {
   machineCounts: {},
   supplyRates: {},
   unlimitedSupplyGoods: new Set(),
-  generatorEuT: 32,
   flowZoom: 1,
   selectedNodeId: null,
   detailOpen: false
@@ -50,13 +48,11 @@ const elements = {
   flowTrack: document.querySelector("[data-role='process-flow-track']"),
   flowCanvas: document.querySelector("[data-role='process-flow-canvas']"),
   flowZoom: document.querySelector("[data-role='process-flow-zoom']"),
-  machineConfig: document.querySelector("[data-role='process-machine-config']"),
   externalInputs: document.querySelector("[data-role='process-external-inputs']"),
   byproducts: document.querySelector("[data-role='process-byproducts']"),
   detailWindow: document.querySelector("[data-role='process-detail-window']"),
   detailHeading: document.querySelector("[data-role='process-detail-heading']"),
-  detail: document.querySelector("[data-role='process-detail']"),
-  generatorEuT: document.querySelector("[data-role='process-generator-eut']")
+  detail: document.querySelector("[data-role='process-detail']")
 };
 
 function currentFlow() {
@@ -69,8 +65,7 @@ function currentFlow() {
     externalGoods: getEffectiveExternalGoods(),
     machineCounts: state.machineCounts,
     supplyRates: state.supplyRates,
-    unlimitedSupplyGoods: state.unlimitedSupplyGoods,
-    generatorEuT: state.generatorEuT
+    unlimitedSupplyGoods: state.unlimitedSupplyGoods
   });
 }
 
@@ -177,11 +172,10 @@ function renderProcess() {
     `${formatAmount(flow.plan.recipeRows.length)} recipes`,
     `${formatAmount(flow.machineRows.length)} machine groups`
   ].join(" / ");
-  elements.power.textContent = `${formatAmount(flow.targetPowerEut)} EU/t target`;
+  elements.power.textContent = `${formatAmount(flow.targetPowerEut)} EU/t required`;
 
   renderStats(flow);
   renderFlowMap(flow);
-  renderMachineConfig(flow);
   renderExternalInputs(flow);
   renderByproducts(flow);
   renderSelectedDetail(flow);
@@ -220,9 +214,9 @@ function renderStats(flow) {
       <em>${escapeHtml(machineText)}</em>
     </div>
     <div class="process-stat-card">
-      <span>Power draw</span>
+      <span>Energy cost</span>
       <strong>${formatAmount(flow.targetPowerEut)} EU/t</strong>
-      <em>${formatAmount(flow.capacityPowerEut)} EU/t actual / ${formatAmount(flow.targetGeneratorCount)} generators @ ${formatAmount(flow.generatorEuT)} EU/t</em>
+      <em>${formatAmount(flow.capacityPowerEut)} EU/t at current output</em>
     </div>
     ${assumptions}
   `;
@@ -336,41 +330,6 @@ function recipeNode(node, flow) {
 
 function machineRowForRecipe(flow, recipeId) {
   return flow.machineRows.find((row) => row.recipeRows.some((recipeRow) => recipeRow.recipe.id === recipeId));
-}
-
-function renderMachineConfig(flow) {
-  const visibleRows = flow.machineRows.slice(0, MACHINE_LIMIT);
-  elements.generatorEuT.value = flow.generatorEuT;
-  elements.machineConfig.innerHTML = visibleRows.length
-    ? visibleRows.map((row) => machineConfigRow(row)).join("")
-    : `<div class="empty-state">No timed machine recipes in this process line.</div>`;
-}
-
-function machineConfigRow(row) {
-  const machine = machineFamilyName(row.machine, "Machine");
-  const recipeTypes = row.recipeTypes
-    .map((typeId) => state.repository.getRecipeType(typeId).name)
-    .filter((name) => name !== machine)
-    .join(", ");
-  const detail = [row.voltageTier ? `${row.voltageTier.name} tier` : "", recipeTypes].filter(Boolean).join(" / ");
-  const stepText = `${formatAmount(row.recipeCount)} recipe ${row.recipeCount === 1 ? "step" : "steps"}`;
-  const bottleneck = row.weakestMachine ? " bottleneck" : "";
-  const underbuilt = row.underbuilt ? " underbuilt" : "";
-  const recipeType = row.recipeTypes[0] ?? row.recipeRows[0]?.recipe.type ?? "";
-  return `
-    <article class="process-machine-row${bottleneck}${underbuilt}">
-      <div class="process-row-copy">
-        <span class="process-row-kicker">Machine group</span>
-        <strong>${escapeHtml(machine)}</strong>
-        <span>${escapeHtml(detail || stepText)}</span>
-        <em>${stepText} / ${formatRate(row.runsPerMinute)} runs / ${formatAmount(row.idealLoad)} load / ${formatAmount(row.capacityFactor)}x capacity</em>
-      </div>
-      <div class="process-config-stack">
-        ${machineTierControl(row, recipeType)}
-        ${machineCountControl(row)}
-      </div>
-    </article>
-  `;
 }
 
 function machineCountControl(row) {
@@ -936,11 +895,6 @@ function setupEvents() {
 
   elements.targetRate.addEventListener("input", (event) => {
     state.targetRate = Math.max(0, Number(event.target.value) || 0);
-    renderProcess();
-  });
-
-  elements.generatorEuT.addEventListener("input", (event) => {
-    state.generatorEuT = Math.max(1, Number(event.target.value) || 32);
     renderProcess();
   });
 

@@ -28,7 +28,6 @@ export function buildProcessFlow(repository, target, options = {}) {
   markBottlenecks(machineRows, bottleneck, machineBottleneck);
   markBottlenecks(supplyRows, bottleneck, supplyBottleneck);
   applyActualRates(supplyRows, lineFactor, product.amountPerMinute);
-  const generatorEuT = Math.max(1, Number(options.generatorEuT) || 32);
   const targetPowerEut = plan.totalAverageEut;
   const capacityPowerEut = targetPowerEut * lineFactor;
 
@@ -48,10 +47,7 @@ export function buildProcessFlow(repository, target, options = {}) {
     machineCapacityOutputPerMinute: product.amountPerMinute * machineLineFactor,
     capacityOutputPerMinute: product.amountPerMinute * lineFactor,
     targetPowerEut,
-    capacityPowerEut,
-    targetGeneratorCount: requiredMachineCount(targetPowerEut / generatorEuT),
-    capacityGeneratorCount: requiredMachineCount(capacityPowerEut / generatorEuT),
-    generatorEuT
+    capacityPowerEut
   };
 }
 

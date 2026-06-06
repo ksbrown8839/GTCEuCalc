@@ -74,8 +74,7 @@
   margin-bottom: 8px;
 }
 
-.process-rate-control,
-.process-generator-control {
+.process-rate-control {
   display: grid;
   gap: 7px;
   color: #202020;
@@ -88,8 +87,7 @@
   margin-bottom: 10px;
 }
 
-.process-rate-control > span,
-.process-generator-control > span {
+.process-rate-control > span {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -97,7 +95,6 @@
 }
 
 .process-rate-control em,
-.process-generator-control em,
 .process-config-input em,
 .process-method-picker > span em {
   display: inline-grid;
@@ -115,10 +112,6 @@
     inset -1px -1px 0 #1c3545;
 }
 
-.process-generator-control {
-  min-width: 236px;
-}
-
 .process-stepper {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 44px;
@@ -128,7 +121,6 @@
 }
 
 .process-rate-control > .process-stepper,
-.process-generator-control > .process-stepper,
 .process-config-input > .process-stepper {
   display: grid;
 }
@@ -726,13 +718,11 @@
   display: flex;
 }
 
-.process-machine-list,
 .process-stacked-list {
   display: grid;
   gap: 8px;
 }
 
-.process-machine-row,
 .process-supply-row,
 .process-good-line,
 .process-detail-card {
@@ -743,18 +733,13 @@
     inset -2px -2px 0 var(--process-panel-readable-shadow);
 }
 
-.process-machine-row,
 .process-supply-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(224px, 280px);
+  grid-template-columns: minmax(0, 1fr) minmax(224px, 280px) auto;
   align-items: stretch;
   gap: 12px;
   min-height: 58px;
   padding: 9px;
-}
-
-.process-supply-row {
-  grid-template-columns: minmax(0, 1fr) minmax(224px, 280px) auto;
 }
 
 .process-lower-grid aside .process-supply-row {
@@ -783,7 +768,6 @@
   max-width: 100%;
 }
 
-.process-machine-row.bottleneck,
 .process-supply-row.bottleneck,
 .process-good-node.bottleneck {
   box-shadow:
@@ -792,7 +776,6 @@
     inset -2px -2px 0 #7d6c27;
 }
 
-.process-machine-row.underbuilt,
 .process-supply-row.underbuilt,
 .process-good-node.underbuilt {
   box-shadow:
@@ -808,8 +791,6 @@
     inset -2px -2px 0 #6b8fa5;
 }
 
-.process-machine-row div,
-.process-machine-row label,
 .process-supply-row div,
 .process-supply-row label {
   display: grid;
@@ -830,32 +811,11 @@
   text-shadow: 1px 1px 0 #ffffff;
 }
 
-.process-machine-row strong,
-.process-machine-row span,
-.process-machine-row em {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.process-machine-row .process-row-copy > strong,
-.process-machine-row .process-row-copy > span:not(.process-row-kicker),
-.process-machine-row .process-row-copy > em,
 .process-supply-row .process-row-copy > em {
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-.process-machine-row strong {
-  color: #202020;
-  font-size: 12px;
-  text-transform: uppercase;
-  text-shadow: 1px 1px 0 #ffffff;
-}
-
-.process-machine-row span,
-.process-machine-row em,
-.process-machine-row label span,
 .process-supply-row em,
 .process-supply-row label span,
 .process-muted {

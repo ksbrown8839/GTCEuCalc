@@ -278,32 +278,8 @@
   max-width: 100%;
 }
 
-.process-machine-row {
-  grid-template-columns: 34px minmax(0, 1fr) minmax(224px, 280px);
-}
-
-.process-machine-row::before {
-  content: "";
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  background-color: #aebfc8;
-  background-image: url("assets/gui/gtceu/icon/gregtech_logo.png");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 22px 22px;
-  box-shadow:
-    inset 2px 2px 0 #dbe8ee,
-    inset -2px -2px 0 #5e7078;
-  image-rendering: pixelated;
-}
-
-.process-machine-row label input,
-.process-machine-row label select,
 .process-supply-row label input,
-.process-rate-control input,
-.process-generator-control input {
+.process-rate-control input {
   min-height: 42px;
   padding: 7px 9px;
 }
@@ -342,13 +318,5 @@
   .process-recipe-detail-card .recipe-outputs .chip-flow {
     width: max-content;
     max-width: 100%;
-  }
-
-  .process-machine-row {
-    grid-template-columns: 34px minmax(0, 1fr);
-  }
-
-  .process-machine-row label {
-    grid-column: 1 / -1;
   }
 }

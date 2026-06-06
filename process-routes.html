@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-contrast-tune-2026-06-06">
-    <link rel="stylesheet" href="process-detail.css?v=process-tier-steppers-2026-06-05">
+    <link rel="stylesheet" href="process-routes.css?v=process-energy-simplify-2026-06-06">
+    <link rel="stylesheet" href="process-detail.css?v=process-energy-simplify-2026-06-06">
   </head>
   <body>
     <main class="process-route-shell">
@@ -113,11 +113,11 @@
                 <em>Machine path and recipe variant.</em>
               </span>
             </a>
-            <a class="process-config-card" href="#process-machine-panel">
+            <a class="process-config-card" href="#process-flow-panel">
               <strong>4</strong>
               <span>
-                <b>Built machines</b>
-                <em>Actual capacity and bottlenecks.</em>
+                <b>Machine blocks</b>
+                <em>Click map blocks to set tier and count.</em>
               </span>
             </a>
             <a class="process-config-card" href="#process-supply-panel">
@@ -127,11 +127,11 @@
                 <em>External caps or no-limit inputs.</em>
               </span>
             </a>
-            <a class="process-config-card" href="#process-machine-panel">
+            <a class="process-config-card" href="#process-flow-panel">
               <strong>6</strong>
               <span>
-                <b>Generator EU/t</b>
-                <em>Generator count and power planning.</em>
+                <b>Energy cost</b>
+                <em>Read target and actual EU/t in the stats.</em>
               </span>
             </a>
           </div>
@@ -169,24 +169,6 @@
         </section>
 
         <div class="process-lower-grid">
-          <section class="section-band" id="process-machine-panel">
-            <header class="section-header">
-              <div>
-                <h2>Machine Configuration</h2>
-                <span class="ore-route-note">Enter your built machine counts. The lowest-capacity group becomes the line bottleneck.</span>
-              </div>
-              <label class="process-generator-control">
-                <span>Generator EU/t</span>
-                <span class="process-stepper">
-                  <button type="button" data-action="step-process-number" data-step-delta="-1" aria-label="Decrease generator EU/t">-</button>
-                  <input data-role="process-generator-eut" type="number" min="1" step="1">
-                  <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase generator EU/t">+</button>
-                </span>
-              </label>
-            </header>
-            <div class="process-machine-list" data-role="process-machine-config"></div>
-          </section>
-
           <aside>
             <section class="section-band" id="process-supply-panel">
               <header class="compact-section-header">
@@ -221,6 +203,6 @@
       </section>
     </div>
 
-    <script type="module" src="src/process-routes.js?v=process-detail-modal-2026-06-06"></script>
+    <script type="module" src="src/process-routes.js?v=process-energy-simplify-2026-06-06"></script>
   </body>
 </html>
