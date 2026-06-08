@@ -44,6 +44,7 @@ const elements = {
   summary: document.querySelector("[data-role='process-summary']"),
   power: document.querySelector("[data-role='process-power']"),
   stats: document.querySelector("[data-role='process-stats']"),
+  playerSummary: document.querySelector("[data-role='process-player-summary']"),
   flowFrame: document.querySelector("[data-role='process-flow-frame']"),
   flowTrack: document.querySelector("[data-role='process-flow-track']"),
   flowCanvas: document.querySelector("[data-role='process-flow-canvas']"),
@@ -57,16 +58,35 @@ const elements = {
 };
 
 function currentFlow() {
+  return flowWithOverrides();
+}
+
+function flowWithOverrides(targetOverrides = {}, optionOverrides = {}) {
+  const targetGoodsId = targetOverrides.goodsId ?? state.targetGoodsId;
+  const targetRate = targetOverrides.amountPerMinute ?? state.targetRate;
+  const machineCounts = {
+    ...state.machineCounts,
+    ...(optionOverrides.machineCounts ?? {})
+  };
+  const supplyRates = {
+    ...state.supplyRates,
+    ...(optionOverrides.supplyRates ?? {})
+  };
+  const machineTierByRecipeType = {
+    ...state.machineTierByRecipeType,
+    ...(optionOverrides.machineTierByRecipeType ?? {})
+  };
+
   return buildProcessFlow(state.repository, {
-    goodsId: state.targetGoodsId,
-    amountPerMinute: state.targetRate
+    goodsId: targetGoodsId,
+    amountPerMinute: targetRate
   }, {
-    preferredRecipeByOutput: state.preferredRecipeByOutput,
-    machineTierByRecipeType: state.machineTierByRecipeType,
+    preferredRecipeByOutput: optionOverrides.preferredRecipeByOutput ?? state.preferredRecipeByOutput,
+    machineTierByRecipeType,
     externalGoods: getEffectiveExternalGoods(),
-    machineCounts: state.machineCounts,
-    supplyRates: state.supplyRates,
-    unlimitedSupplyGoods: state.unlimitedSupplyGoods
+    machineCounts,
+    supplyRates,
+    unlimitedSupplyGoods: optionOverrides.unlimitedSupplyGoods ?? state.unlimitedSupplyGoods
   });
 }
 
@@ -176,6 +196,7 @@ function renderProcess() {
   elements.power.textContent = `${formatAmount(flow.targetPowerEut)} EU/t required`;
 
   renderStats(flow);
+  renderPlayerSummary(flow);
   renderFlowMap(flow);
   renderExternalInputs(flow);
   renderByproducts(flow);
@@ -236,6 +257,277 @@ function bottleneckDescription(row) {
   }
 
   return `${state.repository.getGoodName(row.goodsId)} supply at ${formatAmount(row.capacityFactor)}x target`;
+}
+
+function renderPlayerSummary(flow) {
+  const targetGood = state.repository.getGood(flow.product.goodsId);
+  const audit = factoryAudit(flow, targetGood);
+  elements.playerSummary.innerHTML = `
+    <header class="process-action-header">
+      <div>
+        <span>Factory audit</span>
+        <h2>What should I do next?</h2>
+        <p>Set this to match your base, then use the recommendation before placing more machines.</p>
+      </div>
+      <strong class="${audit.ready ? "ready" : "blocked"}">${escapeHtml(audit.stateLabel)}</strong>
+    </header>
+    <div class="process-action-grid">
+      <div class="process-action-meters">
+        ${actionMeter("Target", audit.targetText, targetGood?.name ?? flow.product.goodsId)}
+        ${actionMeter("Actual", audit.actualText, audit.actualNote)}
+        ${actionMeter("Efficiency", audit.efficiencyText, audit.efficiencyNote)}
+      </div>
+      <article class="process-bottleneck-card">
+        <span>Main bottleneck</span>
+        <strong>${escapeHtml(audit.bottleneck.title)}</strong>
+        <p>${escapeHtml(audit.bottleneck.detail)}</p>
+      </article>
+      <article class="process-next-action-card">
+        <span>Recommended next action</span>
+        <strong>${escapeHtml(audit.mainAction.title)}</strong>
+        <p>${escapeHtml(audit.mainAction.detail)}</p>
+        <em>${escapeHtml(audit.mainAction.effect)}</em>
+        ${recommendationButton(audit.mainAction)}
+      </article>
+    </div>
+    ${audit.candidates.length ? `
+      <div class="process-action-candidates">
+        <span>Other useful moves</span>
+        <div>
+          ${audit.candidates.map((action) => actionCandidate(action)).join("")}
+        </div>
+      </div>
+    ` : ""}
+  `;
+}
+
+function actionMeter(label, value, note) {
+  return `
+    <span class="process-action-meter">
+      <b>${escapeHtml(label)}</b>
+      <strong>${escapeHtml(value)}</strong>
+      <em>${escapeHtml(note)}</em>
+    </span>
+  `;
+}
+
+function factoryAudit(flow, targetGood) {
+  const targetText = formatRate(flow.idealOutputPerMinute);
+  const actualText = formatRate(flow.capacityOutputPerMinute);
+  const efficiency = flow.idealOutputPerMinute > 0
+    ? (flow.capacityOutputPerMinute / flow.idealOutputPerMinute) * 100
+    : 100;
+  const ready = !flow.bottleneck || flow.lineFactor >= 0.999;
+  const bottleneck = bottleneckAudit(flow);
+  const mainAction = ready ? noBuildAction(flow) : primaryBottleneckAction(flow, flow.bottleneck);
+  const candidates = secondaryActions(flow, mainAction);
+
+  return {
+    ready,
+    stateLabel: ready ? "Target reachable" : "Action needed",
+    targetText,
+    actualText,
+    actualNote: `${targetGood?.name ?? flow.product.goodsId} after current machine and supply limits.`,
+    efficiencyText: `${formatAmount(efficiency)}%`,
+    efficiencyNote: ready ? "Your entered factory can meet this target." : "Actual output divided by requested output.",
+    bottleneck,
+    mainAction,
+    candidates
+  };
+}
+
+function bottleneckAudit(flow) {
+  if (!flow.bottleneck || flow.lineFactor >= 0.999) {
+    return {
+      title: "No active bottleneck",
+      detail: "The configured machine counts and supplied input rates can hit the requested target."
+    };
+  }
+
+  if (flow.bottleneck.type === "machine") {
+    const row = flow.bottleneck;
+    return {
+      title: `${machineFamilyName(row.machine, "Machine")} capacity`,
+      detail: `Need ${formatAmount(row.idealLoad)} ${tierLabel(row.voltageTier)} machines worth of work, built ${formatAmount(row.builtCount)}.`
+    };
+  }
+
+  const row = flow.bottleneck;
+  const available = row.unlimited ? "no limit" : formatRate(row.availableAmountPerMinute);
+  return {
+    title: `${state.repository.getGoodName(row.goodsId)} supply`,
+    detail: `Needs ${formatRate(row.requiredAmountPerMinute)} available, current cap is ${available}.`
+  };
+}
+
+function noBuildAction(flow) {
+  const headroom = flow.machineCapacityOutputPerMinute > flow.idealOutputPerMinute
+    ? ` Machine headroom reaches ${formatRate(flow.machineCapacityOutputPerMinute)} before supply limits.`
+    : "";
+  return {
+    title: "Build from the current plan",
+    detail: "No machine or supplied input is below the requested rate right now.",
+    effect: `Expected output is ${formatRate(flow.capacityOutputPerMinute)}.${headroom}`,
+    apply: null
+  };
+}
+
+function primaryBottleneckAction(flow, row) {
+  if (row.type === "machine") return machineAddAction(flow, row, 1, "Apply +1 machine");
+  return supplyRaiseAction(flow, row, "Set required supply");
+}
+
+function secondaryActions(flow, mainAction) {
+  const actions = [];
+  if (flow.bottleneck?.type === "machine") {
+    const row = flow.bottleneck;
+    const missingForTarget = Math.max(0, Math.ceil(row.idealLoad) - row.builtCount);
+    if (missingForTarget > 1) actions.push(machineAddAction(flow, row, missingForTarget, `Build +${formatAmount(missingForTarget)}`));
+    const upgrade = machineUpgradeAction(flow, row);
+    if (upgrade) actions.push(upgrade);
+  }
+
+  if (flow.supplyBottleneck && flow.supplyBottleneck.capacityFactor < 1) {
+    actions.push(supplyRaiseAction(flow, flow.supplyBottleneck, "Set supply cap"));
+  }
+
+  if (flow.capacityOutputPerMinute > 0 && flow.capacityOutputPerMinute < flow.idealOutputPerMinute) {
+    actions.push({
+      title: "Lower target to current output",
+      detail: "Use this when you want the calculator to match the factory you already built.",
+      effect: `Target becomes ${formatRate(flow.capacityOutputPerMinute)} with no new build.`,
+      apply: {
+        kind: "set-target-rate",
+        value: flow.capacityOutputPerMinute,
+        label: "Use actual output"
+      },
+      uniqueKey: "set-target-rate"
+    });
+  }
+
+  return uniqueActions(actions, mainAction.uniqueKey).slice(0, 3);
+}
+
+function machineAddAction(flow, row, amount, buttonLabel) {
+  const key = row.configKey ?? row.machineKey;
+  const nextCount = Math.max(0, row.builtCount + amount);
+  const preview = flowWithOverrides({}, {
+    machineCounts: {
+      [key]: nextCount
+    }
+  });
+  const effect = outputChangeEffect(flow, preview);
+  const targetNote = amount > 1
+    ? `This should cover the target machine demand for this step.`
+    : `To fully hit this machine demand, build ${formatAmount(Math.max(0, Math.ceil(row.idealLoad) - row.builtCount))} more.`;
+
+  return {
+    title: `Add ${formatAmount(amount)} ${tierLabel(row.voltageTier)} ${machineFamilyName(row.machine, "Machine")}`,
+    detail: `${machineFamilyName(row.machine, "Machine")} is limiting the line. ${targetNote}`,
+    effect,
+    apply: {
+      kind: "set-machine-count",
+      key,
+      value: nextCount,
+      label: buttonLabel
+    },
+    uniqueKey: `machine:${key}:${nextCount}`
+  };
+}
+
+function machineUpgradeAction(flow, row) {
+  const recipeType = row.recipeTypes[0];
+  if (!recipeType || !row.voltageTier) return null;
+  const tiers = eligibleVoltageTiers(row.voltageTier);
+  const currentIndex = tiers.findIndex((tier) => tier.id === row.voltageTier.id);
+  const nextTier = currentIndex >= 0 ? tiers[currentIndex + 1] : null;
+  if (!nextTier) return null;
+
+  const preview = flowWithOverrides({}, {
+    machineTierByRecipeType: {
+      [recipeType]: nextTier.id
+    }
+  });
+  if (preview.capacityOutputPerMinute <= flow.capacityOutputPerMinute) return null;
+
+  return {
+    title: `Upgrade ${machineFamilyName(row.machine, "Machine")} to ${nextTier.name}`,
+    detail: "Use this if you can rebuild this step at the next voltage tier instead of adding another parallel machine.",
+    effect: outputChangeEffect(flow, preview),
+    apply: {
+      kind: "set-machine-tier",
+      key: recipeType,
+      value: nextTier.id,
+      label: `Use ${nextTier.name}`
+    },
+    uniqueKey: `tier:${recipeType}:${nextTier.id}`
+  };
+}
+
+function supplyRaiseAction(flow, row, buttonLabel) {
+  const preview = flowWithOverrides({}, {
+    supplyRates: {
+      [row.goodsId]: row.requiredAmountPerMinute
+    }
+  });
+  return {
+    title: `Raise ${state.repository.getGoodName(row.goodsId)} supply`,
+    detail: `Provide ${formatRate(row.requiredAmountPerMinute)} or mark it as No limit if another line handles it.`,
+    effect: outputChangeEffect(flow, preview),
+    apply: {
+      kind: "set-supply-rate",
+      key: row.goodsId,
+      value: row.requiredAmountPerMinute,
+      label: buttonLabel
+    },
+    uniqueKey: `supply:${row.goodsId}`
+  };
+}
+
+function outputChangeEffect(flow, preview) {
+  const delta = preview.capacityOutputPerMinute - flow.capacityOutputPerMinute;
+  const nextLimit = preview.bottleneck && preview.lineFactor < 0.999
+    ? ` Next limit: ${bottleneckShortName(preview.bottleneck)}.`
+    : " Target reached.";
+  return `Output ${formatRate(flow.capacityOutputPerMinute)} -> ${formatRate(preview.capacityOutputPerMinute)} (${formatSignedRate(delta)}).${nextLimit}`;
+}
+
+function bottleneckShortName(row) {
+  if (row.type === "machine") return machineFamilyName(row.machine, "Machine");
+  return `${state.repository.getGoodName(row.goodsId)} supply`;
+}
+
+function formatSignedRate(value) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatRate(value)}`;
+}
+
+function uniqueActions(actions, excludeKey = "") {
+  const seen = new Set(excludeKey ? [excludeKey] : []);
+  return actions.filter((action) => {
+    if (!action || seen.has(action.uniqueKey)) return false;
+    seen.add(action.uniqueKey);
+    return true;
+  });
+}
+
+function recommendationButton(action) {
+  if (!action.apply) return "";
+  return `
+    <button class="process-action-button" type="button" data-action="apply-process-recommendation" data-kind="${escapeHtml(action.apply.kind)}" data-key="${escapeHtml(action.apply.key ?? "")}" data-value="${escapeHtml(String(action.apply.value ?? ""))}">
+      ${escapeHtml(action.apply.label)}
+    </button>
+  `;
+}
+
+function actionCandidate(action) {
+  return `
+    <article class="process-action-candidate">
+      <strong>${escapeHtml(action.title)}</strong>
+      <p>${escapeHtml(action.effect)}</p>
+      ${recommendationButton(action)}
+    </article>
+  `;
 }
 
 function renderFlowMap(flow) {
@@ -1090,6 +1382,11 @@ function setupEvents() {
       return;
     }
 
+    if (action === "apply-process-recommendation") {
+      applyProcessRecommendation(target);
+      return;
+    }
+
     if (action === "close-process-detail") {
       closeProcessDetail();
       return;
@@ -1143,6 +1440,37 @@ function setupEvents() {
     if (event.key !== "Escape" || !state.detailOpen) return;
     closeProcessDetail();
   });
+}
+
+function applyProcessRecommendation(button) {
+  const kind = button.dataset.kind;
+  const key = button.dataset.key ?? "";
+  const value = Number(button.dataset.value);
+
+  if (kind === "set-machine-count" && key && Number.isFinite(value)) {
+    state.machineCounts[key] = Math.max(0, Math.floor(value));
+    renderProcess();
+    return;
+  }
+
+  if (kind === "set-machine-tier" && key && button.dataset.value) {
+    state.machineTierByRecipeType[key] = button.dataset.value;
+    renderProcess();
+    return;
+  }
+
+  if (kind === "set-supply-rate" && key && Number.isFinite(value)) {
+    state.supplyRates[key] = Math.max(0, value);
+    state.unlimitedSupplyGoods.delete(key);
+    renderProcess();
+    return;
+  }
+
+  if (kind === "set-target-rate" && Number.isFinite(value) && value > 0) {
+    state.targetRate = Math.max(0, Math.round(value * 1000) / 1000);
+    renderTargetControls();
+    renderProcess();
+  }
 }
 
 function setFlowZoom(value, anchor = null) {

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-rate-sheet-2026-06-08">
+    <link rel="stylesheet" href="process-routes.css?v=process-action-summary-2026-06-08">
     <link rel="stylesheet" href="process-detail.css?v=process-energy-simplify-2026-06-06">
   </head>
   <body>
@@ -66,11 +66,11 @@
                 <em>External caps or no-limit inputs.</em>
               </span>
             </a>
-            <a class="process-config-card" href="#process-rate-sheet-panel">
+            <a class="process-config-card" href="#process-action-panel">
               <strong>6</strong>
               <span>
-                <b>Rate sheet</b>
-                <em>Stage math and bottlenecks.</em>
+                <b>Next action</b>
+                <em>Bottleneck and best fix.</em>
               </span>
             </a>
           </div>
@@ -110,6 +110,8 @@
             <strong data-role="process-power">0 EU/t target</strong>
           </div>
         </div>
+
+        <section class="section-band process-player-summary" id="process-action-panel" data-role="process-player-summary"></section>
 
         <section class="process-stat-grid" id="process-stats-panel" data-role="process-stats"></section>
 
@@ -187,6 +189,6 @@
       </section>
     </div>
 
-    <script type="module" src="src/process-routes.js?v=process-rate-sheet-2026-06-08"></script>
+    <script type="module" src="src/process-routes.js?v=process-action-summary-2026-06-08"></script>
   </body>
 </html>
