@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=process-machine-tiers-2026-06-05";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-energy-simplify-2026-06-06";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-rate-sheet-2026-06-08";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -50,6 +50,7 @@ const elements = {
   flowZoom: document.querySelector("[data-role='process-flow-zoom']"),
   externalInputs: document.querySelector("[data-role='process-external-inputs']"),
   byproducts: document.querySelector("[data-role='process-byproducts']"),
+  rateSheet: document.querySelector("[data-role='process-rate-sheet']"),
   detailWindow: document.querySelector("[data-role='process-detail-window']"),
   detailHeading: document.querySelector("[data-role='process-detail-heading']"),
   detail: document.querySelector("[data-role='process-detail']")
@@ -178,6 +179,7 @@ function renderProcess() {
   renderFlowMap(flow);
   renderExternalInputs(flow);
   renderByproducts(flow);
+  renderRateSheet(flow);
   renderSelectedDetail(flow);
   updateUrl();
 }
@@ -424,6 +426,90 @@ function renderByproducts(flow) {
   elements.byproducts.innerHTML = flow.plan.byproductRows.length
     ? flow.plan.byproductRows.slice(0, 18).map((row) => goodLine(row.goodsId, formatRate(row.amountPerMinute))).join("")
     : `<div class="empty-state">No byproducts in this selected chain.</div>`;
+}
+
+function renderRateSheet(flow) {
+  elements.rateSheet.innerHTML = flow.stageRows.length
+    ? flow.stageRows.map((row, index) => stageRateRow(row, index)).join("")
+    : `<div class="empty-state">No machine stages in this process line.</div>`;
+}
+
+function stageRateRow(row, index) {
+  const status = stageStatus(row);
+  const machine = machineName(row.machine, row.voltageTier, row.recipeTypeName);
+  const outputSummary = row.plannedOutputs.length
+    ? row.plannedOutputs.map((output) => state.repository.getGoodName(output.goodsId)).join(", ")
+    : row.outputs.map((output) => state.repository.getGoodName(output.goodsId)).join(", ");
+  const statusClass = row.status === "machine-shortfall" ? " underbuilt" : row.status === "limited-upstream" ? " limited" : "";
+  const bottleneckClass = row.isLineBottleneck ? " bottleneck" : "";
+  return `
+    <article class="process-rate-stage${statusClass}${bottleneckClass}">
+      <div class="process-rate-stage-title">
+        <span class="process-row-kicker">Stage ${formatAmount(index + 1)} / ${escapeHtml(row.recipeTypeName)}</span>
+        <strong>${escapeHtml(outputSummary || row.recipeId)}</strong>
+        <em>${escapeHtml(machine)} / ${escapeHtml(row.recipeId)}</em>
+      </div>
+      <div class="process-rate-stage-metrics">
+        ${rateMetric("Target runs", formatRate(row.targetRunsPerMinute), "Backward planned recipe cycles.")}
+        ${rateMetric("Actual runs", formatRate(row.actualRunsPerMinute), "Forward simulated after bottlenecks.")}
+        ${rateMetric("Machines", `${formatAmount(row.requiredMachineCount)} need / ${formatAmount(row.builtMachineCount)} built`, formatMachineBalance(row))}
+        ${rateMetric("Energy", `${formatAmount(row.averageEut)} EU/t`, `${formatAmount(row.actualAverageEut)} EU/t at current output.`)}
+      </div>
+      <div class="process-rate-stage-flow">
+        <div>
+          <span>Inputs consumed</span>
+          <div class="chip-flow compact">${stageGoods(row.inputs, "input")}</div>
+        </div>
+        <div>
+          <span>Outputs made</span>
+          <div class="chip-flow compact">${stageGoods(row.outputs, "output")}</div>
+        </div>
+      </div>
+      <div class="process-rate-stage-footer">
+        <strong>${escapeHtml(status)}</strong>
+        <span>Capacity ${escapeHtml(formatCapacityFactor(row.machineCapacityFactor))}</span>
+        <button class="secondary-button" type="button" data-action="inspect-process-recipe" data-recipe-id="${escapeHtml(row.recipeId)}">Inspect</button>
+      </div>
+    </article>
+  `;
+}
+
+function rateMetric(label, value, note) {
+  return `
+    <span class="process-rate-metric">
+      <b>${escapeHtml(label)}</b>
+      <strong>${escapeHtml(value)}</strong>
+      <em>${escapeHtml(note)}</em>
+    </span>
+  `;
+}
+
+function stageGoods(items, kind) {
+  if (!items.length) return `<span class="process-rate-empty">None</span>`;
+  return items.slice(0, 8).map((item) => {
+    const tag = kind === "output" && item.role === "byproduct" ? " byproduct" : "";
+    const amount = `${formatRate(item.requiredAmountPerMinute)} target / ${formatRate(item.actualAmountPerMinute)} actual${tag}`;
+    return goodChip(item.goodsId, amount);
+  }).join("");
+}
+
+function stageStatus(row) {
+  if (row.isLineBottleneck && row.status === "machine-shortfall") return "Line bottleneck: machine shortfall";
+  if (row.status === "machine-shortfall") return "Machine shortfall";
+  if (row.status === "limited-upstream") return "Limited by another stage";
+  return "On target";
+}
+
+function formatMachineBalance(row) {
+  if (!Number.isFinite(row.machineCapacityFactor)) return "No timed machine limit.";
+  if (row.machineCapacityFactor < 1) {
+    return `${formatAmount((1 - row.machineCapacityFactor) * 100)}% short of target.`;
+  }
+  return `Uses ${formatAmount(100 / row.machineCapacityFactor)}% of built capacity.`;
+}
+
+function formatCapacityFactor(value) {
+  return Number.isFinite(value) ? `${formatAmount(value)}x target` : "No limit";
 }
 
 function renderSelectedDetail(flow) {
@@ -989,6 +1075,17 @@ function setupEvents() {
     if (action === "select-process-node") {
       state.selectedNodeId = target.dataset.nodeId ?? null;
       state.detailOpen = Boolean(state.selectedNodeId);
+      renderProcess();
+      return;
+    }
+
+    if (action === "inspect-process-recipe" && target.dataset.recipeId) {
+      const nodeId = `recipe:${target.dataset.recipeId}`;
+      const flow = currentFlow();
+      const nodeExists = flow.graph.nodes.some((node) => node.id === nodeId);
+      if (!nodeExists) return;
+      state.selectedNodeId = nodeId;
+      state.detailOpen = true;
       renderProcess();
       return;
     }

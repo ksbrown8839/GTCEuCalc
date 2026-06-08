@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-sidebar-controls-2026-06-06">
+    <link rel="stylesheet" href="process-routes.css?v=process-rate-sheet-2026-06-08">
     <link rel="stylesheet" href="process-detail.css?v=process-energy-simplify-2026-06-06">
   </head>
   <body>
@@ -66,11 +66,11 @@
                 <em>External caps or no-limit inputs.</em>
               </span>
             </a>
-            <a class="process-config-card" href="#process-stats-panel">
+            <a class="process-config-card" href="#process-rate-sheet-panel">
               <strong>6</strong>
               <span>
-                <b>Energy cost</b>
-                <em>Target and actual EU/t.</em>
+                <b>Rate sheet</b>
+                <em>Stage math and bottlenecks.</em>
               </span>
             </a>
           </div>
@@ -160,6 +160,16 @@
             </section>
           </aside>
         </div>
+
+        <section class="section-band process-rate-sheet-section" id="process-rate-sheet-panel">
+          <header class="section-header">
+            <div>
+              <h2>Factory Rate Sheet</h2>
+              <span class="ore-route-note">Backward target math plus forward simulation from your current machine counts and supplied input limits.</span>
+            </div>
+          </header>
+          <div class="process-rate-sheet" data-role="process-rate-sheet"></div>
+        </section>
       </section>
     </main>
 
@@ -177,6 +187,6 @@
       </section>
     </div>
 
-    <script type="module" src="src/process-routes.js?v=process-sidebar-controls-2026-06-06"></script>
+    <script type="module" src="src/process-routes.js?v=process-rate-sheet-2026-06-08"></script>
   </body>
 </html>

@@ -30,11 +30,13 @@ export function buildProcessFlow(repository, target, options = {}) {
   applyActualRates(supplyRows, lineFactor, product.amountPerMinute);
   const targetPowerEut = plan.totalAverageEut;
   const capacityPowerEut = targetPowerEut * lineFactor;
+  const stageRows = buildStageRows(repository, plan, machineRows, lineFactor);
 
   return {
     product,
     plan,
     graph,
+    stageRows,
     machineRows,
     supplyRows,
     bottleneck,
@@ -49,6 +51,86 @@ export function buildProcessFlow(repository, target, options = {}) {
     targetPowerEut,
     capacityPowerEut
   };
+}
+
+function buildStageRows(repository, plan, machineRows, lineFactor) {
+  const machineRowByRecipeId = new Map();
+  for (const machineRow of machineRows) {
+    for (const recipeRow of machineRow.recipeRows) {
+      machineRowByRecipeId.set(recipeRow.recipe.id, machineRow);
+    }
+  }
+
+  return plan.recipeRows.map((row, index) => {
+    const recipe = row.recipe;
+    const machineRow = machineRowByRecipeId.get(recipe.id) ?? null;
+    const targetRunsPerMinute = row.runsPerMinute;
+    const actualRunsPerMinute = targetRunsPerMinute * lineFactor;
+    const plannedOutputs = new Map(row.plannedOutputs ?? []);
+    const allOutputs = recipe.outputs.map((output) => {
+      const amount = output.amount * (output.chance ?? 1);
+      return {
+        goodsId: output.id,
+        role: plannedOutputs.has(output.id) ? "planned" : "byproduct",
+        requiredAmountPerMinute: amount * targetRunsPerMinute,
+        actualAmountPerMinute: amount * actualRunsPerMinute
+      };
+    });
+    const inputs = recipe.inputs
+      .filter((input) => !input.notConsumed)
+      .map((input) => {
+        const resolved = repository.resolveIngredient(input);
+        const goodsId = resolved.good ? resolved.id : input.id;
+        return {
+          goodsId,
+          resolved: Boolean(resolved.good),
+          label: resolved.good ? repository.getGoodName(goodsId) : repository.getIngredientName(input),
+          requiredAmountPerMinute: input.amount * targetRunsPerMinute,
+          actualAmountPerMinute: input.amount * actualRunsPerMinute
+        };
+      });
+    const machineCapacityFactor = machineRow?.capacityFactor ?? Infinity;
+    const requiredMachineCount = row.machineCount ?? 0;
+    const builtMachineCount = machineRow?.builtCount ?? requiredMachineCount;
+    const actualAverageEut = (row.averageEut ?? 0) * lineFactor;
+    const status = machineCapacityFactor < 1
+      ? "machine-shortfall"
+      : actualRunsPerMinute < targetRunsPerMinute
+        ? "limited-upstream"
+        : "on-target";
+
+    return {
+      index,
+      recipeId: recipe.id,
+      recipe,
+      recipeType: recipe.type,
+      recipeTypeName: repository.getRecipeType(recipe.type).name,
+      machine: row.machine,
+      voltageTier: row.voltageTier,
+      effectiveDurationTicks: row.effectiveDurationTicks,
+      effectiveEut: row.effectiveEut,
+      overclockSteps: row.overclockSteps ?? 0,
+      targetRunsPerMinute,
+      actualRunsPerMinute,
+      machineLoad: row.machineLoad ?? 0,
+      requiredMachineCount,
+      builtMachineCount,
+      machineCapacityFactor,
+      machineGroupKey: machineRow?.machineKey ?? null,
+      isMachineBottleneck: Boolean(machineRow?.weakestMachine),
+      isLineBottleneck: Boolean(machineRow?.bottleneck),
+      averageEut: row.averageEut ?? 0,
+      actualAverageEut,
+      inputs,
+      outputs: allOutputs,
+      plannedOutputs: [...plannedOutputs.entries()].map(([goodsId, amountPerMinute]) => ({
+        goodsId,
+        requiredAmountPerMinute: amountPerMinute,
+        actualAmountPerMinute: amountPerMinute * lineFactor
+      })),
+      status
+    };
+  });
 }
 
 function buildMachineRows(plan, machineCounts) {
