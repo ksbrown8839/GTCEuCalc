@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
-    <link rel="stylesheet" href="process-routes.css?v=process-action-summary-2026-06-08">
+    <link rel="stylesheet" href="process-routes.css?v=process-planning-modes-2026-06-09">
     <link rel="stylesheet" href="process-detail.css?v=process-energy-simplify-2026-06-06">
   </head>
   <body>
@@ -34,8 +34,8 @@
             <a class="process-config-card" href="#process-target-panel">
               <strong>1</strong>
               <span>
-                <b>Target rate</b>
-                <em>Desired output per minute.</em>
+                <b>Planning mode</b>
+                <em>Target rate or starter line.</em>
               </span>
             </a>
             <a class="process-config-card" href="#process-boundaries-panel">
@@ -78,6 +78,20 @@
 
         <section class="panel process-control-panel" id="process-target-panel">
           <h2>Target</h2>
+          <div class="process-mode-picker" aria-label="Planning mode">
+            <span>Planning mode</span>
+            <div class="process-mode-options">
+              <label>
+                <input type="radio" name="process-planning-mode" value="target" data-action="set-process-planning-mode" checked>
+                <span>Target Rate</span>
+              </label>
+              <label>
+                <input type="radio" name="process-planning-mode" value="starter" data-action="set-process-planning-mode">
+                <span>Starter Line</span>
+              </label>
+            </div>
+            <p data-role="process-mode-note"></p>
+          </div>
           <label class="process-rate-control">
             <span>Target output rate</span>
             <span class="process-stepper">
@@ -85,6 +99,15 @@
               <input data-role="process-target-rate" type="number" min="0" step="100">
               <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase target output rate">+</button>
             </span>
+          </label>
+          <label class="process-rate-control process-starter-control" data-role="process-starter-control" hidden>
+            <span>Final machines baseline</span>
+            <span class="process-stepper">
+              <button type="button" data-action="step-process-number" data-step-delta="-1" aria-label="Decrease final machines baseline">-</button>
+              <input data-role="process-starter-machine-count" data-action="set-process-starter-machine-count" type="number" min="1" step="1">
+              <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase final machines baseline">+</button>
+            </span>
+            <em data-role="process-starter-baseline-rate"></em>
           </label>
           <input data-role="process-target-search" type="search" placeholder="Search process targets">
           <p class="match-summary" data-role="process-target-match-summary"></p>
@@ -189,6 +212,6 @@
       </section>
     </div>
 
-    <script type="module" src="src/process-routes.js?v=process-action-summary-2026-06-08"></script>
+    <script type="module" src="src/process-routes.js?v=process-planning-modes-2026-06-09"></script>
   </body>
 </html>

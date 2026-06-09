@@ -88,6 +88,82 @@
   margin-bottom: 10px;
 }
 
+.process-mode-picker {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: #202020;
+  font-size: 11px;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.process-mode-picker > span {
+  color: var(--process-readable-muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.process-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.process-mode-options label {
+  display: grid;
+}
+
+.process-mode-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.process-mode-options span {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding: 6px 8px;
+  background: #d2d2d2;
+  color: #202020;
+  font-size: 9px;
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 1px 1px 0 #ffffff;
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 #eeeeee,
+    inset -2px -2px 0 #8b8b8b;
+}
+
+.process-mode-options input:checked + span {
+  background: #315a73;
+  color: #ffffa0;
+  text-shadow: 1px 1px 0 #000000;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #6b8fa5,
+    inset -2px -2px 0 #1c3545;
+}
+
+.process-mode-options input:focus-visible + span {
+  outline: 2px solid #ffffa0;
+  outline-offset: 2px;
+}
+
+.process-mode-picker p {
+  margin: 0;
+  color: var(--process-readable-muted);
+  font-size: 9px;
+  line-height: 1.35;
+  text-transform: none;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
 .process-rate-control > span {
   display: flex;
   align-items: center;
@@ -111,6 +187,13 @@
   box-shadow:
     inset 1px 1px 0 #6b8fa5,
     inset -1px -1px 0 #1c3545;
+}
+
+.process-starter-control > em {
+  justify-self: start;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 
 .process-stepper {

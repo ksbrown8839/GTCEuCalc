@@ -2,6 +2,7 @@ import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.j
 import { loadRepository } from "./repository.js?v=process-machine-tiers-2026-06-05";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 import { buildProcessFlow } from "./process-flow-model.js?v=process-rate-sheet-2026-06-08";
+import { effectiveDurationTicks } from "./planner.js?v=process-planning-modes-2026-06-09";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
@@ -16,7 +17,9 @@ const state = {
   textureAtlas: null,
   dataUrl: DEFAULT_DATA_URL,
   targetGoodsId: "gtceu:diesel",
+  planningMode: "target",
   targetRate: 6000,
+  starterMachineCount: 1,
   targetSearch: "",
   preferredRecipeByOutput: {},
   machineTierByRecipeType: {},
@@ -38,6 +41,11 @@ const elements = {
   targetMatchSummary: document.querySelector("[data-role='process-target-match-summary']"),
   targetResults: document.querySelector("[data-role='process-target-results']"),
   targetRate: document.querySelector("[data-role='process-target-rate']"),
+  planningModeInputs: document.querySelectorAll("[data-action='set-process-planning-mode']"),
+  modeNote: document.querySelector("[data-role='process-mode-note']"),
+  starterControl: document.querySelector("[data-role='process-starter-control']"),
+  starterMachineCount: document.querySelector("[data-role='process-starter-machine-count']"),
+  starterBaselineRate: document.querySelector("[data-role='process-starter-baseline-rate']"),
   boundaryPresetList: document.querySelector("[data-role='process-boundary-preset-list']"),
   boundarySummary: document.querySelector("[data-role='process-boundary-summary']"),
   title: document.querySelector("[data-role='process-title']"),
@@ -63,7 +71,6 @@ function currentFlow() {
 
 function flowWithOverrides(targetOverrides = {}, optionOverrides = {}) {
   const targetGoodsId = targetOverrides.goodsId ?? state.targetGoodsId;
-  const targetRate = targetOverrides.amountPerMinute ?? state.targetRate;
   const machineCounts = {
     ...state.machineCounts,
     ...(optionOverrides.machineCounts ?? {})
@@ -76,18 +83,66 @@ function flowWithOverrides(targetOverrides = {}, optionOverrides = {}) {
     ...state.machineTierByRecipeType,
     ...(optionOverrides.machineTierByRecipeType ?? {})
   };
+  const preferredRecipeByOutput = optionOverrides.preferredRecipeByOutput ?? state.preferredRecipeByOutput;
+  const targetRate = targetOverrides.amountPerMinute ?? planningTargetRate(targetGoodsId, {
+    machineTierByRecipeType,
+    preferredRecipeByOutput
+  });
 
   return buildProcessFlow(state.repository, {
     goodsId: targetGoodsId,
     amountPerMinute: targetRate
   }, {
-    preferredRecipeByOutput: optionOverrides.preferredRecipeByOutput ?? state.preferredRecipeByOutput,
+    preferredRecipeByOutput,
     machineTierByRecipeType,
     externalGoods: getEffectiveExternalGoods(),
     machineCounts,
     supplyRates,
     unlimitedSupplyGoods: optionOverrides.unlimitedSupplyGoods ?? state.unlimitedSupplyGoods
   });
+}
+
+function planningTargetRate(goodsId = state.targetGoodsId, options = {}) {
+  if (state.planningMode !== "starter") return state.targetRate;
+  return starterBaselineInfo(goodsId, options).amountPerMinute || state.targetRate;
+}
+
+function starterBaselineInfo(goodsId = state.targetGoodsId, options = {}) {
+  const preferredRecipeByOutput = options.preferredRecipeByOutput ?? state.preferredRecipeByOutput;
+  const recipe = state.repository.chooseRecipeForOutput(goodsId, preferredRecipeByOutput) ?? null;
+  if (!recipe) {
+    return {
+      amountPerMinute: 0,
+      recipe: null,
+      machine: null,
+      voltageTier: null,
+      outputAmount: 0,
+      effectiveDurationTicks: 0
+    };
+  }
+
+  const machineTierByRecipeType = options.machineTierByRecipeType ?? state.machineTierByRecipeType;
+  const assignment = state.repository.chooseMachineForRecipe(recipe, { machineTierByRecipeType });
+  const outputAmount = recipe.outputs
+    .filter((output) => output.id === goodsId)
+    .reduce((sum, output) => sum + output.amount * (output.chance ?? 1), 0);
+  const overclockSteps = state.repository.getVoltageTierDistance(assignment.minimumVoltageTier, assignment.voltageTier);
+  const duration = effectiveDurationTicks(recipe, overclockSteps);
+  const parallel = assignment.machine?.parallel ?? 1;
+  const machines = Math.max(1, Math.floor(Number(state.starterMachineCount) || 1));
+  const amountPerMinute = duration > 0
+    ? outputAmount * machines * parallel * (1200 / duration)
+    : outputAmount * machines;
+
+  return {
+    amountPerMinute,
+    recipe,
+    machine: assignment.machine,
+    voltageTier: assignment.voltageTier,
+    outputAmount,
+    effectiveDurationTicks: duration,
+    machines
+  };
 }
 
 function getEffectiveExternalGoods() {
@@ -113,13 +168,28 @@ function renderAll() {
 
 function renderTargetControls() {
   const matches = targetMatches();
+  const starter = starterBaselineInfo();
+  for (const input of elements.planningModeInputs) {
+    input.checked = input.value === state.planningMode;
+  }
+  elements.targetRate.closest(".process-rate-control").hidden = state.planningMode === "starter";
+  elements.starterControl.hidden = state.planningMode !== "starter";
+  elements.starterMachineCount.value = String(Math.max(1, Math.floor(state.starterMachineCount)));
+  elements.starterBaselineRate.textContent = starter.recipe
+    ? `${formatRate(starter.amountPerMinute)} from ${formatAmount(starter.machines)}x ${machineName(starter.machine, starter.voltageTier, recipeTypeName(starter.recipe))}`
+    : "No final recipe selected.";
+  elements.modeNote.textContent = state.planningMode === "starter"
+    ? "Uses the selected final recipe and tier to calculate a natural output from the baseline machines."
+    : "Enter the exact output rate you want the factory to sustain.";
   elements.targetResults.innerHTML = matches.length
     ? matches.map(targetButton).join("")
     : `<div class="empty-state">No matching process targets.</div>`;
   elements.targetMatchSummary.textContent = state.targetSearch.trim()
     ? `${formatAmount(matches.length)} matches shown`
     : `${formatAmount(matches.length)} suggested process targets`;
-  elements.targetRate.value = state.targetRate;
+  elements.targetRate.value = state.planningMode === "starter"
+    ? formatNumericInput(starter.amountPerMinute)
+    : state.targetRate;
 }
 
 function targetMatches() {
@@ -189,7 +259,7 @@ function renderProcess() {
 
   elements.title.textContent = `${targetGood?.name ?? flow.product.goodsId} Process Line`;
   elements.summary.textContent = [
-    `${formatRate(flow.idealOutputPerMinute)} target`,
+    `${formatRate(flow.idealOutputPerMinute)} ${state.planningMode === "starter" ? "starter output" : "target"}`,
     `${formatAmount(flow.plan.recipeRows.length)} recipes`,
     `${formatAmount(flow.machineRows.length)} machine groups`
   ].join(" / ");
@@ -210,6 +280,7 @@ function selectedNode(flow) {
 }
 
 function renderStats(flow) {
+  const modeCopy = planningModeCopy();
   const bottleneckText = flow.bottleneck ? bottleneckDescription(flow.bottleneck) : "No active bottleneck";
   const machineText = flow.machineBottleneck ? bottleneckDescription(flow.machineBottleneck) : "No timed machine demand";
   const actualOutputText = flow.bottleneck
@@ -228,9 +299,9 @@ function renderStats(flow) {
     : "";
   elements.stats.innerHTML = `
     <div class="process-stat-card">
-      <span>Ideal output</span>
+      <span>${escapeHtml(modeCopy.idealLabel)}</span>
       <strong>${formatRate(flow.idealOutputPerMinute)}</strong>
-      <em>The rate you asked the planner to make every minute.</em>
+      <em>${escapeHtml(modeCopy.idealNote)}</em>
     </div>
     <div class="process-stat-card">
       <span>Actual output</span>
@@ -251,6 +322,34 @@ function renderStats(flow) {
   `;
 }
 
+function planningModeCopy() {
+  if (state.planningMode === "starter") {
+    const starter = starterBaselineInfo();
+    const machine = starter.recipe
+      ? `${formatAmount(starter.machines)}x ${machineName(starter.machine, starter.voltageTier, recipeTypeName(starter.recipe))}`
+      : "the selected final recipe";
+    return {
+      modeLabel: "Starter Line",
+      meterLabel: "Starter output",
+      idealLabel: "Starter output",
+      idealNote: `Natural output from ${machine}.`,
+      readyLabel: "Starter balanced",
+      readyNote: "Your entered factory can support this starter line.",
+      targetNote: (name) => `${name} from ${machine}.`
+    };
+  }
+
+  return {
+    modeLabel: "Target Rate",
+    meterLabel: "Target",
+    idealLabel: "Ideal output",
+    idealNote: "The rate you asked the planner to make every minute.",
+    readyLabel: "Target reachable",
+    readyNote: "Your entered factory can meet this target.",
+    targetNote: (name) => name
+  };
+}
+
 function bottleneckDescription(row) {
   if (row.type === "machine") {
     return `${machineFamilyName(row.machine, "Machine")} at ${formatAmount(row.capacityFactor)}x target`;
@@ -262,6 +361,7 @@ function bottleneckDescription(row) {
 function renderPlayerSummary(flow) {
   const targetGood = state.repository.getGood(flow.product.goodsId);
   const audit = factoryAudit(flow, targetGood);
+  const modeCopy = planningModeCopy();
   elements.playerSummary.innerHTML = `
     <header class="process-action-header">
       <div>
@@ -273,7 +373,7 @@ function renderPlayerSummary(flow) {
     </header>
     <div class="process-action-grid">
       <div class="process-action-meters">
-        ${actionMeter("Target", audit.targetText, targetGood?.name ?? flow.product.goodsId)}
+        ${actionMeter(modeCopy.meterLabel, audit.targetText, audit.targetNote)}
         ${actionMeter("Actual", audit.actualText, audit.actualNote)}
         ${actionMeter("Efficiency", audit.efficiencyText, audit.efficiencyNote)}
       </div>
@@ -312,6 +412,7 @@ function actionMeter(label, value, note) {
 }
 
 function factoryAudit(flow, targetGood) {
+  const modeCopy = planningModeCopy();
   const targetText = formatRate(flow.idealOutputPerMinute);
   const actualText = formatRate(flow.capacityOutputPerMinute);
   const efficiency = flow.idealOutputPerMinute > 0
@@ -324,12 +425,13 @@ function factoryAudit(flow, targetGood) {
 
   return {
     ready,
-    stateLabel: ready ? "Target reachable" : "Action needed",
+    stateLabel: ready ? modeCopy.readyLabel : "Action needed",
     targetText,
+    targetNote: modeCopy.targetNote(targetGood?.name ?? flow.product.goodsId),
     actualText,
     actualNote: `${targetGood?.name ?? flow.product.goodsId} after current machine and supply limits.`,
     efficiencyText: `${formatAmount(efficiency)}%`,
-    efficiencyNote: ready ? "Your entered factory can meet this target." : "Actual output divided by requested output.",
+    efficiencyNote: ready ? modeCopy.readyNote : `Actual output divided by ${modeCopy.idealLabel.toLowerCase()}.`,
     bottleneck,
     mainAction,
     candidates
@@ -340,7 +442,9 @@ function bottleneckAudit(flow) {
   if (!flow.bottleneck || flow.lineFactor >= 0.999) {
     return {
       title: "No active bottleneck",
-      detail: "The configured machine counts and supplied input rates can hit the requested target."
+      detail: state.planningMode === "starter"
+        ? "The configured machine counts and supplied input rates can support this starter baseline."
+        : "The configured machine counts and supplied input rates can hit the requested target."
     };
   }
 
@@ -364,9 +468,12 @@ function noBuildAction(flow) {
   const headroom = flow.machineCapacityOutputPerMinute > flow.idealOutputPerMinute
     ? ` Machine headroom reaches ${formatRate(flow.machineCapacityOutputPerMinute)} before supply limits.`
     : "";
+  const detail = state.planningMode === "starter"
+    ? "This starter baseline has no machine or supplied input below its natural output rate."
+    : "No machine or supplied input is below the requested rate right now.";
   return {
     title: "Build from the current plan",
-    detail: "No machine or supplied input is below the requested rate right now.",
+    detail,
     effect: `Expected output is ${formatRate(flow.capacityOutputPerMinute)}.${headroom}`,
     apply: null
   };
@@ -1236,7 +1343,11 @@ function updateUrl() {
   const params = new URLSearchParams();
   if (state.dataUrl !== DEFAULT_DATA_URL) params.set("data", state.dataUrl);
   params.set("target", state.targetGoodsId);
-  params.set("rate", String(state.targetRate));
+  if (state.planningMode !== "target") params.set("mode", state.planningMode);
+  if (state.planningMode === "target") params.set("rate", String(state.targetRate));
+  if (state.planningMode === "starter" && state.starterMachineCount !== 1) {
+    params.set("baseline", String(state.starterMachineCount));
+  }
   const nextUrl = `${window.location.pathname}?${params.toString()}`;
   window.history.replaceState(null, "", nextUrl);
 }
@@ -1249,9 +1360,19 @@ function targetFromLocation() {
   return new URLSearchParams(window.location.search).get("target");
 }
 
+function planningModeFromLocation() {
+  const value = new URLSearchParams(window.location.search).get("mode");
+  return value === "starter" ? "starter" : "target";
+}
+
 function rateFromLocation() {
   const value = Number(new URLSearchParams(window.location.search).get("rate"));
   return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function starterBaselineFromLocation() {
+  const value = Number(new URLSearchParams(window.location.search).get("baseline"));
+  return Number.isFinite(value) && value >= 1 ? Math.floor(value) : null;
 }
 
 function textureAtlasUrlFromLocation() {
@@ -1279,6 +1400,12 @@ function setupEvents() {
 
   elements.targetRate.addEventListener("input", (event) => {
     state.targetRate = Math.max(0, Number(event.target.value) || 0);
+    renderProcess();
+  });
+
+  elements.starterMachineCount.addEventListener("input", (event) => {
+    state.starterMachineCount = Math.max(1, Math.floor(Number(event.target.value) || 1));
+    renderTargetControls();
     renderProcess();
   });
 
@@ -1322,11 +1449,16 @@ function setupEvents() {
       renderAll();
     }
 
+    if (action === "set-process-planning-mode") {
+      state.planningMode = target.value === "starter" ? "starter" : "target";
+      renderAll();
+    }
+
     if (action === "choose-process-recipe") {
       const outputId = target.dataset.outputId;
       if (!outputId) return;
       chooseProcessRecipe(outputId, target.value);
-      renderProcess();
+      renderAll();
     }
 
     if (action === "set-process-machine-tier") {
@@ -1334,7 +1466,7 @@ function setupEvents() {
       if (!recipeType) return;
       if (target.value) state.machineTierByRecipeType[recipeType] = target.value;
       else delete state.machineTierByRecipeType[recipeType];
-      renderProcess();
+      renderAll();
     }
   });
 
@@ -1615,6 +1747,8 @@ async function main() {
     state.dataUrl = dataUrlFromLocation();
     state.repository = await loadRepository(state.dataUrl);
     state.textureAtlas = await loadTextureAtlas(textureAtlasUrlFromLocation());
+    state.planningMode = planningModeFromLocation();
+    state.starterMachineCount = starterBaselineFromLocation() ?? state.starterMachineCount;
     state.targetGoodsId = targetFromLocation() && state.repository.getGood(targetFromLocation())
       ? targetFromLocation()
       : state.repository.getGood("gtceu:diesel")
