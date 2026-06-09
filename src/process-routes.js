@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=process-machine-tiers-2026-06-05";
+import { loadRepository } from "./repository.js?v=process-coproduct-routes-2026-06-09";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
-import { buildProcessFlow } from "./process-flow-model.js?v=process-rate-sheet-2026-06-08";
+import { buildProcessFlow } from "./process-flow-model.js?v=process-coproduct-routes-2026-06-09";
 import { effectiveDurationTicks } from "./planner.js?v=process-planning-modes-2026-06-09";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -29,6 +29,7 @@ const state = {
   machineCounts: {},
   supplyRates: {},
   unlimitedSupplyGoods: new Set(),
+  processedByproducts: {},
   flowZoom: 1,
   selectedNodeId: null,
   detailOpen: false
@@ -84,22 +85,145 @@ function flowWithOverrides(targetOverrides = {}, optionOverrides = {}) {
     ...(optionOverrides.machineTierByRecipeType ?? {})
   };
   const preferredRecipeByOutput = optionOverrides.preferredRecipeByOutput ?? state.preferredRecipeByOutput;
+  const processedByproducts = optionOverrides.processedByproducts ?? state.processedByproducts;
   const targetRate = targetOverrides.amountPerMinute ?? planningTargetRate(targetGoodsId, {
     machineTierByRecipeType,
     preferredRecipeByOutput
   });
+  const externalGoods = getEffectiveExternalGoods();
 
-  return buildProcessFlow(state.repository, {
+  const baseFlow = buildProcessFlow(state.repository, {
     goodsId: targetGoodsId,
     amountPerMinute: targetRate
   }, {
     preferredRecipeByOutput,
     machineTierByRecipeType,
-    externalGoods: getEffectiveExternalGoods(),
+    externalGoods,
     machineCounts,
     supplyRates,
     unlimitedSupplyGoods: optionOverrides.unlimitedSupplyGoods ?? state.unlimitedSupplyGoods
   });
+
+  const extraProducts = coproductProductsForFlow(baseFlow, processedByproducts);
+  if (!extraProducts.length) return baseFlow;
+
+  const coproductSourceGoods = new Set(extraProducts.map((product) => product.sourceGoodsId));
+  const externalWithCoproducts = new Set(externalGoods);
+  const preferredWithCoproducts = { ...preferredRecipeByOutput };
+  for (const product of extraProducts) {
+    externalWithCoproducts.add(product.sourceGoodsId);
+    preferredWithCoproducts[product.goodsId] = product.recipeId;
+  }
+
+  return buildProcessFlow(state.repository, {
+    goodsId: targetGoodsId,
+    amountPerMinute: targetRate
+  }, {
+    preferredRecipeByOutput: preferredWithCoproducts,
+    machineTierByRecipeType,
+    externalGoods: externalWithCoproducts,
+    machineCounts,
+    supplyRates,
+    unlimitedSupplyGoods: optionOverrides.unlimitedSupplyGoods ?? state.unlimitedSupplyGoods,
+    extraProducts,
+    coproductSourceGoods
+  });
+}
+
+function coproductProductsForFlow(flow, processedByproducts) {
+  return Object.entries(processedByproducts ?? {})
+    .map(([sourceGoodsId, outputGoodsId]) => {
+      const sourceRow = flow.plan.byproductRows.find((row) => row.goodsId === sourceGoodsId);
+      if (!sourceRow || sourceRow.amountPerMinute <= 0) return null;
+      const route = byproductProcessingRoutes(sourceGoodsId).find((candidate) => candidate.outputGoodsId === outputGoodsId);
+      if (!route || route.inputAmount <= 0 || route.outputAmount <= 0) return null;
+      const runsPerMinute = sourceRow.amountPerMinute / route.inputAmount;
+      const amountPerMinute = runsPerMinute * route.outputAmount;
+      return {
+        goodsId: route.outputGoodsId,
+        amountPerMinute,
+        recipeId: route.recipe.id,
+        sourceGoodsId,
+        sourceAmountPerMinute: sourceRow.amountPerMinute,
+        runsPerMinute
+      };
+    })
+    .filter(Boolean);
+}
+
+function byproductProcessingRoutes(sourceGoodsId) {
+  if (isGenericByproductReagent(sourceGoodsId)) return [];
+  const routes = new Map();
+  for (const recipe of state.repository.findRecipesUsingGood(sourceGoodsId)) {
+    const sourceInputs = recipe.inputs.filter((input) => {
+      return !input.notConsumed && state.repository.ingredientMatchesGood(input, sourceGoodsId);
+    });
+    const inputAmount = sourceInputs.reduce((sum, input) => sum + input.amount, 0);
+    if (inputAmount <= 0) continue;
+
+    for (const output of recipe.outputs) {
+      if (output.id === sourceGoodsId || !state.repository.getGood(output.id)) continue;
+      const outputAmount = output.amount * (output.chance ?? 1);
+      if (outputAmount <= 0) continue;
+      const affinity = routeMaterialAffinity(sourceGoodsId, output.id);
+      if (affinity <= 0 && isGenericByproductReagent(sourceGoodsId)) continue;
+      const key = `${recipe.id}->${output.id}`;
+      routes.set(key, {
+        sourceGoodsId,
+        outputGoodsId: output.id,
+        recipe,
+        inputAmount,
+        outputAmount,
+        score: byproductRouteScore(recipe, sourceGoodsId, output.id, affinity)
+      });
+    }
+  }
+
+  return [...routes.values()]
+    .sort((a, b) => a.score - b.score || recipeTypeName(a.recipe).localeCompare(recipeTypeName(b.recipe)) || a.outputGoodsId.localeCompare(b.outputGoodsId));
+}
+
+function byproductRouteScore(recipe, sourceGoodsId, outputGoodsId, affinity) {
+  const output = state.repository.getGood(outputGoodsId);
+  const text = `${outputGoodsId} ${output?.name ?? ""} ${recipe.id} ${recipe.type}`.toLowerCase();
+  let score = 0;
+  score -= affinity * 260;
+  if (output?.kind === "item") score -= 900;
+  if (output?.kind === "fluid") score += 160;
+  if (/dust|ingot|gem|plate|rod/.test(text)) score -= 180;
+  if (/diesel|fuel|acid|polyethylene|benzene|uranium|plutonium|titanium|platinum/.test(text)) score -= 120;
+  if (/water|oxygen|hydrogen|fluorine|chlorine|steam/.test(text)) score += 180;
+  if (/large_|distillation_tower|fusion/.test(recipe.type)) score += 500;
+  score += recipe.inputs.filter((input) => !input.notConsumed).length * 15;
+  score += Math.min(300, Math.abs(recipe.eut ?? 0) / 4);
+  return score;
+}
+
+function routeMaterialAffinity(sourceGoodsId, outputGoodsId) {
+  const sourceWords = materialWordsForGood(sourceGoodsId);
+  const outputText = materialWordsForGood(outputGoodsId).join(" ");
+  let score = 0;
+  for (const word of sourceWords) {
+    const root = word.slice(0, Math.min(word.length, 5));
+    if (root.length >= 4 && outputText.includes(root)) score += 1;
+  }
+  return score;
+}
+
+function materialWordsForGood(goodsId) {
+  const good = state.repository.getGood(goodsId);
+  const text = `${goodsId} ${good?.name ?? ""}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ");
+  const stop = new Set([
+    "gtceu", "minecraft", "forge", "dust", "fluid", "item", "ingot", "plate", "rod",
+    "tiny", "small", "depleted", "enriched", "hexafluoride", "acid", "gas", "liquid"
+  ]);
+  return text.split(/\s+/).filter((word) => word.length >= 4 && !stop.has(word));
+}
+
+function isGenericByproductReagent(goodsId) {
+  return /(?:^|:)(water|oxygen|hydrogen|steam|air|distilled_water|salt_water)$|_(?:water|oxygen|hydrogen|steam)$/.test(goodsId);
 }
 
 function planningTargetRate(goodsId = state.targetGoodsId, options = {}) {
@@ -398,6 +522,7 @@ function renderPlayerSummary(flow) {
         </div>
       </div>
     ` : ""}
+    ${state.planningMode === "starter" ? starterRecommendationPanel(flow) : ""}
   `;
 }
 
@@ -637,6 +762,177 @@ function actionCandidate(action) {
   `;
 }
 
+function starterRecommendationPanel(flow) {
+  const candidates = starterRouteCandidates().slice(0, 3);
+  const selectedRecipeId = starterBaselineInfo().recipe?.id ?? "";
+  const best = candidates[0] ?? null;
+  const selected = candidates.find((candidate) => candidate.recipe.id === selectedRecipeId) ?? best;
+  const machinePlan = flow.machineRows
+    .slice()
+    .sort((a, b) => b.requiredCount - a.requiredCount || machineFamilyName(a.machine).localeCompare(machineFamilyName(b.machine)))
+    .slice(0, 6);
+  const supplyPlan = flow.supplyRows
+    .filter((row) => !row.coproduct)
+    .slice(0, 6);
+  const coproductPlan = byproductOpportunityRows(flow)
+    .filter((row) => row.activeRoute || row.recommendedRoute)
+    .slice(0, 4);
+  const selectedDiffers = Boolean(best && selectedRecipeId && best.recipe.id !== selectedRecipeId);
+
+  return `
+    <section class="process-starter-recommendation">
+      <header>
+        <span>Starter recommendation</span>
+        <h3>${escapeHtml(selected?.title ?? "No starter route found")}</h3>
+        <p>${escapeHtml(selected?.detail ?? "Pick a target with at least one recipe to get a starter build.")}</p>
+        ${selectedDiffers ? `
+          <button class="process-action-button" type="button" data-action="choose-process-machine" data-output-id="${escapeHtml(state.targetGoodsId)}" data-recipe-id="${escapeHtml(best.recipe.id)}">
+            Use simplest route
+          </button>
+        ` : ""}
+      </header>
+      <div class="process-starter-columns">
+        <article>
+          <span>Build first</span>
+          <div class="process-mini-list">
+            ${machinePlan.length ? machinePlan.map(starterMachineChip).join("") : `<em>No timed machines needed.</em>`}
+          </div>
+        </article>
+        <article>
+          <span>Supply or make upstream</span>
+          <div class="process-mini-list">
+            ${supplyPlan.length ? supplyPlan.map(starterSupplyChip).join("") : `<em>No supplied inputs at this boundary.</em>`}
+          </div>
+        </article>
+        <article>
+          <span>Co-products to handle</span>
+          <div class="process-mini-list">
+            ${coproductPlan.length ? coproductPlan.map(coproductMiniAction).join("") : `<em>No processable side streams found.</em>`}
+          </div>
+        </article>
+      </div>
+      ${candidates.length > 1 ? `
+        <div class="process-starter-routes">
+          <span>Route choices</span>
+          ${candidates.map((candidate) => starterRouteButton(candidate, selectedRecipeId)).join("")}
+        </div>
+      ` : ""}
+    </section>
+  `;
+}
+
+function starterRouteCandidates() {
+  const rankedRecipes = state.repository.rankRecipesForOutput(state.targetGoodsId).slice(0, 18);
+  const productionRecipes = rankedRecipes.filter((recipe) => {
+    return starterReverseRoutePenalty(recipe, state.targetGoodsId) < 3_000;
+  });
+  const recipes = (productionRecipes.length ? productionRecipes : rankedRecipes).slice(0, 12);
+  return recipes
+    .map((recipe) => {
+      const preferredRecipeByOutput = {
+        ...state.preferredRecipeByOutput,
+        [state.targetGoodsId]: recipe.id
+      };
+      const starter = starterBaselineInfo(state.targetGoodsId, { preferredRecipeByOutput });
+      if (!starter.recipe || starter.amountPerMinute <= 0) return null;
+      const preview = flowWithOverrides({
+        goodsId: state.targetGoodsId,
+        amountPerMinute: starter.amountPerMinute
+      }, {
+        preferredRecipeByOutput,
+        processedByproducts: {}
+      });
+      const machineTotal = preview.machineRows.reduce((sum, row) => sum + row.requiredCount, 0);
+      const processableByproducts = byproductOpportunityRows(preview).length;
+      const finalMachine = machineName(starter.machine, starter.voltageTier, recipeTypeName(recipe));
+      return {
+        recipe,
+        starter,
+        preview,
+        score: starterRouteScore(preview, recipe, machineTotal, processableByproducts),
+        title: `${formatRate(starter.amountPerMinute)} via ${finalMachine}`,
+        detail: `${formatAmount(machineTotal)} machines, ${formatAmount(preview.supplyRows.length)} supplied inputs, ${formatAmount(preview.plan.byproductRows.length)} byproducts.`
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score || a.recipe.id.localeCompare(b.recipe.id));
+}
+
+function starterRouteScore(flow, recipe, machineTotal, processableByproducts) {
+  let score = 0;
+  score += flow.plan.recipeRows.length * 140;
+  score += flow.machineRows.length * 220;
+  score += machineTotal * 90;
+  score += flow.supplyRows.length * 36;
+  score += Math.min(1200, flow.targetPowerEut / 8);
+  score += /large_|distillation_tower|fusion/.test(recipe.type) ? 900 : 0;
+  score += starterReverseRoutePenalty(recipe, state.targetGoodsId);
+  score -= Math.min(240, processableByproducts * 40);
+  return score;
+}
+
+function starterReverseRoutePenalty(recipe, targetGoodsId) {
+  const targetMaterial = materialKeyForGoodsId(targetGoodsId);
+  if (!targetMaterial) return 0;
+  const inputIds = recipe.inputs
+    .filter((input) => !input.notConsumed)
+    .map((input) => state.repository.resolveIngredient(input).id ?? input.id);
+  const consumesSameMaterialStock = inputIds.some((inputId) => {
+    const inputMaterial = materialKeyForGoodsId(inputId);
+    return inputMaterial === targetMaterial && isStockOrSmallerForm(inputId);
+  });
+  if (!consumesSameMaterialStock) return 0;
+  if (/macerat|unpack|package|crafting|shaped|shapeless/.test(`${recipe.type} ${recipe.id}`)) return 3_500;
+  return 1_800;
+}
+
+function materialKeyForGoodsId(goodsId) {
+  const patterns = [
+    /^[^:]+:(?:tiny_dusts|small_dusts|dusts|nuggets|ingots|plates|double_plates|rods|storage_blocks)\/(.+)$/,
+    /^[^:]+:(?:tiny|small)_(.+)_dust$/,
+    /^[^:]+:double_(.+)_plate$/,
+    /^[^:]+:(.+)_(?:dust|nugget|ingot|plate|rod|block)$/
+  ];
+  for (const pattern of patterns) {
+    const match = goodsId.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function isStockOrSmallerForm(goodsId) {
+  return /(?:tiny_dusts|small_dusts|nuggets|ingots|plates|double_plates|rods|storage_blocks)\/|:(?:tiny|small)_.+_dust$|_(?:nugget|ingot|plate|rod|block)$|double_/.test(goodsId);
+}
+
+function starterMachineChip(row) {
+  return `
+    <div class="process-mini-chip">
+      <strong>${formatAmount(row.requiredCount)}x ${escapeHtml(tierLabel(row.voltageTier))} ${escapeHtml(machineFamilyName(row.machine, "Machine"))}</strong>
+      <em>${formatRate(row.runsPerMinute)} runs / ${formatAmount(row.recipeCount)} recipe steps</em>
+    </div>
+  `;
+}
+
+function starterSupplyChip(row) {
+  const control = row.unlimited ? "No limit" : formatRate(row.requiredAmountPerMinute);
+  return `
+    <div class="process-mini-chip">
+      <strong>${escapeHtml(state.repository.getGoodName(row.goodsId))}</strong>
+      <em>${escapeHtml(control)} required</em>
+    </div>
+  `;
+}
+
+function starterRouteButton(candidate, selectedRecipeId) {
+  const selected = candidate.recipe.id === selectedRecipeId ? " selected" : "";
+  return `
+    <button class="process-route-choice${selected}" type="button" data-action="choose-process-machine" data-output-id="${escapeHtml(state.targetGoodsId)}" data-recipe-id="${escapeHtml(candidate.recipe.id)}">
+      <strong>${escapeHtml(recipeTypeName(candidate.recipe))}</strong>
+      <span>${escapeHtml(candidate.detail)}</span>
+    </button>
+  `;
+}
+
 function renderFlowMap(flow) {
   const connectors = flow.graph.edges.map((edge) => connector(edge, flow.graph.nodes)).join("");
   const zoom = state.flowZoom;
@@ -792,9 +1088,12 @@ function supplyRowMarkup(row) {
   const bottleneck = row.weakestSupply ? " bottleneck" : "";
   const underbuilt = row.underbuilt ? " underbuilt" : "";
   const unlimited = row.unlimited ? " unlimited" : "";
+  const coproduct = row.coproduct ? " coproduct" : "";
   const supplyLimitText = row.unlimited
     ? `Uses ${formatRate(row.actualUsedAmountPerMinute)} / no supply limit`
-    : `Uses ${formatRate(row.actualUsedAmountPerMinute)} / max ${formatRate(row.maxOutputPerMinute)} output`;
+    : row.coproduct
+      ? `Uses ${formatRate(row.actualUsedAmountPerMinute)} from the selected side stream`
+      : `Uses ${formatRate(row.actualUsedAmountPerMinute)} / max ${formatRate(row.maxOutputPerMinute)} output`;
   const limitControl = row.unlimited
     ? `<div class="process-infinite-value"><strong>No limit</strong><span>Handled separately</span></div>`
     : `<span class="process-stepper">
@@ -803,9 +1102,9 @@ function supplyRowMarkup(row) {
         <button type="button" data-action="step-process-number" data-step-delta="1" aria-label="Increase available rate">+</button>
       </span>`;
   return `
-    <article class="process-supply-row${bottleneck}${underbuilt}${unlimited}">
+    <article class="process-supply-row${bottleneck}${underbuilt}${unlimited}${coproduct}">
       <div class="process-row-copy">
-        <span class="process-row-kicker">Supplied input</span>
+        <span class="process-row-kicker">${row.coproduct ? "Co-product feedstock" : "Supplied input"}</span>
         ${goodChip(row.goodsId, `${formatRate(row.requiredAmountPerMinute)} required`)}
         <em>${escapeHtml(supplyLimitText)}</em>
       </div>
@@ -814,17 +1113,91 @@ function supplyRowMarkup(row) {
         ${limitControl}
       </label>
       <div class="process-supply-actions">
-        <button class="secondary-button" type="button" data-action="toggle-process-supply-limit" data-id="${escapeHtml(row.goodsId)}">${row.unlimited ? "Set rate limit" : "No limit"}</button>
-        ${canMake ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(row.goodsId)}">Make upstream</button>` : ""}
+        ${row.coproduct ? "" : `<button class="secondary-button" type="button" data-action="toggle-process-supply-limit" data-id="${escapeHtml(row.goodsId)}">${row.unlimited ? "Set rate limit" : "No limit"}</button>`}
+        ${canMake && !row.coproduct ? `<button class="secondary-button" type="button" data-action="make-process-good" data-id="${escapeHtml(row.goodsId)}">Make upstream</button>` : ""}
       </div>
     </article>
   `;
 }
 
 function renderByproducts(flow) {
-  elements.byproducts.innerHTML = flow.plan.byproductRows.length
-    ? flow.plan.byproductRows.slice(0, 18).map((row) => goodLine(row.goodsId, formatRate(row.amountPerMinute))).join("")
+  const rows = byproductOpportunityRows(flow).slice(0, 18);
+  elements.byproducts.innerHTML = rows.length
+    ? rows.map(byproductRowMarkup).join("")
     : `<div class="empty-state">No byproducts in this selected chain.</div>`;
+}
+
+function byproductOpportunityRows(flow) {
+  return flow.plan.byproductRows.map((row) => {
+    const routes = byproductProcessingRoutes(row.goodsId);
+    const activeOutputGoodsId = state.processedByproducts[row.goodsId] ?? "";
+    const activeRoute = routes.find((route) => route.outputGoodsId === activeOutputGoodsId) ?? null;
+    return {
+      ...row,
+      routes,
+      recommendedRoute: routes[0] ?? null,
+      activeRoute
+    };
+  });
+}
+
+function byproductRowMarkup(row) {
+  const active = row.activeRoute ? " active" : "";
+  const route = row.activeRoute ?? row.recommendedRoute;
+  const action = row.activeRoute
+    ? `<button class="secondary-button" type="button" data-action="stop-process-byproduct" data-id="${escapeHtml(row.goodsId)}">Stop side branch</button>`
+    : route
+      ? `<button class="secondary-button" type="button" data-action="process-byproduct" data-id="${escapeHtml(row.goodsId)}" data-output-id="${escapeHtml(route.outputGoodsId)}">Process into ${escapeHtml(state.repository.getGoodName(route.outputGoodsId))}</button>`
+      : "";
+  const routeText = row.activeRoute
+    ? `Processing into ${state.repository.getGoodName(row.activeRoute.outputGoodsId)}.`
+    : route
+      ? `Recommended side route: ${recipeTypeName(route.recipe)} into ${state.repository.getGoodName(route.outputGoodsId)}.`
+      : "No downstream processing route found.";
+  return `
+    <article class="process-byproduct-row${active}">
+      <div class="process-row-copy">
+        <span class="process-row-kicker">${row.activeRoute ? "Co-product stream" : "Byproduct"}</span>
+        ${goodChip(row.goodsId, `${formatRate(row.amountPerMinute)} available`)}
+        <em>${escapeHtml(routeText)}</em>
+      </div>
+      ${row.routes.length ? `
+        <label class="process-config-input process-byproduct-select">
+          <span>Process as</span>
+          <select data-action="select-byproduct-route" data-id="${escapeHtml(row.goodsId)}">
+            <option value=""${row.activeRoute ? "" : " selected"}>Leave as byproduct</option>
+            ${row.routes.slice(0, 8).map((candidate) => {
+              const selected = candidate.outputGoodsId === row.activeRoute?.outputGoodsId ? " selected" : "";
+              return `<option value="${escapeHtml(candidate.outputGoodsId)}"${selected}>${escapeHtml(`${state.repository.getGoodName(candidate.outputGoodsId)} / ${recipeTypeName(candidate.recipe)}`)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+      ` : ""}
+      <div class="process-supply-actions">${action}</div>
+    </article>
+  `;
+}
+
+function coproductMiniAction(row) {
+  const route = row.activeRoute ?? row.recommendedRoute;
+  if (!route) {
+    return `
+      <div class="process-mini-chip">
+        <strong>${escapeHtml(state.repository.getGoodName(row.goodsId))}</strong>
+        <em>${formatRate(row.amountPerMinute)} byproduct</em>
+      </div>
+    `;
+  }
+  const active = row.activeRoute ? " active" : "";
+  return `
+    <div class="process-mini-chip${active}">
+      <strong>${escapeHtml(state.repository.getGoodName(row.goodsId))}</strong>
+      <em>${row.activeRoute ? "Processing" : "Can process"} into ${escapeHtml(state.repository.getGoodName(route.outputGoodsId))}</em>
+      <button class="secondary-button" type="button" data-action="${row.activeRoute ? "stop-process-byproduct" : "process-byproduct"}" data-id="${escapeHtml(row.goodsId)}" data-output-id="${escapeHtml(route.outputGoodsId)}">
+        ${row.activeRoute ? "Stop" : "Add"}
+      </button>
+    </div>
+  `;
 }
 
 function renderRateSheet(flow) {
@@ -1468,6 +1841,14 @@ function setupEvents() {
       else delete state.machineTierByRecipeType[recipeType];
       renderAll();
     }
+
+    if (action === "select-byproduct-route") {
+      const goodsId = target.dataset.id;
+      if (!goodsId) return;
+      if (target.value) state.processedByproducts[goodsId] = target.value;
+      else delete state.processedByproducts[goodsId];
+      renderAll();
+    }
   });
 
   document.addEventListener("click", (event) => {
@@ -1488,6 +1869,7 @@ function setupEvents() {
       state.machineCounts = {};
       state.supplyRates = {};
       state.unlimitedSupplyGoods = new Set();
+      state.processedByproducts = {};
       state.selectedNodeId = null;
       state.detailOpen = false;
       state.targetSearch = "";
@@ -1549,6 +1931,7 @@ function setupEvents() {
       state.manualMadeGoods.add(goodsId);
       state.manualExternalGoods.delete(goodsId);
       state.unlimitedSupplyGoods.delete(goodsId);
+      delete state.processedByproducts[goodsId];
       renderAll();
       return;
     }
@@ -1557,6 +1940,7 @@ function setupEvents() {
       state.manualExternalGoods.add(goodsId);
       state.manualMadeGoods.delete(goodsId);
       delete state.preferredRecipeByOutput[goodsId];
+      delete state.processedByproducts[goodsId];
       renderAll();
       return;
     }
@@ -1565,6 +1949,20 @@ function setupEvents() {
       if (state.unlimitedSupplyGoods.has(goodsId)) state.unlimitedSupplyGoods.delete(goodsId);
       else state.unlimitedSupplyGoods.add(goodsId);
       renderProcess();
+      return;
+    }
+
+    if (action === "process-byproduct" && goodsId && target.dataset.outputId) {
+      state.processedByproducts[goodsId] = target.dataset.outputId;
+      state.manualExternalGoods.delete(goodsId);
+      state.unlimitedSupplyGoods.delete(goodsId);
+      renderAll();
+      return;
+    }
+
+    if (action === "stop-process-byproduct" && goodsId) {
+      delete state.processedByproducts[goodsId];
+      renderAll();
     }
   });
 

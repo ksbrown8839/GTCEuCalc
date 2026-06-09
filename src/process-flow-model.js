@@ -8,9 +8,21 @@ export function buildProcessFlow(repository, target, options = {}) {
     goodsId: target.goodsId,
     amountPerMinute: Number(target.amountPerMinute) || 0
   };
+  const products = [product];
+  const seenProducts = new Set([product.goodsId]);
+  for (const extraProduct of options.extraProducts ?? []) {
+    const goodsId = extraProduct.goodsId;
+    const amountPerMinute = Number(extraProduct.amountPerMinute) || 0;
+    if (!goodsId || amountPerMinute <= 0 || seenProducts.has(goodsId)) continue;
+    products.push({ goodsId, amountPerMinute });
+    seenProducts.add(goodsId);
+  }
   const externalGoods = new Set(options.externalGoods ?? []);
   externalGoods.delete(product.goodsId);
-  const plan = createPlan(repository, [product], {
+  for (const extraProduct of products.slice(1)) {
+    externalGoods.delete(extraProduct.goodsId);
+  }
+  const plan = createPlan(repository, products, {
     preferredRecipeByOutput: options.preferredRecipeByOutput ?? {},
     machineTierByRecipeType: options.machineTierByRecipeType ?? {},
     externalGoods,
@@ -18,7 +30,12 @@ export function buildProcessFlow(repository, target, options = {}) {
   });
   const machineRows = buildMachineRows(plan, options.machineCounts ?? {});
   const graph = buildProcessGraph(repository, plan, machineRows);
-  const supplyRows = buildSupplyRows(plan, options.supplyRates ?? {}, new Set(options.unlimitedSupplyGoods ?? []));
+  const supplyRows = buildSupplyRows(
+    plan,
+    options.supplyRates ?? {},
+    new Set(options.unlimitedSupplyGoods ?? []),
+    new Set(options.coproductSourceGoods ?? [])
+  );
   const machineBottleneck = bottleneckFor(machineRows);
   const supplyBottleneck = bottleneckFor(supplyRows);
   const bottleneck = bottleneckFor([...machineRows, ...supplyRows]);
@@ -34,6 +51,8 @@ export function buildProcessFlow(repository, target, options = {}) {
 
   return {
     product,
+    products,
+    extraProducts: options.extraProducts ?? [],
     plan,
     graph,
     stageRows,
@@ -193,12 +212,13 @@ function buildMachineRows(plan, machineCounts) {
     });
 }
 
-function buildSupplyRows(plan, supplyRates, unlimitedSupplyGoods) {
+function buildSupplyRows(plan, supplyRates, unlimitedSupplyGoods, coproductSourceGoods) {
   return plan.externalRows
     .map((row) => {
       const requiredAmountPerMinute = row.amountPerMinute;
       const configured = Number(supplyRates[row.goodsId]);
       const unlimited = unlimitedSupplyGoods.has(row.goodsId);
+      const coproduct = coproductSourceGoods.has(row.goodsId);
       const availableAmountPerMinute = unlimited ? Infinity : (
         Number.isFinite(configured) ? Math.max(0, configured) : requiredAmountPerMinute
       );
@@ -211,6 +231,7 @@ function buildSupplyRows(plan, supplyRates, unlimitedSupplyGoods) {
         bottleneckKey: `supply:${row.goodsId}`,
         goodsId: row.goodsId,
         unlimited,
+        coproduct,
         requiredAmountPerMinute,
         availableAmountPerMinute,
         actualUsedAmountPerMinute: 0,

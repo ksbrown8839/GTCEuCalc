@@ -159,6 +159,25 @@ export class Repository {
     return this.recipesByInput.get(goodsId) ?? [];
   }
 
+  findRecipesUsingGood(goodsId) {
+    const good = this.getGood(goodsId);
+    const inputIds = new Set([goodsId, ...(good?.tags ?? [])]);
+    const recipes = new Map();
+    for (const inputId of inputIds) {
+      for (const recipe of this.findRecipesUsing(inputId)) {
+        recipes.set(recipe.id, recipe);
+      }
+    }
+    return [...recipes.values()];
+  }
+
+  ingredientMatchesGood(ingredient, goodsId) {
+    if (ingredient.id === goodsId) return true;
+    if (ingredient.kind !== "tag") return false;
+    const good = this.getGood(goodsId);
+    return Boolean(good?.tags?.includes(ingredient.id));
+  }
+
   chooseRecipeForOutput(goodsId, preferences = {}, options = {}) {
     const preferredRecipe = preferences[goodsId];
     const recipes = this.findRecipesProducing(goodsId);
