@@ -6,6 +6,10 @@
   --process-readable-muted: #353535;
 }
 
+.process-route-shell [hidden] {
+  display: none !important;
+}
+
 .process-route-shell {
   display: grid;
   grid-template-columns: 306px minmax(0, 1fr);
