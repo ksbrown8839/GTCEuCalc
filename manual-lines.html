@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
     <link rel="stylesheet" href="process-routes.css?v=process-coproduct-routes-2026-06-09">
-    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-simulink-2026-06-14">
+    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-wire-palette-2026-06-14">
   </head>
   <body>
     <main class="process-route-shell manual-line-shell">
@@ -33,8 +33,8 @@
           </header>
           <div class="manual-guide-steps">
             <span><strong>1</strong> Add source, process, and sink blocks.</span>
-            <span><strong>2</strong> Use Wire Mode to connect output ports to input ports.</span>
-            <span><strong>3</strong> Select blocks or signals to tune rates.</span>
+            <span><strong>2</strong> Right-drag from a block to wire it, or release on empty space to create the next block.</span>
+            <span><strong>3</strong> Double-click empty map space to search and place a block.</span>
           </div>
         </section>
 
@@ -59,7 +59,7 @@
             <header class="section-header">
               <div>
                 <h2>Block Diagram</h2>
-                <span class="ore-route-note">Drag blocks to arrange the line. Wire Mode connects a source block to a target block.</span>
+                <span class="ore-route-note">Drag blocks to arrange the line. Right-drag from a block to draw a signal, or double-click empty space to add a block.</span>
               </div>
               <div class="process-map-controls" aria-label="Manual map zoom controls">
                 <button type="button" data-action="manual-zoom-out" title="Zoom out">-</button>
@@ -76,6 +76,7 @@
                 <div class="manual-canvas" data-role="manual-canvas"></div>
               </div>
             </div>
+            <div class="manual-quick-add" data-role="manual-quick-add" hidden></div>
             <div class="ore-flow-legend">
               <span><i class="legend-item"></i> Source or sink</span>
               <span><i class="legend-machine"></i> Process block</span>
@@ -88,7 +89,7 @@
             <section class="section-band manual-quick-panel">
               <header class="compact-section-header">
                 <h2>Tools</h2>
-                <span class="ore-route-note" data-role="manual-mode-note">Click a block to edit it. Drag blocks around the map.</span>
+                <span class="ore-route-note" data-role="manual-mode-note">Click a block to edit it. Drag blocks to move them, right-drag to wire them, or double-click empty space to add one.</span>
               </header>
               <div class="manual-button-grid">
                 <button class="secondary-button" type="button" data-action="manual-link-mode">Wire Mode</button>
@@ -152,6 +153,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/manual-lines.js?v=manual-lines-simulink-2026-06-14"></script>
+    <script type="module" src="src/manual-lines.js?v=manual-lines-wire-palette-2026-06-14"></script>
   </body>
 </html>

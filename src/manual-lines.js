@@ -26,6 +26,14 @@ const state = {
   selectedEdgeId: null,
   linkMode: false,
   linkSourceId: null,
+  draftWire: null,
+  quickAdd: {
+    open: false,
+    x: 0,
+    y: 0,
+    query: "",
+    pendingFromId: null
+  },
   zoom: 1,
   nextNodeId: 1,
   nextEdgeId: 1
@@ -48,6 +56,7 @@ const elements = {
   frame: document.querySelector("[data-role='manual-frame']"),
   track: document.querySelector("[data-role='manual-track']"),
   canvas: document.querySelector("[data-role='manual-canvas']"),
+  quickAdd: document.querySelector("[data-role='manual-quick-add']"),
   zoom: document.querySelector("[data-role='manual-zoom']"),
   inspector: document.querySelector("[data-role='manual-inspector']"),
   rateSheet: document.querySelector("[data-role='manual-rate-sheet']")
@@ -113,6 +122,7 @@ function renderAll() {
   renderSearches();
   renderSummary();
   renderCanvas();
+  renderQuickAdd();
   renderInspector();
   renderRateSheet();
 }
@@ -244,6 +254,7 @@ function renderCanvas() {
   elements.canvas.innerHTML = `
     <svg class="manual-connectors" viewBox="0 0 ${bounds.width} ${bounds.height}" style="width:${bounds.width}px;height:${bounds.height}px" aria-hidden="true">
       ${state.edges.map(edgeMarkup).join("")}
+      ${draftWireMarkup()}
     </svg>
     ${state.nodes.map(nodeMarkup).join("")}
   `;
@@ -284,6 +295,21 @@ function edgeMarkup(edge) {
   `;
 }
 
+function draftWireMarkup() {
+  if (!state.draftWire) return "";
+  const from = nodeById(state.draftWire.fromId);
+  if (!from) return "";
+  const start = nodeOutputPoint(from);
+  const end = { x: state.draftWire.x, y: state.draftWire.y };
+  const midpoint = Math.round((start.x + end.x) / 2);
+  const path = `M ${start.x} ${start.y} H ${midpoint} V ${end.y} H ${end.x}`;
+  const arrow = `M ${end.x - 14} ${end.y - 9} L ${end.x} ${end.y} L ${end.x - 14} ${end.y + 9} Z`;
+  return `
+    <path class="manual-draft-wire" d="${path}"></path>
+    <path class="manual-draft-arrow" d="${arrow}"></path>
+  `;
+}
+
 function nodeMarkup(node) {
   const selected = state.selectedNodeId === node.id ? " selected" : "";
   const linkSource = state.linkSourceId === node.id ? " link-source" : "";
@@ -319,6 +345,93 @@ function nodePortMarkup(node) {
   `;
 }
 
+function renderQuickAdd() {
+  if (!state.quickAdd.open) {
+    elements.quickAdd.hidden = true;
+    elements.quickAdd.innerHTML = "";
+    return;
+  }
+
+  const pending = nodeById(state.quickAdd.pendingFromId);
+  const goods = quickGoodMatches();
+  const machines = quickMachineMatches();
+  const position = quickAddScreenPosition();
+  elements.quickAdd.hidden = false;
+  elements.quickAdd.style.left = `${position.x}px`;
+  elements.quickAdd.style.top = `${position.y}px`;
+  elements.quickAdd.innerHTML = `
+    <div class="manual-quick-header">
+      <strong>${pending ? "Add Connected Block" : "Add Block"}</strong>
+      <button type="button" data-action="manual-close-quick-add" title="Close">x</button>
+    </div>
+    ${pending ? `<p class="manual-quick-context">Signal from ${escapeHtml(pending.label)}</p>` : ""}
+    <input data-action="manual-quick-search" value="${escapeHtml(state.quickAdd.query)}" placeholder="Type item, fluid, or machine">
+    <div class="manual-quick-results">
+      ${machines.map(quickMachineCard).join("")}
+      ${goods.map(quickGoodCard).join("")}
+      ${!machines.length && !goods.length ? `<div class="empty-state">No matching blocks.</div>` : ""}
+    </div>
+  `;
+}
+
+function quickAddScreenPosition() {
+  const mapSection = elements.quickAdd.closest(".manual-map-section");
+  const mapRect = mapSection.getBoundingClientRect();
+  const frameRect = elements.frame.getBoundingClientRect();
+  const rawX = frameRect.left - mapRect.left + state.quickAdd.x * state.zoom - elements.frame.scrollLeft;
+  const rawY = frameRect.top - mapRect.top + state.quickAdd.y * state.zoom - elements.frame.scrollTop;
+  return {
+    x: Math.round(Math.max(8, Math.min(rawX, mapRect.width - 300))),
+    y: Math.round(Math.max(8, Math.min(rawY, mapRect.height - 320)))
+  };
+}
+
+function quickGoodMatches() {
+  const query = state.quickAdd.query.trim();
+  const goods = query
+    ? state.repository.searchGoods(query, 6)
+    : ["gtceu:diesel", "gtceu:light_fuel", "gtceu:heavy_fuel", "gtceu:oxygen"]
+      .map((id) => state.repository.getGood(id))
+      .filter(Boolean);
+  return goods.slice(0, 6);
+}
+
+function quickMachineMatches() {
+  const query = state.quickAdd.query.trim().toLowerCase();
+  const machines = [...state.repository.machines.values()]
+    .filter((machine) => {
+      if (!query) return /chemical_reactor|distillery|mixer|centrifuge/i.test(machine.id);
+      return `${machine.id} ${machine.name}`.toLowerCase().includes(query);
+    })
+    .sort((a, b) => machineSortName(a).localeCompare(machineSortName(b)))
+    .slice(0, 5);
+  return machines;
+}
+
+function quickMachineCard(machine) {
+  return `
+    <article class="manual-quick-card process">
+      <span>Process</span>
+      <strong>${escapeHtml(machine.name)}</strong>
+      <button type="button" data-action="manual-quick-add-machine" data-id="${escapeHtml(machine.id)}">Add</button>
+    </article>
+  `;
+}
+
+function quickGoodCard(good) {
+  const preferredRole = state.quickAdd.pendingFromId ? "intermediate" : "input";
+  return `
+    <article class="manual-quick-card">
+      <span>${escapeHtml(good.kind)}</span>
+      <strong>${escapeHtml(good.name)}</strong>
+      <div>
+        <button type="button" data-action="manual-quick-add-good" data-role-kind="${preferredRole}" data-id="${escapeHtml(good.id)}">${preferredRole === "input" ? "Source" : "Buffer"}</button>
+        <button type="button" data-action="manual-quick-add-good" data-role-kind="output" data-id="${escapeHtml(good.id)}">Sink</button>
+      </div>
+    </article>
+  `;
+}
+
 function renderInspector() {
   const edge = selectedEdge();
   if (edge) {
@@ -329,7 +442,7 @@ function renderInspector() {
   const node = selectedNode();
   elements.inspector.innerHTML = node ? nodeInspector(node) : `
     <div class="manual-empty-inspector">
-      <p class="process-muted">Select a block or signal to edit it. Use Wire Mode to connect one block to another.</p>
+      <p class="process-muted">Select a block or signal to edit it. Right-drag from a block to connect it, or double-click empty space to add another block.</p>
     </div>
   `;
 }
@@ -493,10 +606,16 @@ function setupEvents() {
   elements.zoom.addEventListener("input", (event) => setZoom(event.target.value));
 
   document.addEventListener("input", (event) => {
-    const target = event.target.closest("[data-action]");
-    if (!(target instanceof HTMLElement)) return;
-    if (target.dataset.action === "manual-edit-node") updateSelectedNode(target);
-    if (target.dataset.action === "manual-edit-edge") updateSelectedEdge(target);
+    const actionTarget = event.target.closest("[data-action]");
+    if (!(actionTarget instanceof HTMLElement)) return;
+    if (actionTarget.dataset.action === "manual-edit-node") updateSelectedNode(actionTarget);
+    if (actionTarget.dataset.action === "manual-edit-edge") updateSelectedEdge(actionTarget);
+    if (actionTarget.dataset.action === "manual-quick-search") {
+      state.quickAdd.query = actionTarget.value;
+      renderQuickAdd();
+      const quickInput = elements.quickAdd.querySelector("[data-action='manual-quick-search']");
+      quickInput?.focus();
+    }
   });
 
   document.addEventListener("change", (event) => {
@@ -513,6 +632,7 @@ function setupEvents() {
 
   setupCanvasDrag();
   setupCanvasPan();
+  setupCanvasWiring();
 }
 
 function handleAction(target) {
@@ -523,6 +643,19 @@ function handleAction(target) {
   }
   if (action === "manual-add-machine") {
     addMachine(target.dataset.id);
+    return;
+  }
+  if (action === "manual-quick-add-good") {
+    addQuickGood(target.dataset.id, target.dataset.roleKind);
+    return;
+  }
+  if (action === "manual-quick-add-machine") {
+    addQuickMachine(target.dataset.id);
+    return;
+  }
+  if (action === "manual-close-quick-add") {
+    closeQuickAdd();
+    renderQuickAdd();
     return;
   }
   if (action === "manual-search-machine") {
@@ -595,29 +728,70 @@ function handleAction(target) {
   if (action === "manual-zoom-reset") setZoom(1);
 }
 
-function addGood(goodsId, roleKind = "intermediate") {
+function addGood(goodsId, roleKind = "intermediate", position = nextNodePosition(), connectFromId = null) {
   const good = state.repository.getGood(goodsId);
-  if (!good) return;
+  if (!good) return null;
   const role = ["input", "intermediate", "output"].includes(roleKind) ? roleKind : "intermediate";
-  const position = nextNodePosition();
   const node = createGoodNode(goodsId, role, 0, position.x, position.y);
   state.nodes.push(node);
+  if (connectFromId) connectNodes(connectFromId, node.id);
   selectNode(node.id, { forceNormalSelect: true });
+  return node;
 }
 
-function addMachine(machineId) {
+function addMachine(machineId, position = nextNodePosition(), connectFromId = null) {
   const machine = state.repository.machines.get(machineId);
-  if (!machine) return;
-  const position = nextNodePosition();
+  if (!machine) return null;
   const node = createMachineNode(machine.id, machine.name, 1, 0, position.x, position.y);
   state.nodes.push(node);
+  if (connectFromId) connectNodes(connectFromId, node.id);
   selectNode(node.id, { forceNormalSelect: true });
+  return node;
 }
 
 function searchMachines(query = "") {
   state.machineSearch = query;
   elements.machineSearch.value = query;
   renderSearches();
+}
+
+function addQuickGood(goodsId, roleKind = "intermediate") {
+  const position = { x: state.quickAdd.x, y: state.quickAdd.y };
+  const connectFromId = state.quickAdd.pendingFromId;
+  closeQuickAdd();
+  const node = addGood(goodsId, roleKind, position, connectFromId);
+  if (node && connectFromId) setModeNote(`Added ${node.label} and connected the signal.`);
+  else if (node) setModeNote(`Added ${node.label}. Drag it into place or connect it with a signal.`);
+}
+
+function addQuickMachine(machineId) {
+  const position = { x: state.quickAdd.x, y: state.quickAdd.y };
+  const connectFromId = state.quickAdd.pendingFromId;
+  closeQuickAdd();
+  const node = addMachine(machineId, position, connectFromId);
+  if (node && connectFromId) setModeNote(`Added ${node.label} and connected the signal.`);
+  else if (node) setModeNote(`Added ${node.label}. Drag it into place or connect it with a signal.`);
+}
+
+function openQuickAdd(x, y, pendingFromId = null, query = "") {
+  state.quickAdd = {
+    open: true,
+    x: Math.max(8, Math.round(x)),
+    y: Math.max(8, Math.round(y)),
+    query,
+    pendingFromId
+  };
+  state.selectedEdgeId = null;
+  renderAll();
+  const input = elements.quickAdd.querySelector("[data-action='manual-quick-search']");
+  input?.focus();
+  setModeNote(pendingFromId ? "Choose a block to create and connect." : "Choose a block to add to the diagram.");
+}
+
+function closeQuickAdd() {
+  state.quickAdd.open = false;
+  state.quickAdd.query = "";
+  state.quickAdd.pendingFromId = null;
 }
 
 function autoLayoutGraph() {
@@ -720,6 +894,7 @@ function selectNode(nodeId, options = {}) {
     renderAll();
     return;
   }
+  closeQuickAdd();
   state.selectedNodeId = nodeId;
   state.selectedEdgeId = null;
   renderAll();
@@ -727,6 +902,7 @@ function selectNode(nodeId, options = {}) {
 
 function selectEdge(edgeId) {
   if (!edgeId || !edgeById(edgeId)) return;
+  closeQuickAdd();
   state.selectedEdgeId = edgeId;
   state.selectedNodeId = null;
   renderAll();
@@ -739,13 +915,15 @@ function selectNothing() {
 }
 
 function connectNodes(fromId, toId) {
-  if (fromId === toId) return;
+  if (fromId === toId) return null;
   const exists = state.edges.some((edge) => edge.from === fromId && edge.to === toId);
-  if (exists) return;
+  if (exists) return null;
   const from = nodeById(fromId);
   const to = nodeById(toId);
   const suggestedRate = Math.min(positiveRate(from), positiveRate(to));
-  state.edges.push(createEdge(fromId, toId, suggestedRate));
+  const edge = createEdge(fromId, toId, suggestedRate);
+  state.edges.push(edge);
+  return edge;
 }
 
 function deleteNode(nodeId) {
@@ -847,6 +1025,7 @@ function clearPlan() {
 function setupCanvasDrag() {
   let drag = null;
   elements.canvas.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
     if (!(event.target instanceof Element)) return;
     const nodeElement = event.target.closest(".manual-node");
     if (!(nodeElement instanceof HTMLElement)) return;
@@ -899,6 +1078,7 @@ function setupCanvasPan() {
   }, { passive: false });
 
   elements.frame.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
     if (!(event.target instanceof Element)) return;
     if (event.target.closest(".manual-node, .manual-flow-hit")) return;
     pan = {
@@ -927,6 +1107,99 @@ function setupCanvasPan() {
   }
 }
 
+function setupCanvasWiring() {
+  let wire = null;
+
+  elements.frame.addEventListener("contextmenu", (event) => {
+    if (event.target instanceof Element && event.target.closest(".manual-canvas-frame, .manual-canvas, .manual-node")) {
+      event.preventDefault();
+    }
+  });
+
+  elements.canvas.addEventListener("pointerdown", (event) => {
+    if (event.button !== 2) return;
+    if (!(event.target instanceof Element)) return;
+    const nodeElement = event.target.closest(".manual-node");
+    if (!(nodeElement instanceof HTMLElement)) return;
+    const from = nodeById(nodeElement.dataset.nodeId);
+    if (!from) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const point = canvasPointFromEvent(event);
+    wire = {
+      pointerId: event.pointerId,
+      fromId: from.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false
+    };
+    state.draftWire = { fromId: from.id, x: point.x, y: point.y };
+    state.quickAdd.open = false;
+    elements.frame.setPointerCapture(event.pointerId);
+    setModeNote(`Signal from ${from.label}: drag to a target block or empty space.`);
+    renderAll();
+  });
+
+  elements.frame.addEventListener("pointermove", (event) => {
+    if (!wire || wire.pointerId !== event.pointerId) return;
+    const point = canvasPointFromEvent(event);
+    wire.moved = wire.moved || Math.hypot(event.clientX - wire.startX, event.clientY - wire.startY) > 8;
+    state.draftWire = { fromId: wire.fromId, x: point.x, y: point.y };
+    renderCanvas();
+  });
+
+  for (const eventName of ["pointerup", "pointercancel"]) {
+    elements.frame.addEventListener(eventName, (event) => {
+      if (!wire || wire.pointerId !== event.pointerId) return;
+      const activeWire = wire;
+      wire = null;
+      const point = canvasPointFromEvent(event);
+      const targetNode = nodeFromViewportPoint(event.clientX, event.clientY);
+      state.draftWire = null;
+      if (eventName === "pointercancel") {
+        renderAll();
+        return;
+      }
+      if (targetNode && targetNode.id !== activeWire.fromId) {
+        const edge = connectNodes(activeWire.fromId, targetNode.id);
+        state.selectedNodeId = null;
+        state.selectedEdgeId = edge?.id ?? null;
+        setModeNote(edge ? "Signal connected." : "That signal already exists.");
+        renderAll();
+        return;
+      }
+      if (activeWire.moved) {
+        openQuickAdd(point.x, point.y, activeWire.fromId);
+        return;
+      }
+      renderAll();
+    });
+  }
+
+  elements.frame.addEventListener("dblclick", (event) => {
+    if (event.button !== 0) return;
+    if (event.target instanceof Element && event.target.closest(".manual-node, .manual-flow-hit, .manual-flow-badge")) return;
+    event.preventDefault();
+    const point = canvasPointFromEvent(event);
+    openQuickAdd(point.x, point.y);
+  });
+}
+
+function canvasPointFromEvent(event) {
+  const rect = elements.frame.getBoundingClientRect();
+  return {
+    x: (elements.frame.scrollLeft + event.clientX - rect.left) / state.zoom,
+    y: (elements.frame.scrollTop + event.clientY - rect.top) / state.zoom
+  };
+}
+
+function nodeFromViewportPoint(clientX, clientY) {
+  const target = document.elementFromPoint(clientX, clientY);
+  const nodeElement = target instanceof Element ? target.closest(".manual-node") : null;
+  if (!(nodeElement instanceof HTMLElement)) return null;
+  return nodeById(nodeElement.dataset.nodeId);
+}
+
 function setZoom(value, anchor = null) {
   const nextZoom = Math.round(Math.min(1.75, Math.max(0.55, Number(value) || 1)) * 100) / 100;
   if (nextZoom === state.zoom) {
@@ -947,7 +1220,7 @@ function setModeNote(message = null) {
       ? state.linkSourceId
         ? "Wire Mode: click the target block."
         : "Wire Mode: click the source block."
-      : "Click a block to edit it. Drag blocks around the map."
+      : "Click a block to edit it. Drag blocks to move them, right-drag to wire them, or double-click empty space to add one."
   );
 }
 
