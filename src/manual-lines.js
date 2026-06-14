@@ -514,6 +514,10 @@ function handleAction(target) {
     addMachine(target.dataset.id);
     return;
   }
+  if (action === "manual-search-machine") {
+    searchMachines(target.dataset.query);
+    return;
+  }
   if (action === "manual-add-note") {
     addNote();
     return;
@@ -593,6 +597,12 @@ function addMachine(machineId) {
   const node = createMachineNode(machine.id, machine.name, 1, 0, position.x, position.y);
   state.nodes.push(node);
   selectNode(node.id, { forceNormalSelect: true });
+}
+
+function searchMachines(query = "") {
+  state.machineSearch = query;
+  elements.machineSearch.value = query;
+  renderSearches();
 }
 
 function addNote() {

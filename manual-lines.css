@@ -11,8 +11,71 @@
   display: none !important;
 }
 
+.manual-line-shell {
+  grid-template-columns: 244px minmax(0, 1fr);
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.manual-line-shell .manual-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  max-height: 100vh;
+  padding: 14px;
+  overflow: auto;
+}
+
+.manual-line-shell .manual-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+  align-items: stretch;
+  gap: 8px;
+  height: 100vh;
+  max-height: none;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.manual-main > .status-band,
+.manual-main > .manual-audit,
+.manual-main > .manual-work-area {
+  grid-column: 1 / -1;
+}
+
 .manual-sidebar .brand-block h1 {
-  font-size: 30px;
+  font-size: 28px;
+}
+
+.manual-sidebar .brand-block p {
+  font-size: 10px;
+}
+
+.manual-sidebar .ore-route-nav {
+  gap: 5px;
+}
+
+.manual-sidebar .lab-nav-link {
+  min-height: 25px;
+  padding: 5px 8px;
+}
+
+.manual-sidebar .manual-guide {
+  margin: 0;
+  padding: 9px;
+}
+
+.manual-sidebar .manual-guide h2 {
+  font-size: 12px;
+}
+
+.manual-sidebar .manual-guide p {
+  font-size: 9px;
 }
 
 .manual-guide-steps {
@@ -51,10 +114,26 @@
   gap: 8px;
 }
 
+.manual-search-label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.manual-search-label span {
+  color: var(--process-readable-muted);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
 .manual-search-results {
   display: grid;
   gap: 6px;
-  max-height: 280px;
+  min-height: 0;
+  max-height: none;
   overflow: auto;
   padding: 4px;
   background: #a9a9a9;
@@ -65,9 +144,10 @@
 
 .manual-search-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-  padding: 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 6px;
   background: var(--process-panel-readable);
   box-shadow:
     0 0 0 2px #4a4a4a,
@@ -84,15 +164,17 @@
 }
 
 .manual-search-card > strong {
+  grid-column: 1;
   color: #202020;
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.2;
   text-transform: uppercase;
 }
 
 .manual-search-card > span {
+  grid-column: 1;
   color: var(--process-readable-muted);
-  font-size: 9px;
+  font-size: 8px;
 }
 
 .manual-search-actions,
@@ -102,9 +184,58 @@
   gap: 6px;
 }
 
+.manual-search-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  max-width: 142px;
+}
+
 .manual-search-actions .secondary-button,
 .manual-button-grid .secondary-button {
-  min-height: 32px;
+  min-height: 30px;
+}
+
+.manual-search-actions .secondary-button {
+  min-height: 25px;
+  padding: 4px 7px;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.manual-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.manual-chip-row button {
+  min-height: 24px;
+  border: 0;
+  border-radius: 0;
+  padding: 4px 7px;
+  background: #b9cfda;
+  color: #202020;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #ffffff;
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 #e4f3f8,
+    inset -2px -2px 0 #6d8794;
+}
+
+.manual-chip-row button:active {
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #6d8794,
+    inset -2px -2px 0 #e4f3f8;
 }
 
 .secondary-button.danger {
@@ -118,7 +249,10 @@
 
 .manual-audit {
   display: grid;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.45fr);
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
 }
 
 .manual-audit-grid {
@@ -141,7 +275,7 @@
 .manual-audit-card {
   display: grid;
   gap: 3px;
-  min-height: 78px;
+  min-height: 58px;
 }
 
 .manual-audit-card span,
@@ -159,7 +293,7 @@
 .manual-balance-card strong {
   overflow: hidden;
   color: #315a73;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.05;
   text-overflow: ellipsis;
   text-shadow: 1px 1px 0 #ffffff;
@@ -182,12 +316,82 @@
 }
 
 .manual-map-section {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   margin-top: 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.manual-work-area {
+  display: grid;
+  grid-template-columns: minmax(520px, 1fr) minmax(330px, 380px);
+  gap: 10px;
+  height: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.manual-tool-dock {
+  display: grid;
+  grid-template-rows: auto minmax(150px, 1fr) minmax(155px, 0.9fr) minmax(70px, 0.45fr);
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.manual-tool-dock .section-band {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.manual-quick-panel,
+.manual-library-panel,
+.manual-inspector,
+.manual-rate-sheet-section {
+  display: grid;
+  gap: 7px;
+}
+
+.manual-quick-panel {
+  grid-template-rows: auto auto;
+}
+
+.manual-library-panel {
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.manual-library-section {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.manual-library-section:has(.manual-chip-row) {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.manual-inspector,
+.manual-rate-sheet-section {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.manual-inspector > [data-role="manual-inspector"],
+.manual-rate-sheet {
+  min-height: 0;
+  overflow: auto;
 }
 
 .manual-canvas-frame {
   min-width: 0;
-  height: clamp(520px, 66vh, 780px);
+  height: auto;
+  min-height: 0;
   overflow: auto;
   padding: 6px;
   background: var(--process-map-bg);
@@ -435,6 +639,7 @@
 .manual-rate-sheet {
   display: grid;
   gap: 7px;
+  align-content: start;
 }
 
 .manual-rate-row {
@@ -485,10 +690,31 @@
 }
 
 @media (max-width: 1100px) {
+  .manual-line-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .manual-line-shell .manual-sidebar,
+  .manual-line-shell .manual-main {
+    max-height: none;
+    height: auto;
+    overflow: visible;
+  }
+
+  .manual-work-area,
+  .manual-audit,
   .manual-audit-grid,
   .manual-bottom-grid,
   .manual-rate-row {
     grid-template-columns: 1fr;
+  }
+
+  .manual-tool-dock {
+    grid-template-rows: auto;
+    overflow: visible;
   }
 
   .manual-canvas-frame {
