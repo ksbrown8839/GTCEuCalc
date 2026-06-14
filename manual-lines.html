@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Manual Lines · GTCEu Modern Planner</title>
+    <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
+    <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
+    <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
+    <link rel="stylesheet" href="process-routes.css?v=process-coproduct-routes-2026-06-09">
+    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-2026-06-14">
+  </head>
+  <body>
+    <main class="process-route-shell manual-line-shell">
+      <aside class="process-route-sidebar manual-sidebar">
+        <div class="brand-block">
+          <h1>Manual Lines</h1>
+          <p data-role="manual-pack-name">Loading pack data</p>
+          <p data-role="manual-pack-meta"></p>
+          <div class="ore-route-nav">
+            <a class="secondary-button lab-nav-link" href="index.html">Crafting Tree</a>
+            <a class="secondary-button lab-nav-link" href="process-routes.html">Process Lines</a>
+            <a class="secondary-button lab-nav-link" href="ore-routes.html">Ore Routes</a>
+            <a class="secondary-button lab-nav-link" href="texture-lab.html">Texture Lab</a>
+          </div>
+        </div>
+
+        <section class="panel process-optimizer-guide manual-guide">
+          <header>
+            <span>Manual factory map</span>
+            <h2>Sketch what you actually built.</h2>
+            <p>Add goods and machines, connect them, then enter the rates you measured or calculated in-game.</p>
+          </header>
+          <div class="manual-guide-steps">
+            <span><strong>1</strong> Add inputs, machines, and outputs.</span>
+            <span><strong>2</strong> Use Link Mode to connect the flow.</span>
+            <span><strong>3</strong> Select nodes or arrows to enter rates.</span>
+          </div>
+        </section>
+
+        <section class="panel process-control-panel manual-control-panel">
+          <h2>Add Good</h2>
+          <input data-role="manual-good-search" type="search" placeholder="Search item or fluid">
+          <p class="match-summary" data-role="manual-good-summary"></p>
+          <div class="manual-search-results" data-role="manual-good-results"></div>
+        </section>
+
+        <section class="panel process-control-panel manual-control-panel">
+          <h2>Add Machine</h2>
+          <input data-role="manual-machine-search" type="search" placeholder="Search machine">
+          <p class="match-summary" data-role="manual-machine-summary"></p>
+          <div class="manual-search-results" data-role="manual-machine-results"></div>
+        </section>
+
+        <section class="panel process-control-panel manual-control-panel">
+          <h2>Plan Controls</h2>
+          <div class="manual-button-grid">
+            <button class="secondary-button" type="button" data-action="manual-link-mode">Link Mode</button>
+            <button class="secondary-button" type="button" data-action="manual-add-note">Add Note</button>
+            <button class="secondary-button" type="button" data-action="manual-save">Save</button>
+            <button class="secondary-button" type="button" data-action="manual-load">Load</button>
+            <button class="secondary-button" type="button" data-action="manual-example">Example</button>
+            <button class="secondary-button danger" type="button" data-action="manual-clear">Clear</button>
+          </div>
+          <p class="process-panel-note" data-role="manual-mode-note">Click a node to edit it. Drag nodes around the map.</p>
+        </section>
+      </aside>
+
+      <section class="process-route-main manual-main">
+        <div class="status-band">
+          <div>
+            <h2 data-role="manual-title">Manual Production Line</h2>
+            <div data-role="manual-summary">Loading...</div>
+          </div>
+          <div class="power-readout">
+            <span>Manual EU/t</span>
+            <strong data-role="manual-power">0 EU/t</strong>
+          </div>
+        </div>
+
+        <section class="section-band manual-audit" data-role="manual-audit"></section>
+
+        <section class="section-band manual-map-section">
+          <header class="section-header">
+            <div>
+              <h2>Factory Sketch</h2>
+              <span class="ore-route-note">Drag nodes to arrange the line. In Link Mode, click a source node and then a target node to draw an arrow.</span>
+            </div>
+            <div class="process-map-controls" aria-label="Manual map zoom controls">
+              <button type="button" data-action="manual-zoom-out" title="Zoom out">-</button>
+              <label>
+                <span>Zoom</span>
+                <input data-role="manual-zoom" type="range" min="0.55" max="1.75" step="0.05" value="1">
+              </label>
+              <button type="button" data-action="manual-zoom-in" title="Zoom in">+</button>
+              <button type="button" data-action="manual-zoom-reset">Reset</button>
+            </div>
+          </header>
+          <div class="manual-canvas-frame" data-role="manual-frame">
+            <div class="manual-canvas-track" data-role="manual-track">
+              <div class="manual-canvas" data-role="manual-canvas"></div>
+            </div>
+          </div>
+          <div class="ore-flow-legend">
+            <span><i class="legend-item"></i> Good</span>
+            <span><i class="legend-machine"></i> Machine</span>
+            <span><i class="legend-recommended"></i> Selected</span>
+            <span><i class="legend-line"></i> Manual rate arrow</span>
+          </div>
+        </section>
+
+        <div class="manual-bottom-grid">
+          <section class="section-band manual-inspector">
+            <header class="compact-section-header">
+              <h2>Selected Setup</h2>
+              <span class="ore-route-note">Edit the selected node or arrow.</span>
+            </header>
+            <div data-role="manual-inspector"></div>
+          </section>
+
+          <section class="section-band manual-rate-sheet-section">
+            <header class="compact-section-header">
+              <h2>Manual Rate Sheet</h2>
+              <span class="ore-route-note">Use this as a scratchpad for measured rates, machine counts, and bottlenecks.</span>
+            </header>
+            <div data-role="manual-rate-sheet" class="manual-rate-sheet"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="src/manual-lines.js?v=manual-lines-2026-06-14"></script>
+  </body>
+</html>
