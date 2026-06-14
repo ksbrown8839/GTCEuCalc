@@ -395,6 +395,10 @@
   overflow: auto;
   padding: 6px;
   background: var(--process-map-bg);
+  background-image:
+    linear-gradient(rgba(32, 32, 32, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32, 32, 32, 0.14) 1px, transparent 1px);
+  background-size: 32px 32px;
   cursor: grab;
   box-shadow:
     inset 3px 3px 0 #555555,
@@ -504,6 +508,14 @@
     inset -2px -2px 0 #777777;
 }
 
+.manual-node::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(32, 32, 32, 0.18);
+  pointer-events: none;
+}
+
 .manual-node:active {
   cursor: grabbing;
 }
@@ -530,6 +542,42 @@
   width: 170px;
   min-height: 78px;
   background: var(--manual-note);
+}
+
+.manual-port {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: #202020;
+  transform: translateY(-50%);
+  box-shadow:
+    0 0 0 2px #eeeeee,
+    inset 2px 2px 0 #6f6f6f,
+    inset -2px -2px 0 #000000;
+}
+
+.manual-port-in {
+  left: -7px;
+}
+
+.manual-port-out {
+  right: -7px;
+  background: #315a73;
+  box-shadow:
+    0 0 0 2px #eeeeee,
+    inset 2px 2px 0 #6b8fa5,
+    inset -2px -2px 0 #1c3545;
+}
+
+.manual-node.selected .manual-port,
+.manual-node.link-source .manual-port {
+  box-shadow:
+    0 0 0 2px #ffffa0,
+    inset 2px 2px 0 #fff4b4,
+    inset -2px -2px 0 #7d6c27;
 }
 
 .manual-node strong,

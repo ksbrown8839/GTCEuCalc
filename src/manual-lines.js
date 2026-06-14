@@ -131,8 +131,8 @@ function renderSearches() {
     ? machines.map(machineSearchCard).join("")
     : `<div class="empty-state">No matching machines.</div>`;
   elements.machineSummary.textContent = state.machineSearch.trim()
-    ? `${formatAmount(machines.length)} machines shown`
-    : "Search GTCEu machines.";
+    ? `${formatAmount(machines.length)} process blocks shown`
+    : "Search GTCEu process blocks.";
 }
 
 function goodsMatches() {
@@ -163,9 +163,9 @@ function goodSearchCard(good) {
       <strong>${escapeHtml(good.name)}</strong>
       <span>${escapeHtml(good.kind)} / ${escapeHtml(good.id)}</span>
       <div class="manual-search-actions">
-        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="input" data-id="${escapeHtml(good.id)}">Input</button>
-        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="intermediate" data-id="${escapeHtml(good.id)}">Middle</button>
-        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="output" data-id="${escapeHtml(good.id)}">Output</button>
+        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="input" data-id="${escapeHtml(good.id)}">Source</button>
+        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="intermediate" data-id="${escapeHtml(good.id)}">Buffer</button>
+        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="output" data-id="${escapeHtml(good.id)}">Sink</button>
       </div>
     </article>
   `;
@@ -178,7 +178,7 @@ function machineSearchCard(machine) {
       <strong>${escapeHtml(machine.name)}</strong>
       <span>${escapeHtml(recipeTypes || machine.id)}</span>
       <div class="manual-search-actions">
-        <button class="secondary-button" type="button" data-action="manual-add-machine" data-id="${escapeHtml(machine.id)}">Add Machine</button>
+        <button class="secondary-button" type="button" data-action="manual-add-machine" data-id="${escapeHtml(machine.id)}">Add Process</button>
       </div>
     </article>
   `;
@@ -187,19 +187,19 @@ function machineSearchCard(machine) {
 function renderSummary() {
   const audit = buildAudit();
   elements.title.textContent = state.title;
-  elements.summary.textContent = `${formatAmount(state.nodes.length)} nodes / ${formatAmount(state.edges.length)} arrows / ${formatAmount(audit.machineCount)} machines`;
+  elements.summary.textContent = `${formatAmount(state.nodes.length)} blocks / ${formatAmount(state.edges.length)} signals / ${formatAmount(audit.machineCount)} processes`;
   elements.power.textContent = `${formatAmount(audit.totalEut)} EU/t`;
   elements.audit.innerHTML = `
     <div class="manual-audit-grid">
-      ${auditCard("Input", formatRate(audit.inputRate), "Total rate on input nodes.")}
-      ${auditCard("Output", formatRate(audit.outputRate), "Total rate on output nodes.")}
-      ${auditCard("Machines", formatAmount(audit.machineCount), "Manual machine count.")}
+      ${auditCard("Source Flow", formatRate(audit.inputRate), "Total rate on source blocks.")}
+      ${auditCard("Sink Flow", formatRate(audit.outputRate), "Total rate on sink blocks.")}
+      ${auditCard("Processes", formatAmount(audit.machineCount), "Manual process count.")}
       ${auditCard("Power", `${formatAmount(audit.totalEut)} EU/t`, "Manual EU/t draw.")}
     </div>
     <article class="manual-balance-card${audit.mainWarning ? " warning" : ""}">
-      <span>Manual check</span>
+      <span>Signal check</span>
       <strong>${escapeHtml(audit.mainWarning?.title ?? "No obvious mismatch")}</strong>
-      <em>${escapeHtml(audit.mainWarning?.detail ?? "Rates are manually entered; use this as a scratchpad, then compare against in-game behavior.")}</em>
+      <em>${escapeHtml(audit.mainWarning?.detail ?? "Signals are manually entered; use this as a scratchpad, then compare against in-game behavior.")}</em>
     </article>
   `;
 }
@@ -288,6 +288,7 @@ function nodeMarkup(node) {
   const selected = state.selectedNodeId === node.id ? " selected" : "";
   const linkSource = state.linkSourceId === node.id ? " link-source" : "";
   const type = node.type;
+  const ports = nodePortMarkup(node);
   const icon = node.type === "machine"
     ? `<span class="manual-machine-icon">${escapeHtml(machineInitials(node.label))}</span>`
     : node.type === "note"
@@ -300,11 +301,21 @@ function nodeMarkup(node) {
       : formatRate(node.rate);
   return `
     <button class="manual-node ${escapeHtml(type)}${selected}${linkSource}" type="button" style="left:${node.x}px;top:${node.y}px" data-action="manual-select-node" data-node-id="${escapeHtml(node.id)}">
+      ${ports}
       ${icon}
       <strong>${escapeHtml(node.label)}</strong>
       <em>${escapeHtml(subtitle)}</em>
       ${node.notes ? `<span>${escapeHtml(node.notes)}</span>` : ""}
     </button>
+  `;
+}
+
+function nodePortMarkup(node) {
+  const hasInput = ["machine", "intermediate", "output"].includes(node.type);
+  const hasOutput = ["input", "machine", "intermediate"].includes(node.type);
+  return `
+    ${hasInput ? `<span class="manual-port manual-port-in" aria-hidden="true"></span>` : ""}
+    ${hasOutput ? `<span class="manual-port manual-port-out" aria-hidden="true"></span>` : ""}
   `;
 }
 
@@ -318,7 +329,7 @@ function renderInspector() {
   const node = selectedNode();
   elements.inspector.innerHTML = node ? nodeInspector(node) : `
     <div class="manual-empty-inspector">
-      <p class="process-muted">Select a node or arrow to edit it. Use Link Mode to connect one node to another.</p>
+      <p class="process-muted">Select a block or signal to edit it. Use Wire Mode to connect one block to another.</p>
     </div>
   `;
 }
@@ -378,7 +389,7 @@ function edgeInspector(edge) {
     <form class="manual-edge-form" data-manual-form="edge">
       <p class="process-muted">${escapeHtml(from?.label ?? edge.from)} -> ${escapeHtml(to?.label ?? edge.to)}</p>
       <label>
-        <span>Arrow label</span>
+        <span>Signal label</span>
         <input value="${escapeHtml(edge.label ?? "")}" data-action="manual-edit-edge" data-edge-field="label">
       </label>
       <label>
@@ -386,7 +397,7 @@ function edgeInspector(edge) {
         <input type="number" min="0" step="1" value="${formatInputNumber(edge.rate)}" data-action="manual-edit-edge" data-edge-field="rate">
       </label>
       <div class="manual-inspector-actions">
-        <button class="secondary-button danger" type="button" data-action="manual-delete-edge" data-id="${escapeHtml(edge.id)}">Delete arrow</button>
+        <button class="secondary-button danger" type="button" data-action="manual-delete-edge" data-id="${escapeHtml(edge.id)}">Delete signal</button>
       </div>
     </form>
   `;
@@ -396,7 +407,7 @@ function renderRateSheet() {
   const rows = balanceRows();
   elements.rateSheet.innerHTML = rows.length
     ? rows.map(rateRowMarkup).join("")
-    : `<div class="empty-state">Add nodes to start a manual rate sheet.</div>`;
+    : `<div class="empty-state">Add blocks to start a manual signal sheet.</div>`;
 }
 
 function balanceRows() {
@@ -518,6 +529,10 @@ function handleAction(target) {
     searchMachines(target.dataset.query);
     return;
   }
+  if (action === "manual-auto-layout") {
+    autoLayoutGraph();
+    return;
+  }
   if (action === "manual-add-note") {
     addNote();
     return;
@@ -605,6 +620,39 @@ function searchMachines(query = "") {
   renderSearches();
 }
 
+function autoLayoutGraph() {
+  const lanes = new Map();
+  for (const node of state.nodes) {
+    const lane = graphLane(node);
+    if (!lanes.has(lane)) lanes.set(lane, []);
+    lanes.get(lane).push(node);
+  }
+  const laneX = {
+    0: 70,
+    1: 320,
+    2: 570,
+    3: 820
+  };
+  for (const [lane, nodes] of lanes) {
+    nodes
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .forEach((node, index) => {
+        node.x = laneX[lane] ?? 70;
+        node.y = 90 + index * 140;
+      });
+  }
+  setModeNote("Auto Layout arranged blocks into source, process, buffer, and sink lanes.");
+  renderAll();
+}
+
+function graphLane(node) {
+  if (node.type === "input") return 0;
+  if (node.type === "machine") return 1;
+  if (node.type === "intermediate" || node.type === "note") return 2;
+  if (node.type === "output") return 3;
+  return 2;
+}
+
 function addNote() {
   const position = nextNodePosition();
   const node = {
@@ -663,11 +711,11 @@ function selectNode(nodeId, options = {}) {
   if (state.linkMode && !options.forceNormalSelect) {
     if (!state.linkSourceId) {
       state.linkSourceId = nodeId;
-      setModeNote(`Link source: ${nodeById(nodeId)?.label ?? "node"}. Click a target node.`);
+      setModeNote(`Wire source: ${nodeById(nodeId)?.label ?? "block"}. Click a target block.`);
     } else if (state.linkSourceId !== nodeId) {
       connectNodes(state.linkSourceId, nodeId);
       state.linkSourceId = null;
-      setModeNote("Link added. Click another source node, or turn Link Mode off.");
+      setModeNote("Signal added. Click another source block, or turn Wire Mode off.");
     }
     renderAll();
     return;
@@ -897,9 +945,9 @@ function setModeNote(message = null) {
   elements.modeNote.textContent = message ?? (
     state.linkMode
       ? state.linkSourceId
-        ? "Link Mode: click a target node."
-        : "Link Mode: click a source node."
-      : "Click a node to edit it. Drag nodes around the map."
+        ? "Wire Mode: click the target block."
+        : "Wire Mode: click the source block."
+      : "Click a block to edit it. Drag blocks around the map."
   );
 }
 
@@ -973,10 +1021,10 @@ function formatInputNumber(value) {
 
 function typeLabel(type) {
   return {
-    input: "Input",
-    intermediate: "Intermediate",
-    machine: "Machine",
-    output: "Output",
+    input: "Source",
+    intermediate: "Buffer",
+    machine: "Process",
+    output: "Sink",
     note: "Note"
   }[type] ?? type;
 }

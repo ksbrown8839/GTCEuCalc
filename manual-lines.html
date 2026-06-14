@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
     <link rel="stylesheet" href="process-routes.css?v=process-coproduct-routes-2026-06-09">
-    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-usability-2026-06-14">
+    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-simulink-2026-06-14">
   </head>
   <body>
     <main class="process-route-shell manual-line-shell">
@@ -27,14 +27,14 @@
 
         <section class="panel process-optimizer-guide manual-guide">
           <header>
-            <span>Manual factory map</span>
-            <h2>Sketch what you actually built.</h2>
-            <p>Add goods and machines, connect them, then enter the rates you measured or calculated in-game.</p>
+            <span>Block diagram mode</span>
+            <h2>Model the factory like a signal flow.</h2>
+            <p>Place source, process, and sink blocks. Wire them together, then enter measured or planned rates.</p>
           </header>
           <div class="manual-guide-steps">
-            <span><strong>1</strong> Add inputs, machines, and outputs.</span>
-            <span><strong>2</strong> Use Link Mode to connect the flow.</span>
-            <span><strong>3</strong> Select nodes or arrows to enter rates.</span>
+            <span><strong>1</strong> Add source, process, and sink blocks.</span>
+            <span><strong>2</strong> Use Wire Mode to connect output ports to input ports.</span>
+            <span><strong>3</strong> Select blocks or signals to tune rates.</span>
           </div>
         </section>
 
@@ -58,8 +58,8 @@
           <section class="section-band manual-map-section">
             <header class="section-header">
               <div>
-                <h2>Factory Sketch</h2>
-                <span class="ore-route-note">Drag nodes to arrange the line. Turn on Link Mode, then click source and target nodes to draw arrows.</span>
+                <h2>Block Diagram</h2>
+                <span class="ore-route-note">Drag blocks to arrange the line. Wire Mode connects a source block to a target block.</span>
               </div>
               <div class="process-map-controls" aria-label="Manual map zoom controls">
                 <button type="button" data-action="manual-zoom-out" title="Zoom out">-</button>
@@ -77,10 +77,10 @@
               </div>
             </div>
             <div class="ore-flow-legend">
-              <span><i class="legend-item"></i> Good</span>
-              <span><i class="legend-machine"></i> Machine</span>
+              <span><i class="legend-item"></i> Source or sink</span>
+              <span><i class="legend-machine"></i> Process block</span>
               <span><i class="legend-recommended"></i> Selected</span>
-              <span><i class="legend-line"></i> Manual rate arrow</span>
+              <span><i class="legend-line"></i> Signal</span>
             </div>
           </section>
 
@@ -88,10 +88,11 @@
             <section class="section-band manual-quick-panel">
               <header class="compact-section-header">
                 <h2>Tools</h2>
-                <span class="ore-route-note" data-role="manual-mode-note">Click a node to edit it. Drag nodes around the map.</span>
+                <span class="ore-route-note" data-role="manual-mode-note">Click a block to edit it. Drag blocks around the map.</span>
               </header>
               <div class="manual-button-grid">
-                <button class="secondary-button" type="button" data-action="manual-link-mode">Link Mode</button>
+                <button class="secondary-button" type="button" data-action="manual-link-mode">Wire Mode</button>
+                <button class="secondary-button" type="button" data-action="manual-auto-layout">Auto Layout</button>
                 <button class="secondary-button" type="button" data-action="manual-add-note">Add Note</button>
                 <button class="secondary-button" type="button" data-action="manual-save">Save</button>
                 <button class="secondary-button" type="button" data-action="manual-load">Load</button>
@@ -102,8 +103,8 @@
 
             <section class="section-band manual-library-panel">
               <header class="compact-section-header">
-                <h2>Add to Map</h2>
-                <span class="ore-route-note">Search once, then add the node role you need.</span>
+                <h2>Block Library</h2>
+                <span class="ore-route-note">Search once, then add the block role you need.</span>
               </header>
 
               <div class="manual-library-section">
@@ -134,7 +135,7 @@
             <section class="section-band manual-inspector">
               <header class="compact-section-header">
                 <h2>Selected Setup</h2>
-                <span class="ore-route-note">Edit the selected node or arrow.</span>
+                <span class="ore-route-note">Edit the selected block or signal.</span>
               </header>
               <div data-role="manual-inspector"></div>
             </section>
@@ -151,6 +152,6 @@
       </section>
     </main>
 
-    <script type="module" src="src/manual-lines.js?v=manual-lines-usability-2026-06-14"></script>
+    <script type="module" src="src/manual-lines.js?v=manual-lines-simulink-2026-06-14"></script>
   </body>
 </html>
