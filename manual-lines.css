@@ -439,14 +439,15 @@
   pointer-events: none;
 }
 
-.manual-flow-arrowhead {
+.manual-flow-marker {
   fill: #202020;
-  pointer-events: none;
 }
 
-.manual-flow-line.selected,
-.manual-flow-arrowhead.selected {
+.manual-flow-line.selected {
   stroke: var(--manual-selected);
+}
+
+.manual-flow-marker.selected {
   fill: var(--manual-selected);
 }
 
@@ -494,9 +495,8 @@
   pointer-events: none;
 }
 
-.manual-draft-arrow {
+.manual-draft-marker {
   fill: #e0bd35;
-  pointer-events: none;
 }
 
 .manual-quick-add {

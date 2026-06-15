@@ -253,10 +253,27 @@ function renderCanvas() {
   elements.zoom.value = String(state.zoom);
   elements.canvas.innerHTML = `
     <svg class="manual-connectors" viewBox="0 0 ${bounds.width} ${bounds.height}" style="width:${bounds.width}px;height:${bounds.height}px" aria-hidden="true">
+      ${connectorDefs()}
       ${state.edges.map(edgeMarkup).join("")}
       ${draftWireMarkup()}
     </svg>
     ${state.nodes.map(nodeMarkup).join("")}
+  `;
+}
+
+function connectorDefs() {
+  return `
+    <defs>
+      <marker id="manual-flow-arrow" markerWidth="18" markerHeight="18" refX="16" refY="9" orient="auto" markerUnits="userSpaceOnUse">
+        <path class="manual-flow-marker" d="M 2 2 L 16 9 L 2 16 Z"></path>
+      </marker>
+      <marker id="manual-flow-arrow-selected" markerWidth="18" markerHeight="18" refX="16" refY="9" orient="auto" markerUnits="userSpaceOnUse">
+        <path class="manual-flow-marker selected" d="M 2 2 L 16 9 L 2 16 Z"></path>
+      </marker>
+      <marker id="manual-draft-arrowhead" markerWidth="18" markerHeight="18" refX="16" refY="9" orient="auto" markerUnits="userSpaceOnUse">
+        <path class="manual-draft-marker" d="M 2 2 L 16 9 L 2 16 Z"></path>
+      </marker>
+    </defs>
   `;
 }
 
@@ -275,20 +292,14 @@ function edgeMarkup(edge) {
   if (!from || !to) return "";
   const start = nodeOutputPoint(from);
   const end = nodeInputPoint(to);
-  const midpoint = Math.round((start.x + end.x) / 2);
-  const baseX = Math.max(start.x + 10, end.x - 22);
-  const pathEndX = Math.max(start.x + 10, baseX);
-  const path = `M ${start.x} ${start.y} H ${midpoint} V ${end.y} H ${pathEndX}`;
+  const route = connectorRoute(start, end);
   const selected = state.selectedEdgeId === edge.id ? " selected" : "";
-  const arrow = `M ${baseX} ${end.y - 10} L ${end.x} ${end.y} L ${baseX} ${end.y + 10} Z`;
+  const marker = selected ? "manual-flow-arrow-selected" : "manual-flow-arrow";
   const badgeText = edge.label?.trim() || (numberValue(edge.rate) ? formatRate(edge.rate) : "rate");
-  const badgeX = Math.round(Math.min(Math.max(start.x + 18, midpoint - 36), Math.max(start.x + 18, end.x - 92)));
-  const badgeY = Math.round(end.y - 34);
   return `
-    <path class="manual-flow-line${selected}" d="${path}"></path>
-    <path class="manual-flow-arrowhead${selected}" d="${arrow}"></path>
-    <path class="manual-flow-hit" d="${path}" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}"></path>
-    <g class="manual-flow-badge${selected}" transform="translate(${badgeX} ${badgeY})" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}">
+    <path class="manual-flow-line${selected}" d="${route.path}" marker-end="url(#${marker})"></path>
+    <path class="manual-flow-hit" d="${route.path}" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}"></path>
+    <g class="manual-flow-badge${selected}" transform="translate(${route.badgeX} ${route.badgeY})" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}">
       <rect width="72" height="20"></rect>
       <text x="36" y="14">${escapeHtml(badgeText)}</text>
     </g>
@@ -301,13 +312,36 @@ function draftWireMarkup() {
   if (!from) return "";
   const start = nodeOutputPoint(from);
   const end = { x: state.draftWire.x, y: state.draftWire.y };
-  const midpoint = Math.round((start.x + end.x) / 2);
-  const path = `M ${start.x} ${start.y} H ${midpoint} V ${end.y} H ${end.x}`;
-  const arrow = `M ${end.x - 14} ${end.y - 9} L ${end.x} ${end.y} L ${end.x - 14} ${end.y + 9} Z`;
+  const route = connectorRoute(start, end);
   return `
-    <path class="manual-draft-wire" d="${path}"></path>
-    <path class="manual-draft-arrow" d="${arrow}"></path>
+    <path class="manual-draft-wire" d="${route.path}" marker-end="url(#manual-draft-arrowhead)"></path>
   `;
+}
+
+function connectorRoute(start, end) {
+  const forwardGap = end.x - start.x;
+  if (forwardGap >= 72) {
+    const midpoint = Math.round((start.x + end.x) / 2);
+    const path = `M ${start.x} ${start.y} H ${midpoint} V ${end.y} H ${end.x}`;
+    return {
+      path,
+      badgeX: Math.max(8, Math.round(midpoint - 36)),
+      badgeY: Math.max(8, Math.round(end.y - 34))
+    };
+  }
+
+  const exitX = Math.round(start.x + 48);
+  const approachX = Math.round(end.x - 42);
+  const routeAbove = end.y < start.y && Math.min(start.y, end.y) > 110;
+  const bendY = routeAbove
+    ? Math.round(Math.min(start.y, end.y) - 72)
+    : Math.round(Math.max(start.y, end.y) + 72);
+  const path = `M ${start.x} ${start.y} H ${exitX} V ${bendY} H ${approachX} V ${end.y} H ${end.x}`;
+  return {
+    path,
+    badgeX: Math.max(8, Math.round((Math.min(exitX, approachX) + Math.abs(exitX - approachX) / 2) - 36)),
+    badgeY: Math.max(8, Math.round(bendY - 28))
+  };
 }
 
 function nodeMarkup(node) {
