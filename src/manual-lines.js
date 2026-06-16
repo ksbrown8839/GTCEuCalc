@@ -244,7 +244,7 @@ function edgeMarkup(edge) {
   const marker = selected ? "manual-flow-arrow-selected" : "manual-flow-arrow";
   const badgeText = edge.label?.trim() || (numberValue(edge.rate) ? formatRate(edge.rate) : "rate");
   return `
-    <path class="manual-flow-line${selected}" d="${route.path}" marker-end="url(#${marker})"></path>
+    <path class="manual-flow-line${selected}" d="${route.path}" marker-end="url(#${marker})" data-edge-id="${escapeHtml(edge.id)}"></path>
     <path class="manual-flow-hit" d="${route.path}" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}"></path>
     <g class="manual-flow-badge${selected}" transform="translate(${route.badgeX} ${route.badgeY})" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}">
       <rect width="72" height="20"></rect>
@@ -984,7 +984,9 @@ function selectNode(nodeId, options = {}) {
   closeQuickAdd();
   state.selectedNodeId = nodeId;
   state.selectedEdgeId = null;
-  renderAll();
+  renderCanvasSelection();
+  renderQuickAdd();
+  renderInspector();
 }
 
 function selectEdge(edgeId) {
@@ -992,7 +994,9 @@ function selectEdge(edgeId) {
   closeQuickAdd();
   state.selectedEdgeId = edgeId;
   state.selectedNodeId = null;
-  renderAll();
+  renderCanvasSelection();
+  renderQuickAdd();
+  renderInspector();
 }
 
 function selectNothing() {
@@ -1011,6 +1015,22 @@ function connectNodes(fromId, toId) {
   const edge = createEdge(fromId, toId, suggestedRate);
   state.edges.push(edge);
   return edge;
+}
+
+function renderCanvasSelection() {
+  for (const nodeElement of elements.canvas.querySelectorAll(".manual-node")) {
+    const nodeId = nodeElement.dataset.nodeId;
+    nodeElement.classList.toggle("selected", nodeId === state.selectedNodeId);
+    nodeElement.classList.toggle("link-source", nodeId === state.linkSourceId);
+  }
+  for (const line of elements.canvas.querySelectorAll(".manual-flow-line")) {
+    const selected = line.dataset.edgeId === state.selectedEdgeId;
+    line.classList.toggle("selected", selected);
+    line.setAttribute("marker-end", selected ? "url(#manual-flow-arrow-selected)" : "url(#manual-flow-arrow)");
+  }
+  for (const badge of elements.canvas.querySelectorAll(".manual-flow-badge")) {
+    badge.classList.toggle("selected", badge.dataset.edgeId === state.selectedEdgeId);
+  }
 }
 
 function deleteNode(nodeId) {

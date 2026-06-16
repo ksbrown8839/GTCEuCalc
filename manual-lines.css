@@ -340,17 +340,19 @@
 
 .manual-tool-dock {
   display: grid;
-  grid-template-rows: auto minmax(130px, 0.4fr) minmax(240px, 1fr);
+  grid-template-rows: auto auto minmax(240px, 1fr);
+  align-content: start;
   gap: 8px;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
+  padding: 3px;
 }
 
 .manual-tool-dock .section-band {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .manual-quick-panel,
@@ -373,6 +375,11 @@
 .manual-rate-sheet {
   min-height: 0;
   overflow: auto;
+}
+
+.manual-rate-sheet-section {
+  min-height: min(340px, 100%);
+  overflow: hidden;
 }
 
 .manual-canvas-frame {
