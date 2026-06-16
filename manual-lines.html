@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
     <link rel="stylesheet" href="process-routes.css?v=process-coproduct-routes-2026-06-09">
-    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-wire-route-2026-06-15">
+    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-block-editor-2026-06-16">
   </head>
   <body>
     <main class="process-route-shell manual-line-shell">
@@ -32,9 +32,9 @@
             <p>Place source, process, and sink blocks. Wire them together, then enter measured or planned rates.</p>
           </header>
           <div class="manual-guide-steps">
-            <span><strong>1</strong> Add source, process, and sink blocks.</span>
+            <span><strong>1</strong> Double-click empty map space to add source, process, and sink blocks.</span>
             <span><strong>2</strong> Right-drag from a block to wire it, or release on empty space to create the next block.</span>
-            <span><strong>3</strong> Double-click empty map space to search and place a block.</span>
+            <span><strong>3</strong> Double-click a block to edit tier, power, rates, and notes.</span>
           </div>
         </section>
 
@@ -89,7 +89,7 @@
             <section class="section-band manual-quick-panel">
               <header class="compact-section-header">
                 <h2>Tools</h2>
-                <span class="ore-route-note" data-role="manual-mode-note">Click a block to edit it. Drag blocks to move them, right-drag to wire them, or double-click empty space to add one.</span>
+                <span class="ore-route-note" data-role="manual-mode-note">Click a block to select it. Double-click a block to edit it, or double-click empty space to add one.</span>
               </header>
               <div class="manual-button-grid">
                 <button class="secondary-button" type="button" data-action="manual-link-mode">Wire Mode</button>
@@ -102,41 +102,10 @@
               </div>
             </section>
 
-            <section class="section-band manual-library-panel">
-              <header class="compact-section-header">
-                <h2>Block Library</h2>
-                <span class="ore-route-note">Search once, then add the block role you need.</span>
-              </header>
-
-              <div class="manual-library-section">
-                <label class="manual-search-label">
-                  <span>Items and fluids</span>
-                  <input data-role="manual-good-search" type="search" placeholder="Search item or fluid">
-                </label>
-                <p class="match-summary" data-role="manual-good-summary"></p>
-                <div class="manual-search-results" data-role="manual-good-results"></div>
-              </div>
-
-              <div class="manual-library-section">
-                <label class="manual-search-label">
-                  <span>Machines</span>
-                  <input data-role="manual-machine-search" type="search" placeholder="Search machine or process">
-                </label>
-                <div class="manual-chip-row" aria-label="Common machine searches">
-                  <button type="button" data-action="manual-search-machine" data-query="mixer">Mixer</button>
-                  <button type="button" data-action="manual-search-machine" data-query="chemical reactor">Chem</button>
-                  <button type="button" data-action="manual-search-machine" data-query="distillery">Distill</button>
-                  <button type="button" data-action="manual-search-machine" data-query="centrifuge">Centrifuge</button>
-                </div>
-                <p class="match-summary" data-role="manual-machine-summary"></p>
-                <div class="manual-search-results" data-role="manual-machine-results"></div>
-              </div>
-            </section>
-
             <section class="section-band manual-inspector">
               <header class="compact-section-header">
                 <h2>Selected Setup</h2>
-                <span class="ore-route-note">Edit the selected block or signal.</span>
+                <span class="ore-route-note">Double-click a block to edit it.</span>
               </header>
               <div data-role="manual-inspector"></div>
             </section>
@@ -151,8 +120,9 @@
           </aside>
         </div>
       </section>
+      <div class="manual-edit-modal" data-role="manual-edit-modal" hidden></div>
     </main>
 
-    <script type="module" src="src/manual-lines.js?v=manual-lines-wire-route-2026-06-15"></script>
+    <script type="module" src="src/manual-lines.js?v=manual-lines-block-editor-2026-06-16"></script>
   </body>
 </html>

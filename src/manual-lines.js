@@ -4,7 +4,23 @@ import { loadRepository } from "./repository.js?v=process-coproduct-routes-2026-
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
 const STORAGE_KEY = "gtceu-manual-line-v1";
-const SEARCH_LIMIT = 16;
+const MACHINE_TIERS = [
+  { id: "", label: "Custom", eut: null },
+  { id: "ULV", label: "ULV / 8 EU/t", eut: 8 },
+  { id: "LV", label: "LV / 32 EU/t", eut: 32 },
+  { id: "MV", label: "MV / 128 EU/t", eut: 128 },
+  { id: "HV", label: "HV / 512 EU/t", eut: 512 },
+  { id: "EV", label: "EV / 2.05k EU/t", eut: 2048 },
+  { id: "IV", label: "IV / 8.19k EU/t", eut: 8192 },
+  { id: "LuV", label: "LuV / 32.77k EU/t", eut: 32768 },
+  { id: "ZPM", label: "ZPM / 131.07k EU/t", eut: 131072 },
+  { id: "UV", label: "UV / 524.29k EU/t", eut: 524288 },
+  { id: "UHV", label: "UHV / 2.1M EU/t", eut: 2097152 },
+  { id: "UEV", label: "UEV / 8.39M EU/t", eut: 8388608 },
+  { id: "UIV", label: "UIV / 33.55M EU/t", eut: 33554432 },
+  { id: "UXV", label: "UXV / 134.22M EU/t", eut: 134217728 },
+  { id: "OpV", label: "OpV / 536.87M EU/t", eut: 536870912 }
+];
 const NODE_SIZE = {
   input: { width: 128, height: 82 },
   intermediate: { width: 128, height: 82 },
@@ -18,8 +34,6 @@ const state = {
   textureAtlas: null,
   dataUrl: DEFAULT_DATA_URL,
   title: "Manual Production Line",
-  goodSearch: "",
-  machineSearch: "",
   nodes: [],
   edges: [],
   selectedNodeId: null,
@@ -34,6 +48,11 @@ const state = {
     query: "",
     pendingFromId: null
   },
+  editor: {
+    open: false,
+    kind: null,
+    id: null
+  },
   zoom: 1,
   nextNodeId: 1,
   nextEdgeId: 1
@@ -42,12 +61,6 @@ const state = {
 const elements = {
   packName: document.querySelector("[data-role='manual-pack-name']"),
   packMeta: document.querySelector("[data-role='manual-pack-meta']"),
-  goodSearch: document.querySelector("[data-role='manual-good-search']"),
-  goodSummary: document.querySelector("[data-role='manual-good-summary']"),
-  goodResults: document.querySelector("[data-role='manual-good-results']"),
-  machineSearch: document.querySelector("[data-role='manual-machine-search']"),
-  machineSummary: document.querySelector("[data-role='manual-machine-summary']"),
-  machineResults: document.querySelector("[data-role='manual-machine-results']"),
   modeNote: document.querySelector("[data-role='manual-mode-note']"),
   title: document.querySelector("[data-role='manual-title']"),
   summary: document.querySelector("[data-role='manual-summary']"),
@@ -59,7 +72,8 @@ const elements = {
   quickAdd: document.querySelector("[data-role='manual-quick-add']"),
   zoom: document.querySelector("[data-role='manual-zoom']"),
   inspector: document.querySelector("[data-role='manual-inspector']"),
-  rateSheet: document.querySelector("[data-role='manual-rate-sheet']")
+  rateSheet: document.querySelector("[data-role='manual-rate-sheet']"),
+  editor: document.querySelector("[data-role='manual-edit-modal']")
 };
 
 async function main() {
@@ -119,79 +133,12 @@ function seedExample() {
 }
 
 function renderAll() {
-  renderSearches();
   renderSummary();
   renderCanvas();
   renderQuickAdd();
   renderInspector();
+  renderEditor();
   renderRateSheet();
-}
-
-function renderSearches() {
-  const goods = goodsMatches();
-  elements.goodResults.innerHTML = goods.length
-    ? goods.map(goodSearchCard).join("")
-    : `<div class="empty-state">No matching goods.</div>`;
-  elements.goodSummary.textContent = state.goodSearch.trim()
-    ? `${formatAmount(goods.length)} goods shown`
-    : "Search pack items and fluids.";
-
-  const machines = machineMatches();
-  elements.machineResults.innerHTML = machines.length
-    ? machines.map(machineSearchCard).join("")
-    : `<div class="empty-state">No matching machines.</div>`;
-  elements.machineSummary.textContent = state.machineSearch.trim()
-    ? `${formatAmount(machines.length)} process blocks shown`
-    : "Search GTCEu process blocks.";
-}
-
-function goodsMatches() {
-  const query = state.goodSearch.trim();
-  const goods = query
-    ? state.repository.searchGoods(query, SEARCH_LIMIT)
-    : ["gtceu:diesel", "gtceu:light_fuel", "gtceu:heavy_fuel", "gtceu:uranium_235_dust", "gtceu:uranium_dust", "gtceu:oxygen"]
-      .map((id) => state.repository.getGood(id))
-      .filter(Boolean);
-  return goods.slice(0, SEARCH_LIMIT);
-}
-
-function machineMatches() {
-  const query = state.machineSearch.trim().toLowerCase();
-  const machines = [...state.repository.machines.values()]
-    .filter((machine) => {
-      if (!query) return /chemical_reactor|distillery|mixer|electrolyzer|centrifuge|macerator|assembler/i.test(machine.id);
-      return `${machine.id} ${machine.name}`.toLowerCase().includes(query);
-    })
-    .sort((a, b) => machineSortName(a).localeCompare(machineSortName(b)))
-    .slice(0, SEARCH_LIMIT);
-  return machines;
-}
-
-function goodSearchCard(good) {
-  return `
-    <article class="manual-search-card">
-      <strong>${escapeHtml(good.name)}</strong>
-      <span>${escapeHtml(good.kind)} / ${escapeHtml(good.id)}</span>
-      <div class="manual-search-actions">
-        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="input" data-id="${escapeHtml(good.id)}">Source</button>
-        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="intermediate" data-id="${escapeHtml(good.id)}">Buffer</button>
-        <button class="secondary-button" type="button" data-action="manual-add-good" data-role-kind="output" data-id="${escapeHtml(good.id)}">Sink</button>
-      </div>
-    </article>
-  `;
-}
-
-function machineSearchCard(machine) {
-  const recipeTypes = (machine.recipeTypes ?? []).slice(0, 3).map((type) => state.repository.getRecipeType(type).name).join(", ");
-  return `
-    <article class="manual-search-card">
-      <strong>${escapeHtml(machine.name)}</strong>
-      <span>${escapeHtml(recipeTypes || machine.id)}</span>
-      <div class="manual-search-actions">
-        <button class="secondary-button" type="button" data-action="manual-add-machine" data-id="${escapeHtml(machine.id)}">Add Process</button>
-      </div>
-    </article>
-  `;
 }
 
 function renderSummary() {
@@ -469,23 +416,91 @@ function quickGoodCard(good) {
 function renderInspector() {
   const edge = selectedEdge();
   if (edge) {
-    elements.inspector.innerHTML = edgeInspector(edge);
+    elements.inspector.innerHTML = edgeSummary(edge);
     return;
   }
 
   const node = selectedNode();
-  elements.inspector.innerHTML = node ? nodeInspector(node) : `
+  elements.inspector.innerHTML = node ? nodeSummary(node) : `
     <div class="manual-empty-inspector">
-      <p class="process-muted">Select a block or signal to edit it. Right-drag from a block to connect it, or double-click empty space to add another block.</p>
+      <p class="process-muted">Select a block to inspect it. Double-click a block to open the full editor.</p>
     </div>
   `;
 }
 
-function nodeInspector(node) {
+function nodeSummary(node) {
+  const rows = [
+    ["Role", typeLabel(node.type)],
+    node.type === "machine" ? ["Built", `${formatAmount(node.machines)} machines`] : null,
+    node.type === "machine" ? ["Power", `${formatAmount(node.eut)} EU/t each`] : null,
+    node.type === "machine" && node.tier ? ["Tier", node.tier] : null,
+    ["Rate", ["input", "intermediate", "output"].includes(node.type) ? formatRate(node.rate) : `${formatRate(incomingRate(node))} in / ${formatRate(outgoingRate(node))} out`]
+  ].filter(Boolean);
+  return `
+    <article class="manual-selected-summary">
+      <strong>${escapeHtml(node.label)}</strong>
+      ${rows.map(([label, value]) => `
+        <span>${escapeHtml(label)}</span>
+        <em>${escapeHtml(value)}</em>
+      `).join("")}
+      <button class="secondary-button" type="button" data-action="manual-open-editor" data-kind="node" data-id="${escapeHtml(node.id)}">Edit Block</button>
+    </article>
+  `;
+}
+
+function edgeSummary(edge) {
+  const from = nodeById(edge.from);
+  const to = nodeById(edge.to);
+  return `
+    <article class="manual-selected-summary">
+      <strong>${escapeHtml(edge.label || "Signal")}</strong>
+      <span>From</span>
+      <em>${escapeHtml(from?.label ?? edge.from)}</em>
+      <span>To</span>
+      <em>${escapeHtml(to?.label ?? edge.to)}</em>
+      <span>Rate</span>
+      <em>${escapeHtml(formatRate(edge.rate))}</em>
+      <button class="secondary-button" type="button" data-action="manual-open-editor" data-kind="edge" data-id="${escapeHtml(edge.id)}">Edit Signal</button>
+    </article>
+  `;
+}
+
+function renderEditor() {
+  if (!state.editor.open) {
+    elements.editor.hidden = true;
+    elements.editor.innerHTML = "";
+    return;
+  }
+
+  const node = state.editor.kind === "node" ? nodeById(state.editor.id) : null;
+  const edge = state.editor.kind === "edge" ? edgeById(state.editor.id) : null;
+  if (!node && !edge) {
+    closeEditor();
+    renderEditor();
+    return;
+  }
+
+  elements.editor.hidden = false;
+  elements.editor.innerHTML = `
+    <div class="manual-edit-backdrop" data-action="manual-close-editor"></div>
+    <section class="manual-edit-card" role="dialog" aria-modal="true" aria-label="${escapeHtml(node ? "Edit block" : "Edit signal")}">
+      <header>
+        <div>
+          <span>${node ? "Block Editor" : "Signal Editor"}</span>
+          <h2>${escapeHtml(node?.label ?? edge?.label ?? "Signal")}</h2>
+        </div>
+        <button type="button" data-action="manual-close-editor" title="Close">x</button>
+      </header>
+      ${node ? nodeEditorForm(node) : edgeEditorForm(edge)}
+    </section>
+  `;
+}
+
+function nodeEditorForm(node) {
   const isMachine = node.type === "machine";
   const isGood = ["input", "intermediate", "output"].includes(node.type);
   return `
-    <form data-manual-form="node">
+    <form class="manual-editor-form" data-manual-form="node">
       <label>
         <span>Label</span>
         <input value="${escapeHtml(node.label)}" data-action="manual-edit-node" data-node-field="label">
@@ -513,7 +528,9 @@ function nodeInspector(node) {
         </label>
         <label>
           <span>Tier</span>
-          <input value="${escapeHtml(node.tier ?? "")}" data-action="manual-edit-node" data-node-field="tier">
+          <select data-action="manual-edit-node" data-node-field="tier">
+            ${tierOptions(node.tier)}
+          </select>
         </label>
       ` : ""}
       <label>
@@ -524,12 +541,13 @@ function nodeInspector(node) {
         <button class="secondary-button" type="button" data-action="manual-start-link" data-id="${escapeHtml(node.id)}">Link from this</button>
         <button class="secondary-button" type="button" data-action="manual-duplicate-node" data-id="${escapeHtml(node.id)}">Duplicate</button>
         <button class="secondary-button danger" type="button" data-action="manual-delete-node" data-id="${escapeHtml(node.id)}">Delete</button>
+        <button class="secondary-button" type="button" data-action="manual-close-editor">Done</button>
       </div>
     </form>
   `;
 }
 
-function edgeInspector(edge) {
+function edgeEditorForm(edge) {
   const from = nodeById(edge.from);
   const to = nodeById(edge.to);
   return `
@@ -545,8 +563,18 @@ function edgeInspector(edge) {
       </label>
       <div class="manual-inspector-actions">
         <button class="secondary-button danger" type="button" data-action="manual-delete-edge" data-id="${escapeHtml(edge.id)}">Delete signal</button>
+        <button class="secondary-button" type="button" data-action="manual-close-editor">Done</button>
       </div>
     </form>
+  `;
+}
+
+function tierOptions(selectedTier = "") {
+  const normalized = selectedTier ?? "";
+  const hasUnknown = normalized && !MACHINE_TIERS.some((tier) => tier.id === normalized);
+  return `
+    ${hasUnknown ? `<option value="${escapeHtml(normalized)}" selected>${escapeHtml(normalized)} / custom</option>` : ""}
+    ${MACHINE_TIERS.map((tier) => `<option value="${escapeHtml(tier.id)}"${normalized === tier.id ? " selected" : ""}>${escapeHtml(tier.label)}</option>`).join("")}
   `;
 }
 
@@ -559,8 +587,8 @@ function renderRateSheet() {
 
 function balanceRows() {
   return state.nodes.map((node) => {
-    const incoming = state.edges.filter((edge) => edge.to === node.id).reduce((sum, edge) => sum + numberValue(edge.rate), 0);
-    const outgoing = state.edges.filter((edge) => edge.from === node.id).reduce((sum, edge) => sum + numberValue(edge.rate), 0);
+    const incoming = incomingRate(node);
+    const outgoing = outgoingRate(node);
     const declared = numberValue(node.rate);
     let delta = 0;
     let title = "";
@@ -613,6 +641,14 @@ function balanceRows() {
   });
 }
 
+function incomingRate(node) {
+  return state.edges.filter((edge) => edge.to === node.id).reduce((sum, edge) => sum + numberValue(edge.rate), 0);
+}
+
+function outgoingRate(node) {
+  return state.edges.filter((edge) => edge.from === node.id).reduce((sum, edge) => sum + numberValue(edge.rate), 0);
+}
+
 function rateRowMarkup(row) {
   const warning = row.warning ? " warning" : "";
   return `
@@ -627,16 +663,6 @@ function rateRowMarkup(row) {
 }
 
 function setupEvents() {
-  elements.goodSearch.addEventListener("input", (event) => {
-    state.goodSearch = event.target.value;
-    renderSearches();
-  });
-
-  elements.machineSearch.addEventListener("input", (event) => {
-    state.machineSearch = event.target.value;
-    renderSearches();
-  });
-
   elements.zoom.addEventListener("input", (event) => setZoom(event.target.value));
 
   document.addEventListener("input", (event) => {
@@ -692,8 +718,13 @@ function handleAction(target) {
     renderQuickAdd();
     return;
   }
-  if (action === "manual-search-machine") {
-    searchMachines(target.dataset.query);
+  if (action === "manual-open-editor") {
+    openEditor(target.dataset.kind, target.dataset.id);
+    return;
+  }
+  if (action === "manual-close-editor") {
+    closeEditor();
+    renderAll();
     return;
   }
   if (action === "manual-auto-layout") {
@@ -748,6 +779,7 @@ function handleAction(target) {
   }
   if (action === "manual-example") {
     seedExample();
+    closeEditor();
     selectNothing();
     setModeNote("Loaded the diesel sketch example.");
     renderAll();
@@ -781,12 +813,6 @@ function addMachine(machineId, position = nextNodePosition(), connectFromId = nu
   if (connectFromId) connectNodes(connectFromId, node.id);
   selectNode(node.id, { forceNormalSelect: true });
   return node;
-}
-
-function searchMachines(query = "") {
-  state.machineSearch = query;
-  elements.machineSearch.value = query;
-  renderSearches();
 }
 
 function addQuickGood(goodsId, roleKind = "intermediate") {
@@ -826,6 +852,33 @@ function closeQuickAdd() {
   state.quickAdd.open = false;
   state.quickAdd.query = "";
   state.quickAdd.pendingFromId = null;
+}
+
+function openEditor(kind, id) {
+  if (kind === "node" && nodeById(id)) {
+    closeQuickAdd();
+    state.selectedNodeId = id;
+    state.selectedEdgeId = null;
+    state.editor = { open: true, kind: "node", id };
+    renderAll();
+    focusEditor();
+  } else if (kind === "edge" && edgeById(id)) {
+    closeQuickAdd();
+    state.selectedEdgeId = id;
+    state.selectedNodeId = null;
+    state.editor = { open: true, kind: "edge", id };
+    renderAll();
+    focusEditor();
+  }
+}
+
+function closeEditor() {
+  state.editor = { open: false, kind: null, id: null };
+}
+
+function focusEditor() {
+  const firstInput = elements.editor.querySelector("input, select, textarea, button");
+  firstInput?.focus();
 }
 
 function autoLayoutGraph() {
@@ -963,6 +1016,7 @@ function connectNodes(fromId, toId) {
 function deleteNode(nodeId) {
   state.nodes = state.nodes.filter((node) => node.id !== nodeId);
   state.edges = state.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId);
+  if (state.editor.kind === "node" && state.editor.id === nodeId) closeEditor();
   selectNothing();
   renderAll();
 }
@@ -978,11 +1032,15 @@ function duplicateNode(nodeId) {
     y: node.y + 42
   };
   state.nodes.push(copy);
+  if (state.editor.kind === "node" && state.editor.id === nodeId) {
+    state.editor.id = copy.id;
+  }
   selectNode(copy.id, { forceNormalSelect: true });
 }
 
 function deleteEdge(edgeId) {
   state.edges = state.edges.filter((edge) => edge.id !== edgeId);
+  if (state.editor.kind === "edge" && state.editor.id === edgeId) closeEditor();
   state.selectedEdgeId = null;
   renderAll();
 }
@@ -996,10 +1054,14 @@ function updateSelectedNode(target) {
     node[field] = Math.max(0, Number(target.value) || 0);
   } else if (field === "type") {
     node.type = target.value;
+  } else if (field === "tier") {
+    node.tier = target.value;
+    const tier = MACHINE_TIERS.find((entry) => entry.id === target.value);
+    if (tier?.eut != null && node.type === "machine") node.eut = tier.eut;
   } else {
     node[field] = target.value;
   }
-  renderAll();
+  renderManualEditChange(target, field === "type" || field === "tier");
 }
 
 function updateSelectedEdge(target) {
@@ -1009,7 +1071,15 @@ function updateSelectedEdge(target) {
   if (!field) return;
   if (field === "rate") edge.rate = Math.max(0, Number(target.value) || 0);
   else edge[field] = target.value;
-  renderAll();
+  renderManualEditChange(target);
+}
+
+function renderManualEditChange(target, rerenderEditor = false) {
+  renderSummary();
+  renderCanvas();
+  renderInspector();
+  renderRateSheet();
+  if (!target.closest(".manual-edit-card") || rerenderEditor) renderEditor();
 }
 
 function savePlan() {
@@ -1037,6 +1107,7 @@ function loadPlan() {
     state.edges = Array.isArray(payload.edges) ? payload.edges : [];
     state.nextNodeId = Number(payload.nextNodeId) || nextNumberFromIds(state.nodes, "node");
     state.nextEdgeId = Number(payload.nextEdgeId) || nextNumberFromIds(state.edges, "edge");
+    closeEditor();
     selectNothing();
     setModeNote("Loaded your saved manual line.");
     renderAll();
@@ -1051,6 +1122,7 @@ function clearPlan() {
   state.edges = [];
   state.nextNodeId = 1;
   state.nextEdgeId = 1;
+  closeEditor();
   selectNothing();
   setModeNote("Cleared the canvas.");
   renderAll();
@@ -1114,7 +1186,7 @@ function setupCanvasPan() {
   elements.frame.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     if (!(event.target instanceof Element)) return;
-    if (event.target.closest(".manual-node, .manual-flow-hit")) return;
+    if (event.target.closest(".manual-node, .manual-flow-hit, .manual-flow-badge")) return;
     pan = {
       pointerId: event.pointerId,
       x: event.clientX,
@@ -1212,7 +1284,20 @@ function setupCanvasWiring() {
 
   elements.frame.addEventListener("dblclick", (event) => {
     if (event.button !== 0) return;
-    if (event.target instanceof Element && event.target.closest(".manual-node, .manual-flow-hit, .manual-flow-badge")) return;
+    if (event.target instanceof Element) {
+      const nodeElement = event.target.closest(".manual-node");
+      if (nodeElement instanceof HTMLElement) {
+        event.preventDefault();
+        openEditor("node", nodeElement.dataset.nodeId);
+        return;
+      }
+      const edgeTarget = event.target.closest(".manual-flow-hit, .manual-flow-badge");
+      if (edgeTarget instanceof SVGElement) {
+        event.preventDefault();
+        openEditor("edge", edgeTarget.dataset.edgeId);
+        return;
+      }
+    }
     event.preventDefault();
     const point = canvasPointFromEvent(event);
     openQuickAdd(point.x, point.y);
@@ -1253,8 +1338,8 @@ function setModeNote(message = null) {
     state.linkMode
       ? state.linkSourceId
         ? "Wire Mode: click the target block."
-        : "Wire Mode: click the source block."
-      : "Click a block to edit it. Drag blocks to move them, right-drag to wire them, or double-click empty space to add one."
+      : "Wire Mode: click the source block."
+      : "Click a block to select it. Double-click a block to edit it, or double-click empty space to add one."
   );
 }
 

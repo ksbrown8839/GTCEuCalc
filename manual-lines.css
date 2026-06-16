@@ -281,7 +281,10 @@
 .manual-audit-card span,
 .manual-balance-card span,
 .manual-inspector label span,
-.manual-edge-form label span {
+.manual-edge-form label span,
+.manual-selected-summary span,
+.manual-editor-form label span,
+.manual-edit-card header span {
   color: var(--process-readable-muted);
   font-size: 9px;
   font-weight: 900;
@@ -326,7 +329,7 @@
 
 .manual-work-area {
   display: grid;
-  grid-template-columns: minmax(520px, 1fr) minmax(330px, 380px);
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 330px);
   gap: 10px;
   height: 100%;
   max-height: 100%;
@@ -337,7 +340,7 @@
 
 .manual-tool-dock {
   display: grid;
-  grid-template-rows: auto minmax(150px, 1fr) minmax(155px, 0.9fr) minmax(70px, 0.45fr);
+  grid-template-rows: auto minmax(130px, 0.4fr) minmax(240px, 1fr);
   gap: 8px;
   min-width: 0;
   min-height: 0;
@@ -351,7 +354,6 @@
 }
 
 .manual-quick-panel,
-.manual-library-panel,
 .manual-inspector,
 .manual-rate-sheet-section {
   display: grid;
@@ -360,22 +362,6 @@
 
 .manual-quick-panel {
   grid-template-rows: auto auto;
-}
-
-.manual-library-panel {
-  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.manual-library-section {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 5px;
-  min-width: 0;
-  min-height: 0;
-}
-
-.manual-library-section:has(.manual-chip-row) {
-  grid-template-rows: auto auto auto minmax(0, 1fr);
 }
 
 .manual-inspector,
@@ -784,22 +770,54 @@
   min-width: 0;
 }
 
-.manual-inspector form,
-.manual-edge-form,
-.manual-empty-inspector {
+.manual-empty-inspector,
+.manual-selected-summary,
+.manual-editor-form,
+.manual-edge-form {
   display: grid;
   gap: 8px;
 }
 
-.manual-inspector label,
+.manual-selected-summary {
+  align-content: start;
+  padding: 8px;
+  background: var(--process-panel-readable);
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    inset 2px 2px 0 var(--process-panel-readable-light),
+    inset -2px -2px 0 var(--process-panel-readable-shadow);
+}
+
+.manual-selected-summary strong {
+  color: #202020;
+  font-size: 13px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.manual-selected-summary em {
+  color: #315a73;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.manual-selected-summary .secondary-button {
+  margin-top: 2px;
+}
+
+.manual-editor-form label,
 .manual-edge-form label {
   display: grid;
   gap: 4px;
 }
 
-.manual-inspector input,
-.manual-inspector select,
-.manual-inspector textarea,
+.manual-editor-form input,
+.manual-editor-form select,
+.manual-editor-form textarea,
 .manual-edge-form input {
   min-width: 0;
   border: 0;
@@ -814,7 +832,7 @@
     inset -2px -2px 0 #9f9f9f;
 }
 
-.manual-inspector textarea {
+.manual-editor-form textarea {
   min-height: 76px;
   resize: vertical;
 }
@@ -838,7 +856,7 @@
 
 .manual-rate-row {
   display: grid;
-  grid-template-columns: minmax(150px, 0.9fr) repeat(4, minmax(74px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   align-items: stretch;
   padding: 8px;
@@ -864,6 +882,7 @@
 }
 
 .manual-rate-row strong {
+  grid-column: 1 / -1;
   color: #202020;
   font-size: 11px;
   line-height: 1.2;
@@ -877,10 +896,78 @@
 }
 
 .manual-rate-row em {
+  grid-column: 1 / -1;
   color: var(--process-readable-muted);
   font-size: 9px;
   font-style: normal;
   line-height: 1.2;
+}
+
+.manual-edit-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.manual-edit-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 20, 20, 0.46);
+}
+
+.manual-edit-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  width: min(580px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  padding: 12px;
+  background: #d2d2d2;
+  color: #202020;
+  image-rendering: pixelated;
+  box-shadow:
+    0 0 0 4px #1f1f1f,
+    inset 3px 3px 0 #eeeeee,
+    inset -3px -3px 0 #777777;
+}
+
+.manual-edit-card header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.manual-edit-card h2 {
+  margin: 2px 0 0;
+  color: #202020;
+  font-size: 18px;
+  line-height: 1.15;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.manual-edit-card header button {
+  min-width: 32px;
+  min-height: 30px;
+  border: 0;
+  border-radius: 0;
+  background: #8c3b33;
+  color: #ffe0d8;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #000000;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #d88476,
+    inset -2px -2px 0 #4a1d17;
 }
 
 @media (max-width: 1100px) {
