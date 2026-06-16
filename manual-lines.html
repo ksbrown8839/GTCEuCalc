@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
     <link rel="stylesheet" href="process-routes.css?v=process-coproduct-routes-2026-06-09">
-    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-editor-fix-2026-06-16">
+    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-side-tabs-2026-06-16">
   </head>
   <body>
     <main class="process-route-shell manual-line-shell">
@@ -86,7 +86,13 @@
           </section>
 
           <aside class="manual-tool-dock">
-            <section class="section-band manual-quick-panel">
+            <div class="manual-side-tabs" role="tablist" aria-label="Manual line side panels">
+              <button type="button" class="active" data-action="manual-side-tab" data-panel="tools" role="tab" aria-selected="true">Tools</button>
+              <button type="button" data-action="manual-side-tab" data-panel="selected" role="tab" aria-selected="false">Selected</button>
+              <button type="button" data-action="manual-side-tab" data-panel="rates" role="tab" aria-selected="false">Rates</button>
+            </div>
+
+            <section class="section-band manual-quick-panel" data-side-panel="tools">
               <header class="compact-section-header">
                 <h2>Tools</h2>
                 <span class="ore-route-note" data-role="manual-mode-note">Click a block to select it. Double-click a block to edit it, or double-click empty space to add one.</span>
@@ -102,7 +108,7 @@
               </div>
             </section>
 
-            <section class="section-band manual-inspector">
+            <section class="section-band manual-inspector" data-side-panel="selected">
               <header class="compact-section-header">
                 <h2>Selected Setup</h2>
                 <span class="ore-route-note">Double-click a block to edit it.</span>
@@ -110,7 +116,7 @@
               <div data-role="manual-inspector"></div>
             </section>
 
-            <section class="section-band manual-rate-sheet-section">
+            <section class="section-band manual-rate-sheet-section" data-side-panel="rates">
               <header class="compact-section-header">
                 <h2>Rate Sheet</h2>
                 <span class="ore-route-note">Manual rates and bottlenecks.</span>
@@ -123,6 +129,6 @@
       <div class="manual-edit-modal" data-role="manual-edit-modal" hidden></div>
     </main>
 
-    <script type="module" src="src/manual-lines.js?v=manual-lines-editor-fix-2026-06-16"></script>
+    <script type="module" src="src/manual-lines.js?v=manual-lines-side-tabs-2026-06-16"></script>
   </body>
 </html>

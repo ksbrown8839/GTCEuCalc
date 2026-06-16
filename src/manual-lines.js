@@ -54,6 +54,7 @@ const state = {
     id: null
   },
   zoom: 1,
+  sidePanel: "tools",
   nextNodeId: 1,
   nextEdgeId: 1
 };
@@ -73,7 +74,9 @@ const elements = {
   zoom: document.querySelector("[data-role='manual-zoom']"),
   inspector: document.querySelector("[data-role='manual-inspector']"),
   rateSheet: document.querySelector("[data-role='manual-rate-sheet']"),
-  editor: document.querySelector("[data-role='manual-edit-modal']")
+  editor: document.querySelector("[data-role='manual-edit-modal']"),
+  sideTabs: document.querySelectorAll("[data-action='manual-side-tab']"),
+  sidePanels: document.querySelectorAll("[data-side-panel]")
 };
 
 async function main() {
@@ -139,6 +142,7 @@ function renderAll() {
   renderInspector();
   renderEditor();
   renderRateSheet();
+  renderSidePanels();
 }
 
 function renderSummary() {
@@ -585,6 +589,17 @@ function renderRateSheet() {
     : `<div class="empty-state">Add blocks to start a manual signal sheet.</div>`;
 }
 
+function renderSidePanels() {
+  for (const tab of elements.sideTabs) {
+    const active = tab.dataset.panel === state.sidePanel;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  }
+  for (const panel of elements.sidePanels) {
+    panel.hidden = panel.dataset.sidePanel !== state.sidePanel;
+  }
+}
+
 function balanceRows() {
   return state.nodes.map((node) => {
     const incoming = incomingRate(node);
@@ -716,6 +731,11 @@ function handleAction(target) {
   if (action === "manual-close-quick-add") {
     closeQuickAdd();
     renderQuickAdd();
+    return;
+  }
+  if (action === "manual-side-tab") {
+    state.sidePanel = target.dataset.panel || "tools";
+    renderSidePanels();
     return;
   }
   if (action === "manual-open-editor") {
@@ -859,6 +879,7 @@ function openEditor(kind, id) {
     closeQuickAdd();
     state.selectedNodeId = id;
     state.selectedEdgeId = null;
+    state.sidePanel = "selected";
     state.editor = { open: true, kind: "node", id };
     renderAll();
     focusEditor();
@@ -866,6 +887,7 @@ function openEditor(kind, id) {
     closeQuickAdd();
     state.selectedEdgeId = id;
     state.selectedNodeId = null;
+    state.sidePanel = "selected";
     state.editor = { open: true, kind: "edge", id };
     renderAll();
     focusEditor();
@@ -984,9 +1006,11 @@ function selectNode(nodeId, options = {}) {
   closeQuickAdd();
   state.selectedNodeId = nodeId;
   state.selectedEdgeId = null;
+  state.sidePanel = "selected";
   renderCanvasSelection();
   renderQuickAdd();
   renderInspector();
+  renderSidePanels();
 }
 
 function selectEdge(edgeId) {
@@ -994,9 +1018,11 @@ function selectEdge(edgeId) {
   closeQuickAdd();
   state.selectedEdgeId = edgeId;
   state.selectedNodeId = null;
+  state.sidePanel = "selected";
   renderCanvasSelection();
   renderQuickAdd();
   renderInspector();
+  renderSidePanels();
 }
 
 function selectNothing() {
@@ -1099,6 +1125,7 @@ function renderManualEditChange(target, rerenderEditor = false) {
   renderCanvas();
   renderInspector();
   renderRateSheet();
+  renderSidePanels();
   if (!target.closest(".manual-edit-card") || rerenderEditor) renderEditor();
 }
 

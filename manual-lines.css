@@ -329,7 +329,7 @@
 
 .manual-work-area {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(290px, 330px);
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 24vw, 390px);
   gap: 10px;
   height: 100%;
   max-height: 100%;
@@ -340,19 +340,63 @@
 
 .manual-tool-dock {
   display: grid;
-  grid-template-rows: auto auto minmax(240px, 1fr);
-  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
   gap: 8px;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   padding: 3px;
 }
 
 .manual-tool-dock .section-band {
   min-width: 0;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
+}
+
+.manual-side-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  min-width: 0;
+}
+
+.manual-side-tabs button {
+  min-width: 0;
+  min-height: 34px;
+  border: 0;
+  border-radius: 0;
+  padding: 6px 8px;
+  background: #8f8f8f;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 0 #000000;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #d8d8d8,
+    inset -2px -2px 0 #555555;
+}
+
+.manual-side-tabs button.active {
+  background: #315a73;
+  color: #ffffa0;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #6b8fa5,
+    inset -2px -2px 0 #1c3545;
+}
+
+.manual-side-tabs button:active {
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #555555,
+    inset -2px -2px 0 #d8d8d8;
 }
 
 .manual-quick-panel,
@@ -360,15 +404,8 @@
 .manual-rate-sheet-section {
   display: grid;
   gap: 7px;
-}
-
-.manual-quick-panel {
-  grid-template-rows: auto auto;
-}
-
-.manual-inspector,
-.manual-rate-sheet-section {
   grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
 }
 
 .manual-inspector > [data-role="manual-inspector"],
@@ -378,7 +415,7 @@
 }
 
 .manual-rate-sheet-section {
-  min-height: min(340px, 100%);
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1001,7 +1038,22 @@
   }
 
   .manual-tool-dock {
-    grid-template-rows: auto;
+    grid-template-rows: auto auto;
+    overflow: visible;
+  }
+
+  .manual-tool-dock .section-band {
+    overflow: visible;
+  }
+
+  .manual-quick-panel,
+  .manual-inspector,
+  .manual-rate-sheet-section {
+    height: auto;
+  }
+
+  .manual-inspector > [data-role="manual-inspector"],
+  .manual-rate-sheet {
     overflow: visible;
   }
 
