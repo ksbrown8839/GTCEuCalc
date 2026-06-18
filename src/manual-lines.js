@@ -240,18 +240,18 @@ function graphBounds() {
 }
 
 function edgeMarkup(edge) {
-  const from = nodeById(edge.from);
-  const to = nodeById(edge.to);
-  if (!from || !to) return "";
-  const start = edgeOutputPoint(edge, from);
-  const end = edgeInputPoint(edge, to);
-  const route = connectorRoute(start, end);
+  const geometry = edgeGeometry(edge);
+  if (!geometry) return "";
+  const { start, route } = geometry;
   const selected = state.selectedEdgeId === edge.id ? " selected" : "";
-  const rewiring = state.draftWire?.edgeId === edge.id ? " rewiring" : "";
   const marker = selected ? "manual-flow-arrow-selected" : "manual-flow-arrow";
   const badgeText = edge.label?.trim() || (numberValue(edge.rate) ? formatRate(edge.rate) : "rate");
+  const junction = edge.branchFromEdgeId
+    ? `<rect class="manual-branch-junction${selected}" x="${start.x - 4}" y="${start.y - 4}" width="8" height="8"></rect>`
+    : "";
   return `
-    <path class="manual-flow-line${selected}${rewiring}" d="${route.path}" marker-end="url(#${marker})" data-edge-id="${escapeHtml(edge.id)}"></path>
+    ${junction}
+    <path class="manual-flow-line${selected}" d="${route.path}" marker-end="url(#${marker})" data-edge-id="${escapeHtml(edge.id)}"></path>
     <path class="manual-flow-hit" d="${route.path}" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}"></path>
     <g class="manual-flow-badge${selected}" transform="translate(${route.badgeX} ${route.badgeY})" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}">
       <rect width="72" height="20"></rect>
@@ -264,11 +264,13 @@ function draftWireMarkup() {
   if (!state.draftWire) return "";
   const from = nodeById(state.draftWire.fromId);
   const to = nodeById(state.draftWire.toId);
-  const edge = edgeById(state.draftWire.edgeId);
   const cursor = { x: state.draftWire.x, y: state.draftWire.y };
-  const start = from ? (edge ? edgeOutputPoint(edge, from) : nodeOutputPoint(from)) : cursor;
-  const end = to ? (edge ? edgeInputPoint(edge, to) : nodeInputPoint(to)) : cursor;
-  if (!from && !to) return "";
+  const explicitStart = Number.isFinite(state.draftWire.startX) && Number.isFinite(state.draftWire.startY)
+    ? { x: state.draftWire.startX, y: state.draftWire.startY }
+    : null;
+  const start = explicitStart ?? (from ? nodeOutputPoint(from) : cursor);
+  const end = to ? nodeInputPoint(to) : cursor;
+  if (!explicitStart && !from && !to) return "";
   const route = connectorRoute(start, end, { preview: true });
   return `
     <path class="manual-draft-wire" d="${route.path}" marker-end="url(#manual-draft-arrowhead)"></path>
@@ -281,11 +283,12 @@ function connectorRoute(start, end, options = {}) {
     const bendX = forwardGap >= 40
       ? Math.round(start.x + forwardGap / 2)
       : Math.round(start.x + 48);
-    const path = Math.abs(end.y - start.y) < 1
-      ? `M ${start.x} ${start.y} H ${end.x}`
-      : `M ${start.x} ${start.y} H ${bendX} V ${end.y} H ${end.x}`;
+    const points = Math.abs(end.y - start.y) < 1
+      ? [start, end]
+      : [start, { x: bendX, y: start.y }, { x: bendX, y: end.y }, end];
     return {
-      path,
+      path: orthogonalPath(points),
+      points,
       badgeX: Math.max(8, Math.round(bendX - 36)),
       badgeY: Math.max(8, Math.round(end.y - 34))
     };
@@ -294,9 +297,10 @@ function connectorRoute(start, end, options = {}) {
   const forwardGap = end.x - start.x;
   if (forwardGap >= 72) {
     const midpoint = Math.round((start.x + end.x) / 2);
-    const path = `M ${start.x} ${start.y} H ${midpoint} V ${end.y} H ${end.x}`;
+    const points = [start, { x: midpoint, y: start.y }, { x: midpoint, y: end.y }, end];
     return {
-      path,
+      path: orthogonalPath(points),
+      points,
       badgeX: Math.max(8, Math.round(midpoint - 36)),
       badgeY: Math.max(8, Math.round(end.y - 34))
     };
@@ -308,12 +312,100 @@ function connectorRoute(start, end, options = {}) {
   const bendY = routeAbove
     ? Math.round(Math.min(start.y, end.y) - 72)
     : Math.round(Math.max(start.y, end.y) + 72);
-  const path = `M ${start.x} ${start.y} H ${exitX} V ${bendY} H ${approachX} V ${end.y} H ${end.x}`;
+  const points = [
+    start,
+    { x: exitX, y: start.y },
+    { x: exitX, y: bendY },
+    { x: approachX, y: bendY },
+    { x: approachX, y: end.y },
+    end
+  ];
   return {
-    path,
+    path: orthogonalPath(points),
+    points,
     badgeX: Math.max(8, Math.round((Math.min(exitX, approachX) + Math.abs(exitX - approachX) / 2) - 36)),
     badgeY: Math.max(8, Math.round(bendY - 28))
   };
+}
+
+function orthogonalPath(points) {
+  return points.slice(1).reduce((path, point, index) => {
+    const previous = points[index];
+    if (point.y === previous.y) return `${path} H ${point.x}`;
+    if (point.x === previous.x) return `${path} V ${point.y}`;
+    return `${path} L ${point.x} ${point.y}`;
+  }, `M ${points[0].x} ${points[0].y}`);
+}
+
+function edgeGeometry(edge, stack = new Set()) {
+  const from = nodeById(edge.from);
+  const to = nodeById(edge.to);
+  if (!from || !to) return null;
+  const start = branchStartPoint(edge, from, stack);
+  const end = edgeInputPoint(edge, to);
+  return { from, to, start, end, route: connectorRoute(start, end) };
+}
+
+function branchStartPoint(edge, from, stack) {
+  const parent = edge.branchFromEdgeId ? edgeById(edge.branchFromEdgeId) : null;
+  if (!parent || stack.has(edge.id)) return edgeOutputPoint(edge, from);
+  const nextStack = new Set(stack);
+  nextStack.add(edge.id);
+  const parentGeometry = edgeGeometry(parent, nextStack);
+  if (!parentGeometry) return edgeOutputPoint(edge, from);
+  return pointAtRoute(parentGeometry.route, numberValue(edge.branchRatio));
+}
+
+function pointAtRoute(route, ratio) {
+  const points = route?.points ?? [];
+  if (points.length < 2) return points[0] ?? { x: 0, y: 0 };
+  const lengths = points.slice(1).map((point, index) => Math.hypot(
+    point.x - points[index].x,
+    point.y - points[index].y
+  ));
+  const total = lengths.reduce((sum, length) => sum + length, 0);
+  if (total <= 0) return points[0];
+  let remaining = Math.min(1, Math.max(0, numberValue(ratio))) * total;
+  for (let index = 0; index < lengths.length; index += 1) {
+    const length = lengths[index];
+    if (remaining <= length || index === lengths.length - 1) {
+      const progress = length > 0 ? remaining / length : 0;
+      return {
+        x: points[index].x + (points[index + 1].x - points[index].x) * progress,
+        y: points[index].y + (points[index + 1].y - points[index].y) * progress
+      };
+    }
+    remaining -= length;
+  }
+  return points.at(-1);
+}
+
+function closestPointOnRoute(route, point) {
+  const points = route?.points ?? [];
+  if (points.length < 2) return { ...point, ratio: 0 };
+  const segments = points.slice(1).map((end, index) => {
+    const start = points[index];
+    return { start, end, length: Math.hypot(end.x - start.x, end.y - start.y) };
+  });
+  const total = segments.reduce((sum, segment) => sum + segment.length, 0);
+  let traveled = 0;
+  let best = { x: points[0].x, y: points[0].y, distance: Infinity, along: 0 };
+  for (const segment of segments) {
+    const dx = segment.end.x - segment.start.x;
+    const dy = segment.end.y - segment.start.y;
+    const lengthSquared = dx * dx + dy * dy;
+    const projection = lengthSquared > 0
+      ? Math.min(1, Math.max(0, ((point.x - segment.start.x) * dx + (point.y - segment.start.y) * dy) / lengthSquared))
+      : 0;
+    const x = segment.start.x + dx * projection;
+    const y = segment.start.y + dy * projection;
+    const distance = Math.hypot(point.x - x, point.y - y);
+    if (distance < best.distance) {
+      best = { x, y, distance, along: traveled + segment.length * projection };
+    }
+    traveled += segment.length;
+  }
+  return { x: best.x, y: best.y, ratio: total > 0 ? best.along / total : 0 };
 }
 
 function nodeMarkup(node) {
@@ -346,7 +438,7 @@ function nodePortMarkup(node) {
   const hasInput = nodeAcceptsInput(node);
   const hasOutput = nodeProvidesOutput(node);
   const inputCount = Math.max(1, connectedEdges(node.id, "to").length);
-  const outputCount = Math.max(1, connectedEdges(node.id, "from").length);
+  const outputCount = Math.max(1, connectedEdges(node.id, "from", { directOnly: true }).length);
   return `
     ${hasInput ? portMarkup("in", inputCount) : ""}
     ${hasOutput ? portMarkup("out", outputCount) : ""}
@@ -363,8 +455,10 @@ function portPercent(index, count) {
   return Math.round(((index + 1) / (count + 1)) * 1000) / 10;
 }
 
-function connectedEdges(nodeId, endpoint) {
-  return state.edges.filter((edge) => edge[endpoint] === nodeId);
+function connectedEdges(nodeId, endpoint, options = {}) {
+  return state.edges.filter((edge) => (
+    edge[endpoint] === nodeId && (!options.directOnly || !edge.branchFromEdgeId)
+  ));
 }
 
 function nodeAcceptsInput(node) {
@@ -1149,6 +1243,7 @@ function renderCanvasSelection() {
 function deleteNode(nodeId) {
   state.nodes = state.nodes.filter((node) => node.id !== nodeId);
   state.edges = state.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId);
+  repairBranchParents();
   if (state.editor.kind === "node" && state.editor.id === nodeId) closeEditor();
   selectNothing();
   renderAll();
@@ -1173,6 +1268,7 @@ function duplicateNode(nodeId) {
 
 function deleteEdge(edgeId) {
   state.edges = state.edges.filter((edge) => edge.id !== edgeId);
+  repairBranchParents();
   if (state.editor.kind === "edge" && state.editor.id === edgeId) closeEditor();
   state.selectedEdgeId = null;
   renderAll();
@@ -1239,6 +1335,7 @@ function loadPlan() {
     state.title = payload.title || "Manual Production Line";
     state.nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
     state.edges = Array.isArray(payload.edges) ? payload.edges : [];
+    repairBranchParents();
     state.nextNodeId = Number(payload.nextNodeId) || nextNumberFromIds(state.nodes, "node");
     state.nextEdgeId = Number(payload.nextEdgeId) || nextNumberFromIds(state.edges, "edge");
     closeEditor();
@@ -1357,21 +1454,28 @@ function setupCanvasWiring() {
   });
 
   elements.canvas.addEventListener("pointerdown", (event) => {
-    if (event.button !== 2) return;
+    const rightDrag = event.button === 2;
+    const alternateBranchDrag = event.button === 0 && event.altKey;
+    if (!rightDrag && !alternateBranchDrag) return;
     if (!(event.target instanceof Element)) return;
 
     const edgeElement = event.target.closest(".manual-flow-hit, .manual-flow-badge");
     if (edgeElement instanceof SVGElement) {
       const edge = edgeById(edgeElement.dataset.edgeId);
-      if (!edge) return;
+      const geometry = edge ? edgeGeometry(edge) : null;
+      if (!edge || !geometry) return;
       event.preventDefault();
       event.stopPropagation();
       const point = canvasPointFromEvent(event);
+      const anchor = closestPointOnRoute(geometry.route, point);
       wire = {
-        kind: "rewire",
+        kind: "branch",
         pointerId: event.pointerId,
-        edgeId: edge.id,
-        endpoint: nearestEdgeEndpoint(edge, point),
+        parentEdgeId: edge.id,
+        fromId: edge.from,
+        branchRatio: anchor.ratio,
+        anchorX: anchor.x,
+        anchorY: anchor.y,
         startX: event.clientX,
         startY: event.clientY,
         moved: false
@@ -1383,10 +1487,12 @@ function setupCanvasWiring() {
       state.quickAdd.open = false;
       elements.frame.setPointerCapture(event.pointerId);
       elements.frame.classList.add("wiring");
-      setModeNote("Reconnect signal: drag its loose end to an input or output port.");
+      setModeNote("Branch signal: drag from this junction to another block's input.");
       renderAll();
       return;
     }
+
+    if (!rightDrag) return;
 
     const nodeElement = event.target.closest(".manual-node");
     if (!(nodeElement instanceof HTMLElement)) return;
@@ -1420,10 +1526,6 @@ function setupCanvasWiring() {
     if (!wire || wire.pointerId !== event.pointerId) return;
     const point = canvasPointFromEvent(event);
     wire.moved = wire.moved || Math.hypot(event.clientX - wire.startX, event.clientY - wire.startY) > 8;
-    const dropTarget = connectionTargetFromViewportPoint(event.clientX, event.clientY);
-    if (wire.kind === "rewire" && dropTarget?.portKind) {
-      wire.endpoint = dropTarget.portKind === "out" ? "from" : "to";
-    }
     state.draftWire = draftWireForInteraction(wire, point);
     renderCanvas();
   });
@@ -1442,19 +1544,15 @@ function setupCanvasWiring() {
         return;
       }
 
-      if (activeWire.kind === "rewire") {
-        if (!dropTarget) {
-          setModeNote("Signal unchanged. Drop on an input or output port to reconnect it.");
-          renderAll();
-          return;
+      if (activeWire.kind === "branch") {
+        if (dropTarget && dropTarget.portKind !== "out" && nodeAcceptsInput(dropTarget.node)) {
+          const result = createBranchEdge(activeWire, dropTarget.node.id);
+          setModeNote(result.message);
+        } else {
+          setModeNote(dropTarget
+            ? "A signal branch must end on an input port."
+            : "Branch canceled. The original signal was left unchanged.");
         }
-        const endpoint = dropTarget.portKind === "out"
-          ? "from"
-          : dropTarget.portKind === "in"
-            ? "to"
-            : activeWire.endpoint;
-        const result = rewireEdge(activeWire.edgeId, endpoint, dropTarget.node.id);
-        setModeNote(result.message);
         renderAll();
         return;
       }
@@ -1503,25 +1601,16 @@ function setupCanvasWiring() {
 }
 
 function draftWireForInteraction(wire, point) {
-  if (wire.kind === "rewire") {
-    const edge = edgeById(wire.edgeId);
-    if (!edge) return null;
-    return wire.endpoint === "from"
-      ? { edgeId: edge.id, toId: edge.to, x: point.x, y: point.y }
-      : { edgeId: edge.id, fromId: edge.from, x: point.x, y: point.y };
+  if (wire.kind === "branch") {
+    return {
+      branchParentEdgeId: wire.parentEdgeId,
+      startX: wire.anchorX,
+      startY: wire.anchorY,
+      x: point.x,
+      y: point.y
+    };
   }
   return { fromId: wire.fromId, x: point.x, y: point.y };
-}
-
-function nearestEdgeEndpoint(edge, point) {
-  const from = nodeById(edge.from);
-  const to = nodeById(edge.to);
-  if (!from || !to) return "to";
-  const start = edgeOutputPoint(edge, from);
-  const end = edgeInputPoint(edge, to);
-  const startDistance = Math.hypot(point.x - start.x, point.y - start.y);
-  const endDistance = Math.hypot(point.x - end.x, point.y - end.y);
-  return startDistance < endDistance ? "from" : "to";
 }
 
 function connectionTargetFromViewportPoint(clientX, clientY) {
@@ -1537,35 +1626,28 @@ function connectionTargetFromViewportPoint(clientX, clientY) {
   };
 }
 
-function rewireEdge(edgeId, endpoint, nodeId) {
-  const edge = edgeById(edgeId);
-  const node = nodeById(nodeId);
-  if (!edge || !node) return { ok: false, message: "Signal unchanged." };
-  if (endpoint === "from" && !nodeProvidesOutput(node)) {
-    return { ok: false, message: "That block does not provide an output port." };
-  }
-  if (endpoint === "to" && !nodeAcceptsInput(node)) {
-    return { ok: false, message: "That block does not accept an input signal." };
-  }
-
-  const nextFrom = endpoint === "from" ? node.id : edge.from;
-  const nextTo = endpoint === "to" ? node.id : edge.to;
-  if (nextFrom === nextTo) {
+function createBranchEdge(wire, toId) {
+  const parent = edgeById(wire.parentEdgeId);
+  const to = nodeById(toId);
+  if (!parent || !to) return { ok: false, message: "Branch could not be created." };
+  if (parent.from === to.id) {
     return { ok: false, message: "A signal cannot connect a block to itself." };
   }
   const duplicate = state.edges.some((candidate) => (
-    candidate.id !== edge.id && candidate.from === nextFrom && candidate.to === nextTo
+    candidate.from === parent.from && candidate.to === to.id
   ));
   if (duplicate) {
     return { ok: false, message: "That signal already exists." };
   }
 
-  edge.from = nextFrom;
-  edge.to = nextTo;
+  const edge = createEdge(parent.from, to.id, numberValue(parent.rate));
+  edge.branchFromEdgeId = parent.id;
+  edge.branchRatio = Math.min(1, Math.max(0, numberValue(wire.branchRatio)));
+  state.edges.push(edge);
   state.selectedNodeId = null;
   state.selectedEdgeId = edge.id;
   state.sidePanel = "selected";
-  return { ok: true, message: "Signal reconnected." };
+  return { ok: true, message: "Signal branch created. Edit its rate if this flow is split." };
 }
 
 function canvasPointFromEvent(event) {
@@ -1642,12 +1724,23 @@ function edgeInputPoint(edge, node) {
 
 function edgeOutputPoint(edge, node) {
   const size = nodeSize(node);
-  const edges = connectedEdges(node.id, "from");
-  const index = Math.max(0, edges.findIndex((candidate) => candidate.id === edge.id));
+  const edges = connectedEdges(node.id, "from", { directOnly: true });
+  const edgeIndex = edges.findIndex((candidate) => candidate.id === edge.id);
+  if (edgeIndex < 0) return nodeOutputPoint(node);
   return {
     x: node.x + size.width,
-    y: node.y + size.height * ((index + 1) / (edges.length + 1))
+    y: node.y + size.height * ((edgeIndex + 1) / (edges.length + 1))
   };
+}
+
+function repairBranchParents() {
+  const edgeIds = new Set(state.edges.map((edge) => edge.id));
+  for (const edge of state.edges) {
+    if (edge.branchFromEdgeId && !edgeIds.has(edge.branchFromEdgeId)) {
+      delete edge.branchFromEdgeId;
+      delete edge.branchRatio;
+    }
+  }
 }
 
 function nextNodePosition() {

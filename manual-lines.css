@@ -561,13 +561,20 @@
   stroke: var(--manual-selected);
 }
 
-.manual-flow-line.rewiring {
-  opacity: 0.22;
-  stroke-dasharray: 8 6;
-}
-
 .manual-flow-marker.selected {
   fill: var(--manual-selected);
+}
+
+.manual-branch-junction {
+  fill: #202020;
+  stroke: #eeeeee;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.manual-branch-junction.selected {
+  fill: var(--manual-selected);
+  stroke: #ffffa0;
 }
 
 .manual-flow-hit {
