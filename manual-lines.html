@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
     <link rel="stylesheet" href="ore-routes.css?v=ore-arrow-spacing-2026-06-04">
     <link rel="stylesheet" href="process-routes.css?v=process-coproduct-routes-2026-06-09">
-    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-side-tabs-2026-06-16">
+    <link rel="stylesheet" href="manual-lines.css?v=manual-lines-signal-rewire-2026-06-18">
   </head>
   <body>
     <main class="process-route-shell manual-line-shell">
@@ -33,7 +33,7 @@
           </header>
           <div class="manual-guide-steps">
             <span><strong>1</strong> Double-click empty map space to add source, process, and sink blocks.</span>
-            <span><strong>2</strong> Right-drag from a block to wire it, or release on empty space to create the next block.</span>
+            <span><strong>2</strong> Right-drag from an output to wire it. Right-drag an existing signal to reconnect either end.</span>
             <span><strong>3</strong> Double-click a block to edit tier, power, rates, and notes.</span>
           </div>
         </section>
@@ -59,7 +59,7 @@
             <header class="section-header">
               <div>
                 <h2>Block Diagram</h2>
-                <span class="ore-route-note">Drag blocks to arrange the line. Right-drag from a block to draw a signal, or double-click empty space to add a block.</span>
+                <span class="ore-route-note">Drag blocks to arrange them. Right-drag outputs to inputs, or right-drag an existing signal to reconnect it.</span>
               </div>
               <div class="process-map-controls" aria-label="Manual map zoom controls">
                 <button type="button" data-action="manual-zoom-out" title="Zoom out">-</button>
@@ -91,6 +91,7 @@
               <button type="button" data-action="manual-side-tab" data-panel="selected" role="tab" aria-selected="false">Selected</button>
               <button type="button" data-action="manual-side-tab" data-panel="rates" role="tab" aria-selected="false">Rates</button>
             </div>
+            <button class="manual-selection-indicator" type="button" data-role="manual-selection-indicator" data-action="manual-show-selection" hidden></button>
 
             <section class="section-band manual-quick-panel" data-side-panel="tools">
               <header class="compact-section-header">
@@ -129,6 +130,6 @@
       <div class="manual-edit-modal" data-role="manual-edit-modal" hidden></div>
     </main>
 
-    <script type="module" src="src/manual-lines.js?v=manual-lines-side-tabs-2026-06-16"></script>
+    <script type="module" src="src/manual-lines.js?v=manual-lines-signal-rewire-2026-06-18"></script>
   </body>
 </html>

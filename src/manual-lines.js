@@ -75,6 +75,8 @@ const elements = {
   inspector: document.querySelector("[data-role='manual-inspector']"),
   rateSheet: document.querySelector("[data-role='manual-rate-sheet']"),
   editor: document.querySelector("[data-role='manual-edit-modal']"),
+  toolDock: document.querySelector(".manual-tool-dock"),
+  selectionIndicator: document.querySelector("[data-role='manual-selection-indicator']"),
   sideTabs: document.querySelectorAll("[data-action='manual-side-tab']"),
   sidePanels: document.querySelectorAll("[data-side-panel]")
 };
@@ -241,14 +243,15 @@ function edgeMarkup(edge) {
   const from = nodeById(edge.from);
   const to = nodeById(edge.to);
   if (!from || !to) return "";
-  const start = nodeOutputPoint(from);
-  const end = nodeInputPoint(to);
+  const start = edgeOutputPoint(edge, from);
+  const end = edgeInputPoint(edge, to);
   const route = connectorRoute(start, end);
   const selected = state.selectedEdgeId === edge.id ? " selected" : "";
+  const rewiring = state.draftWire?.edgeId === edge.id ? " rewiring" : "";
   const marker = selected ? "manual-flow-arrow-selected" : "manual-flow-arrow";
   const badgeText = edge.label?.trim() || (numberValue(edge.rate) ? formatRate(edge.rate) : "rate");
   return `
-    <path class="manual-flow-line${selected}" d="${route.path}" marker-end="url(#${marker})" data-edge-id="${escapeHtml(edge.id)}"></path>
+    <path class="manual-flow-line${selected}${rewiring}" d="${route.path}" marker-end="url(#${marker})" data-edge-id="${escapeHtml(edge.id)}"></path>
     <path class="manual-flow-hit" d="${route.path}" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}"></path>
     <g class="manual-flow-badge${selected}" transform="translate(${route.badgeX} ${route.badgeY})" data-action="manual-select-edge" data-edge-id="${escapeHtml(edge.id)}">
       <rect width="72" height="20"></rect>
@@ -260,16 +263,34 @@ function edgeMarkup(edge) {
 function draftWireMarkup() {
   if (!state.draftWire) return "";
   const from = nodeById(state.draftWire.fromId);
-  if (!from) return "";
-  const start = nodeOutputPoint(from);
-  const end = { x: state.draftWire.x, y: state.draftWire.y };
-  const route = connectorRoute(start, end);
+  const to = nodeById(state.draftWire.toId);
+  const edge = edgeById(state.draftWire.edgeId);
+  const cursor = { x: state.draftWire.x, y: state.draftWire.y };
+  const start = from ? (edge ? edgeOutputPoint(edge, from) : nodeOutputPoint(from)) : cursor;
+  const end = to ? (edge ? edgeInputPoint(edge, to) : nodeInputPoint(to)) : cursor;
+  if (!from && !to) return "";
+  const route = connectorRoute(start, end, { preview: true });
   return `
     <path class="manual-draft-wire" d="${route.path}" marker-end="url(#manual-draft-arrowhead)"></path>
   `;
 }
 
-function connectorRoute(start, end) {
+function connectorRoute(start, end, options = {}) {
+  if (options.preview) {
+    const forwardGap = end.x - start.x;
+    const bendX = forwardGap >= 40
+      ? Math.round(start.x + forwardGap / 2)
+      : Math.round(start.x + 48);
+    const path = Math.abs(end.y - start.y) < 1
+      ? `M ${start.x} ${start.y} H ${end.x}`
+      : `M ${start.x} ${start.y} H ${bendX} V ${end.y} H ${end.x}`;
+    return {
+      path,
+      badgeX: Math.max(8, Math.round(bendX - 36)),
+      badgeY: Math.max(8, Math.round(end.y - 34))
+    };
+  }
+
   const forwardGap = end.x - start.x;
   if (forwardGap >= 72) {
     const midpoint = Math.round((start.x + end.x) / 2);
@@ -322,12 +343,36 @@ function nodeMarkup(node) {
 }
 
 function nodePortMarkup(node) {
-  const hasInput = ["machine", "intermediate", "output"].includes(node.type);
-  const hasOutput = ["input", "machine", "intermediate"].includes(node.type);
+  const hasInput = nodeAcceptsInput(node);
+  const hasOutput = nodeProvidesOutput(node);
+  const inputCount = Math.max(1, connectedEdges(node.id, "to").length);
+  const outputCount = Math.max(1, connectedEdges(node.id, "from").length);
   return `
-    ${hasInput ? `<span class="manual-port manual-port-in" aria-hidden="true"></span>` : ""}
-    ${hasOutput ? `<span class="manual-port manual-port-out" aria-hidden="true"></span>` : ""}
+    ${hasInput ? portMarkup("in", inputCount) : ""}
+    ${hasOutput ? portMarkup("out", outputCount) : ""}
   `;
+}
+
+function portMarkup(kind, count) {
+  return Array.from({ length: count }, (_, index) => (
+    `<span class="manual-port manual-port-${kind}" data-port-kind="${kind}" style="top:${portPercent(index, count)}%" aria-hidden="true"></span>`
+  )).join("");
+}
+
+function portPercent(index, count) {
+  return Math.round(((index + 1) / (count + 1)) * 1000) / 10;
+}
+
+function connectedEdges(nodeId, endpoint) {
+  return state.edges.filter((edge) => edge[endpoint] === nodeId);
+}
+
+function nodeAcceptsInput(node) {
+  return ["machine", "intermediate", "output"].includes(node?.type);
+}
+
+function nodeProvidesOutput(node) {
+  return ["input", "machine", "intermediate"].includes(node?.type);
 }
 
 function renderQuickAdd() {
@@ -590,14 +635,50 @@ function renderRateSheet() {
 }
 
 function renderSidePanels() {
+  const hasSelection = Boolean(selectedNode() || selectedEdge());
   for (const tab of elements.sideTabs) {
     const active = tab.dataset.panel === state.sidePanel;
     tab.classList.toggle("active", active);
+    tab.classList.toggle("has-selection", tab.dataset.panel === "selected" && hasSelection);
     tab.setAttribute("aria-selected", active ? "true" : "false");
   }
   for (const panel of elements.sidePanels) {
     panel.hidden = panel.dataset.sidePanel !== state.sidePanel;
   }
+  renderSelectionIndicator();
+}
+
+function renderSelectionIndicator() {
+  const node = selectedNode();
+  const edge = selectedEdge();
+  if (!node && !edge) {
+    elements.toolDock.classList.remove("has-selection");
+    elements.selectionIndicator.hidden = true;
+    elements.selectionIndicator.innerHTML = "";
+    return;
+  }
+
+  elements.toolDock.classList.add("has-selection");
+  elements.selectionIndicator.hidden = false;
+  if (node) {
+    const detail = node.type === "machine"
+      ? `${typeLabel(node.type)} / ${formatAmount(node.machines)}x / ${formatAmount(node.eut)} EU/t`
+      : `${typeLabel(node.type)} / ${node.type === "note" ? "annotation" : formatRate(node.rate)}`;
+    elements.selectionIndicator.innerHTML = `
+      <span>Selected block</span>
+      <strong>${escapeHtml(node.label)}</strong>
+      <em>${escapeHtml(detail)}</em>
+    `;
+    return;
+  }
+
+  const from = nodeById(edge.from);
+  const to = nodeById(edge.to);
+  elements.selectionIndicator.innerHTML = `
+    <span>Selected signal</span>
+    <strong>${escapeHtml(edge.label || `${from?.label ?? "Source"} to ${to?.label ?? "Target"}`)}</strong>
+    <em>${escapeHtml(formatRate(edge.rate))}</em>
+  `;
 }
 
 function balanceRows() {
@@ -735,6 +816,11 @@ function handleAction(target) {
   }
   if (action === "manual-side-tab") {
     state.sidePanel = target.dataset.panel || "tools";
+    renderSidePanels();
+    return;
+  }
+  if (action === "manual-show-selection") {
+    state.sidePanel = "selected";
     renderSidePanels();
     return;
   }
@@ -1033,10 +1119,11 @@ function selectNothing() {
 
 function connectNodes(fromId, toId) {
   if (fromId === toId) return null;
-  const exists = state.edges.some((edge) => edge.from === fromId && edge.to === toId);
-  if (exists) return null;
   const from = nodeById(fromId);
   const to = nodeById(toId);
+  if (!nodeProvidesOutput(from) || !nodeAcceptsInput(to)) return null;
+  const exists = state.edges.some((edge) => edge.from === fromId && edge.to === toId);
+  if (exists) return null;
   const suggestedRate = Math.min(positiveRate(from), positiveRate(to));
   const edge = createEdge(fromId, toId, suggestedRate);
   state.edges.push(edge);
@@ -1272,23 +1359,59 @@ function setupCanvasWiring() {
   elements.canvas.addEventListener("pointerdown", (event) => {
     if (event.button !== 2) return;
     if (!(event.target instanceof Element)) return;
+
+    const edgeElement = event.target.closest(".manual-flow-hit, .manual-flow-badge");
+    if (edgeElement instanceof SVGElement) {
+      const edge = edgeById(edgeElement.dataset.edgeId);
+      if (!edge) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const point = canvasPointFromEvent(event);
+      wire = {
+        kind: "rewire",
+        pointerId: event.pointerId,
+        edgeId: edge.id,
+        endpoint: nearestEdgeEndpoint(edge, point),
+        startX: event.clientX,
+        startY: event.clientY,
+        moved: false
+      };
+      state.selectedNodeId = null;
+      state.selectedEdgeId = edge.id;
+      state.sidePanel = "selected";
+      state.draftWire = draftWireForInteraction(wire, point);
+      state.quickAdd.open = false;
+      elements.frame.setPointerCapture(event.pointerId);
+      elements.frame.classList.add("wiring");
+      setModeNote("Reconnect signal: drag its loose end to an input or output port.");
+      renderAll();
+      return;
+    }
+
     const nodeElement = event.target.closest(".manual-node");
     if (!(nodeElement instanceof HTMLElement)) return;
     const from = nodeById(nodeElement.dataset.nodeId);
     if (!from) return;
     event.preventDefault();
     event.stopPropagation();
+    const startPort = event.target.closest(".manual-port");
+    if (startPort?.dataset.portKind === "in" || !nodeProvidesOutput(from)) {
+      setModeNote("Start a new signal from a block's output port.");
+      return;
+    }
     const point = canvasPointFromEvent(event);
     wire = {
+      kind: "create",
       pointerId: event.pointerId,
       fromId: from.id,
       startX: event.clientX,
       startY: event.clientY,
       moved: false
     };
-    state.draftWire = { fromId: from.id, x: point.x, y: point.y };
+    state.draftWire = draftWireForInteraction(wire, point);
     state.quickAdd.open = false;
     elements.frame.setPointerCapture(event.pointerId);
+    elements.frame.classList.add("wiring");
     setModeNote(`Signal from ${from.label}: drag to a target block or empty space.`);
     renderAll();
   });
@@ -1297,7 +1420,11 @@ function setupCanvasWiring() {
     if (!wire || wire.pointerId !== event.pointerId) return;
     const point = canvasPointFromEvent(event);
     wire.moved = wire.moved || Math.hypot(event.clientX - wire.startX, event.clientY - wire.startY) > 8;
-    state.draftWire = { fromId: wire.fromId, x: point.x, y: point.y };
+    const dropTarget = connectionTargetFromViewportPoint(event.clientX, event.clientY);
+    if (wire.kind === "rewire" && dropTarget?.portKind) {
+      wire.endpoint = dropTarget.portKind === "out" ? "from" : "to";
+    }
+    state.draftWire = draftWireForInteraction(wire, point);
     renderCanvas();
   });
 
@@ -1307,17 +1434,41 @@ function setupCanvasWiring() {
       const activeWire = wire;
       wire = null;
       const point = canvasPointFromEvent(event);
-      const targetNode = nodeFromViewportPoint(event.clientX, event.clientY);
+      const dropTarget = connectionTargetFromViewportPoint(event.clientX, event.clientY);
       state.draftWire = null;
+      elements.frame.classList.remove("wiring");
       if (eventName === "pointercancel") {
         renderAll();
         return;
       }
-      if (targetNode && targetNode.id !== activeWire.fromId) {
-        const edge = connectNodes(activeWire.fromId, targetNode.id);
+
+      if (activeWire.kind === "rewire") {
+        if (!dropTarget) {
+          setModeNote("Signal unchanged. Drop on an input or output port to reconnect it.");
+          renderAll();
+          return;
+        }
+        const endpoint = dropTarget.portKind === "out"
+          ? "from"
+          : dropTarget.portKind === "in"
+            ? "to"
+            : activeWire.endpoint;
+        const result = rewireEdge(activeWire.edgeId, endpoint, dropTarget.node.id);
+        setModeNote(result.message);
+        renderAll();
+        return;
+      }
+
+      if (dropTarget && dropTarget.portKind !== "out" && nodeAcceptsInput(dropTarget.node)) {
+        const edge = connectNodes(activeWire.fromId, dropTarget.node.id);
         state.selectedNodeId = null;
         state.selectedEdgeId = edge?.id ?? null;
         setModeNote(edge ? "Signal connected." : "That signal already exists.");
+        renderAll();
+        return;
+      }
+      if (dropTarget) {
+        setModeNote("New signals must end on an input port.");
         renderAll();
         return;
       }
@@ -1351,19 +1502,78 @@ function setupCanvasWiring() {
   });
 }
 
+function draftWireForInteraction(wire, point) {
+  if (wire.kind === "rewire") {
+    const edge = edgeById(wire.edgeId);
+    if (!edge) return null;
+    return wire.endpoint === "from"
+      ? { edgeId: edge.id, toId: edge.to, x: point.x, y: point.y }
+      : { edgeId: edge.id, fromId: edge.from, x: point.x, y: point.y };
+  }
+  return { fromId: wire.fromId, x: point.x, y: point.y };
+}
+
+function nearestEdgeEndpoint(edge, point) {
+  const from = nodeById(edge.from);
+  const to = nodeById(edge.to);
+  if (!from || !to) return "to";
+  const start = edgeOutputPoint(edge, from);
+  const end = edgeInputPoint(edge, to);
+  const startDistance = Math.hypot(point.x - start.x, point.y - start.y);
+  const endDistance = Math.hypot(point.x - end.x, point.y - end.y);
+  return startDistance < endDistance ? "from" : "to";
+}
+
+function connectionTargetFromViewportPoint(clientX, clientY) {
+  const target = document.elementFromPoint(clientX, clientY);
+  const nodeElement = target instanceof Element ? target.closest(".manual-node") : null;
+  if (!(nodeElement instanceof HTMLElement)) return null;
+  const node = nodeById(nodeElement.dataset.nodeId);
+  if (!node) return null;
+  const port = target.closest(".manual-port");
+  return {
+    node,
+    portKind: port?.dataset.portKind ?? null
+  };
+}
+
+function rewireEdge(edgeId, endpoint, nodeId) {
+  const edge = edgeById(edgeId);
+  const node = nodeById(nodeId);
+  if (!edge || !node) return { ok: false, message: "Signal unchanged." };
+  if (endpoint === "from" && !nodeProvidesOutput(node)) {
+    return { ok: false, message: "That block does not provide an output port." };
+  }
+  if (endpoint === "to" && !nodeAcceptsInput(node)) {
+    return { ok: false, message: "That block does not accept an input signal." };
+  }
+
+  const nextFrom = endpoint === "from" ? node.id : edge.from;
+  const nextTo = endpoint === "to" ? node.id : edge.to;
+  if (nextFrom === nextTo) {
+    return { ok: false, message: "A signal cannot connect a block to itself." };
+  }
+  const duplicate = state.edges.some((candidate) => (
+    candidate.id !== edge.id && candidate.from === nextFrom && candidate.to === nextTo
+  ));
+  if (duplicate) {
+    return { ok: false, message: "That signal already exists." };
+  }
+
+  edge.from = nextFrom;
+  edge.to = nextTo;
+  state.selectedNodeId = null;
+  state.selectedEdgeId = edge.id;
+  state.sidePanel = "selected";
+  return { ok: true, message: "Signal reconnected." };
+}
+
 function canvasPointFromEvent(event) {
   const rect = elements.frame.getBoundingClientRect();
   return {
     x: (elements.frame.scrollLeft + event.clientX - rect.left) / state.zoom,
     y: (elements.frame.scrollTop + event.clientY - rect.top) / state.zoom
   };
-}
-
-function nodeFromViewportPoint(clientX, clientY) {
-  const target = document.elementFromPoint(clientX, clientY);
-  const nodeElement = target instanceof Element ? target.closest(".manual-node") : null;
-  if (!(nodeElement instanceof HTMLElement)) return null;
-  return nodeById(nodeElement.dataset.nodeId);
 }
 
 function setZoom(value, anchor = null) {
@@ -1418,6 +1628,26 @@ function nodeInputPoint(node) {
 function nodeOutputPoint(node) {
   const size = nodeSize(node);
   return { x: node.x + size.width, y: node.y + size.height / 2 };
+}
+
+function edgeInputPoint(edge, node) {
+  const size = nodeSize(node);
+  const edges = connectedEdges(node.id, "to");
+  const index = Math.max(0, edges.findIndex((candidate) => candidate.id === edge.id));
+  return {
+    x: node.x,
+    y: node.y + size.height * ((index + 1) / (edges.length + 1))
+  };
+}
+
+function edgeOutputPoint(edge, node) {
+  const size = nodeSize(node);
+  const edges = connectedEdges(node.id, "from");
+  const index = Math.max(0, edges.findIndex((candidate) => candidate.id === edge.id));
+  return {
+    x: node.x + size.width,
+    y: node.y + size.height * ((index + 1) / (edges.length + 1))
+  };
 }
 
 function nextNodePosition() {
