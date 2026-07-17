@@ -618,6 +618,88 @@ select {
   margin: 0;
 }
 
+.section-note {
+  margin: -4px 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.recipe-tracker {
+  padding: 14px;
+}
+
+.recipe-tracker-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.25fr) minmax(220px, 0.85fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.tracker-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tracker-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tracker-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tracker-card strong {
+  font-size: 15px;
+}
+
+.tracker-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.tracker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tracker-counts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: stretch;
+}
+
+.tracker-counts span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fafbf8;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tracker-counts strong {
+  color: var(--accent-3);
+  font-size: 16px;
+}
+
 .tree-view-controls {
   display: flex;
   flex-wrap: wrap;
@@ -724,6 +806,35 @@ select {
   min-width: 0;
 }
 
+.tree-node-title {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tree-step-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tree-step-marker {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #eef3e9;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .tree-machine,
 .tree-badge,
 .tree-run-rate {
@@ -753,6 +864,19 @@ select {
 .tree-actions .secondary-button {
   min-height: 24px;
   padding: 2px 7px;
+}
+
+.tree-done {
+  opacity: 0.78;
+}
+
+.tree-done .tree-leaf-card,
+.tree-done.tree-recipe {
+  background: #f1f7ef;
+}
+
+.tree-done .done-button {
+  color: var(--accent);
 }
 
 .recipe-visual {
@@ -1252,11 +1376,22 @@ button.recipe-slot:hover {
   }
 }
 
+@media (max-width: 980px) {
+  .recipe-tracker-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tracker-counts {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 760px) {
   .app-shell,
   .content-grid,
   .status-band,
   .io-grid,
+  .recipe-tracker-grid,
   .recipe-choice,
   .tree-recipe > summary,
   .machine-visual {

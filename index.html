@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=machine-metadata-2026-05-31">
-    <link rel="stylesheet" href="minecraft-ui.css?v=reusable-crafting-grid-2026-05-31">
+    <link rel="stylesheet" href="styles.css?v=emi-tree-tracker-2026-07-17">
+    <link rel="stylesheet" href="minecraft-ui.css?v=emi-tree-tracker-2026-07-17">
     <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
@@ -58,7 +58,7 @@
       <section class="workspace">
         <div class="status-band">
           <div>
-            <h2>Tree Requirements</h2>
+            <h2>Recipe Tree</h2>
             <div data-role="status">Loading...</div>
           </div>
           <div class="power-readout">
@@ -67,16 +67,13 @@
           </div>
         </div>
 
-        <section class="section-band machine-summary">
-          <h2>Machines</h2>
-          <div class="machine-list" data-role="machine-plan"></div>
-        </section>
+        <section class="section-band recipe-tracker" data-role="recipe-tracker"></section>
 
         <div class="content-grid">
           <div class="main-panels">
             <section class="section-band">
               <header class="section-header">
-                <h2>Crafting Tree</h2>
+                <h2>Recipe Steps</h2>
                 <div class="tree-view-controls" data-role="tree-view-controls" aria-label="Crafting tree display options">
                   <label>
                     <input type="checkbox" data-action="toggle-tree-option" data-option="showRecipeChoices">
@@ -96,6 +93,7 @@
                   </label>
                   <button type="button" data-action="collapse-tree">Collapse all</button>
                   <button type="button" data-action="expand-tree">Expand all</button>
+                  <button type="button" data-action="clear-done-steps">Clear done</button>
                 </div>
               </header>
               <div data-role="crafting-tree"></div>
@@ -104,15 +102,22 @@
 
           <aside>
             <section class="section-band">
-              <h2>External Inputs</h2>
+              <h2>Base Cost</h2>
+              <p class="section-note">Things the current tree expects you to gather, supply, or decide to craft as another branch.</p>
               <div class="stacked-list" data-role="external-inputs"></div>
             </section>
             <section class="section-band">
-              <h2>Byproducts</h2>
+              <h2>Leftovers</h2>
+              <p class="section-note">Extra outputs from the selected recipe defaults.</p>
               <div class="stacked-list" data-role="byproducts"></div>
             </section>
           </aside>
         </div>
+
+        <section class="section-band machine-summary">
+          <h2>Machine Plan</h2>
+          <div class="machine-list" data-role="machine-plan"></div>
+        </section>
       </section>
 
       <aside class="inspector-drawer inspector" data-role="inspector-drawer" aria-hidden="true">
@@ -135,6 +140,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=default-recipe-ranking-2026-05-31"></script>
+    <script type="module" src="src/main.js?v=emi-tree-tracker-2026-07-17"></script>
   </body>
 </html>

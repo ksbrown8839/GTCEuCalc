@@ -18,12 +18,14 @@ const state = {
   inspectSearch: "",
   selectedGoodsId: null,
   inspectorOpen: false,
+  currentPlan: null,
   treeView: {
     showRecipeChoices: false,
     showRecipePreviews: true,
     showInspectButtons: false,
     showRates: false
   },
+  completedTreeGoods: new Set(),
   expandedTreeGoods: new Set(),
   dataUrl: DEFAULT_DATA_URL
 };
@@ -50,6 +52,7 @@ const elements = {
   targetSearchClear: document.querySelector("[data-action='clear-target-search']"),
   craftingTree: document.querySelector("[data-role='crafting-tree']"),
   treeViewControls: document.querySelector("[data-role='tree-view-controls']"),
+  recipeTracker: document.querySelector("[data-role='recipe-tracker']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
   machinePlan: document.querySelector("[data-role='machine-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
@@ -329,6 +332,7 @@ function setSingleTarget(goodsId) {
   state.products = [{ goodsId, amountPerMinute: 1 }];
   setGoodAsMade(goodsId);
   state.selectedGoodsId = goodsId;
+  state.completedTreeGoods.clear();
 }
 
 function addTarget(goodsId) {
@@ -338,12 +342,21 @@ function addTarget(goodsId) {
 }
 
 function makeGoodInPlan(goodsId) {
+  const path = findTreePath(goodsId, state.currentPlan?.planTrees ?? []);
+  for (const pathGoodsId of path) {
+    state.expandedTreeGoods.add(pathGoodsId);
+  }
   setGoodAsMade(goodsId);
   state.expandedTreeGoods.add(goodsId);
+  state.completedTreeGoods.delete(goodsId);
   state.selectedGoodsId = goodsId;
   renderBoundaryPresets();
   renderPlan();
   renderInspector();
+  requestAnimationFrame(() => {
+    const node = elements.craftingTree.querySelector(`[data-goods-id="${cssEscape(goodsId)}"]`);
+    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
 }
 
 function renderBoundaryPresets() {
@@ -466,6 +479,7 @@ function renderPlan() {
     preferredRecipeByOutput: state.preferredRecipeByOutput,
     externalGoods
   });
+  state.currentPlan = plan;
 
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
 
@@ -487,6 +501,8 @@ function renderPlan() {
     ${neededInputsOverview(repository, plan, assumptionCount)}
     ${assumptionHtml}
   `;
+
+  elements.recipeTracker.innerHTML = recipeTrackerPanel(repository, plan, externalGoods);
 
   elements.machinePlan.innerHTML = machinePlanRows(repository, plan.machineRows);
 
@@ -539,6 +555,132 @@ function neededInputsOverview(repository, plan, assumptionCount) {
       <div class="needed-input-list">
         ${chips}
       </div>
+    </div>
+  `;
+}
+
+function recipeTrackerPanel(repository, plan, externalGoods) {
+  const treeNodes = flattenPlanTrees(plan.planTrees);
+  const trackableNodes = treeNodes.filter((entry) => entry.node.goodsId);
+  const completedCount = trackableNodes.filter((entry) => state.completedTreeGoods.has(entry.node.goodsId)).length;
+  const nextAction = nextTreeAction(repository, plan, externalGoods, treeNodes);
+  const targetChips = plan.products.length
+    ? plan.products.map((product) => goodChip(repository, product.goodsId, formatRate(product.amountPerMinute))).join("")
+    : `<span class="needed-empty">Choose a target to start a tree</span>`;
+
+  return `
+    <div class="recipe-tracker-grid">
+      <section class="tracker-card tracker-goal">
+        <span class="tracker-label">Current craft</span>
+        <div class="tracker-targets">${targetChips}</div>
+        <p>${escapeHtml(planCountText(trackableNodes.length, "tracked step"))} / ${formatAmount(completedCount)} done</p>
+      </section>
+      <section class="tracker-card tracker-next ${escapeHtml(nextAction.kind)}">
+        <span class="tracker-label">Next useful action</span>
+        <strong>${escapeHtml(nextAction.title)}</strong>
+        <p>${escapeHtml(nextAction.detail)}</p>
+        ${nextAction.actions}
+      </section>
+      <section class="tracker-card tracker-counts">
+        <span><strong>${formatAmount(plan.externalRows.length)}</strong> base costs</span>
+        <span><strong>${formatAmount(plan.machineRows.length)}</strong> machine groups</span>
+        <span><strong>${formatAmount(plan.recipeRows.length)}</strong> recipe steps</span>
+        <span><strong>${formatAmount(plan.byproductRows.length)}</strong> leftovers</span>
+      </section>
+    </div>
+  `;
+}
+
+function flattenPlanTrees(trees) {
+  const nodes = [];
+
+  function visit(node, depth, ancestors) {
+    nodes.push({ node, depth, ancestors });
+    for (const child of node.children ?? []) {
+      visit(child, depth + 1, [...ancestors, node.goodsId]);
+    }
+  }
+
+  for (const tree of trees) {
+    visit(tree, 0, []);
+  }
+
+  return nodes;
+}
+
+function nextTreeAction(repository, plan, externalGoods, treeNodes) {
+  if (!plan.planTrees.length) {
+    return {
+      kind: "empty",
+      title: "Pick an output",
+      detail: "Search the target list, choose an item or fluid, then expand only the branches you want to craft.",
+      actions: ""
+    };
+  }
+
+  const unfinishedLeaves = treeNodes
+    .map((entry) => entry.node)
+    .filter((node) => !node.children.length && !state.completedTreeGoods.has(node.goodsId));
+  const craftableExternal = unfinishedLeaves.find((node) => {
+    return node.reason === "external" && repository.findRecipesProducing(node.goodsId).length > 0;
+  });
+
+  if (craftableExternal) {
+    const name = repository.getGoodName(craftableExternal.goodsId);
+    return {
+      kind: "branch",
+      title: `Decide ${name}`,
+      detail: "This is currently counted as supplied, but it has exported recipes. Make it a branch if you want the tree to break it down.",
+      actions: trackerActionButtons(craftableExternal.goodsId, [
+        { action: "make-input", label: "Make branch" },
+        { action: "toggle-done-step", label: "Mark done" },
+        { action: "focus-tree-good", label: "Locate" }
+      ])
+    };
+  }
+
+  const rawLeaf = unfinishedLeaves.find((node) => node.reason === "external" || node.reason === "missing" || node.reason === "unresolved");
+  if (rawLeaf) {
+    const name = repository.getGoodName(rawLeaf.goodsId);
+    return {
+      kind: rawLeaf.reason ?? "input",
+      title: `Gather ${name}`,
+      detail: `${formatRate(rawLeaf.amountPerMinute)} is still a base cost for this tree.`,
+      actions: trackerActionButtons(rawLeaf.goodsId, [
+        { action: "toggle-done-step", label: "Mark done" },
+        { action: "focus-tree-good", label: "Locate" }
+      ])
+    };
+  }
+
+  const unfinishedRecipe = treeNodes
+    .map((entry) => entry.node)
+    .find((node) => node.recipe && !state.completedTreeGoods.has(node.goodsId));
+  if (unfinishedRecipe) {
+    const type = repository.getRecipeType(unfinishedRecipe.recipe.type);
+    return {
+      kind: "recipe",
+      title: `Run ${type.name}`,
+      detail: `${repository.getGoodName(unfinishedRecipe.goodsId)} is ready to craft once its visible children are handled.`,
+      actions: trackerActionButtons(unfinishedRecipe.goodsId, [
+        { action: "toggle-done-step", label: "Mark done" },
+        { action: "focus-tree-good", label: "Locate" }
+      ])
+    };
+  }
+
+  return {
+    kind: "complete",
+    title: "Tree checked off",
+    detail: "Every visible step is marked done. Clear done when you start planning another pass.",
+    actions: `<button class="secondary-button" type="button" data-action="clear-done-steps">Clear done</button>`
+  };
+}
+
+function trackerActionButtons(goodsId, actions) {
+  return `
+    <div class="tracker-actions">
+      ${actions.map((entry) => `<button class="secondary-button" type="button" data-action="${escapeHtml(entry.action)}" data-id="${escapeHtml(goodsId)}">${escapeHtml(entry.label)}</button>`).join("")}
     </div>
   `;
 }
@@ -608,12 +750,15 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
   const recipeKindClass = node.recipe && isCraftingRecipe(node.recipe) ? " tree-crafting" : " tree-machine-node";
-  const actions = treeActionButtons(repository, node);
+  const actions = treeActionButtons(repository, node, externalGoods);
+  const doneClass = state.completedTreeGoods.has(node.goodsId) ? " tree-done" : "";
+  const stateClass = ` tree-state-${escapeHtml(node.reason ?? (node.recipe ? "recipe" : "step"))}`;
 
   if (!hasChildren) {
     return `
-      <div class="tree-node tree-leaf ${escapeHtml(node.reason ?? "external")}">
+      <div class="tree-node tree-leaf ${escapeHtml(node.reason ?? "external")}${doneClass}${stateClass}" data-goods-id="${escapeHtml(node.goodsId)}" style="--tree-depth:${depth}">
         <div class="tree-leaf-card">
+          <span class="tree-step-marker">${treeNodeMarker(node)}</span>
           <div class="tree-node-header">
             ${goodChip(repository, node.goodsId, visibleRate(node.amountPerMinute))}
             <span class="tree-badge">${escapeHtml(treeReasonLabel(node.reason))}</span>
@@ -625,16 +770,21 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
   }
 
   return `
-    <details class="tree-node tree-recipe${recipeKindClass}" data-goods-id="${escapeHtml(node.goodsId)}" style="--tree-depth:${depth}"${treeOpenAttribute(node.goodsId)}>
+    <details class="tree-node tree-recipe${recipeKindClass}${doneClass}${stateClass}" data-goods-id="${escapeHtml(node.goodsId)}" style="--tree-depth:${depth}"${treeOpenAttribute(node.goodsId)}>
       <summary class="tree-card-summary">
+        <span class="tree-step-marker">${treeNodeMarker(node)}</span>
         <span class="tree-card-body">
-          ${node.recipe ? machineRequirementBanner(node, type) : ""}
           <span class="tree-node-header">
-            ${goodChip(repository, node.goodsId, visibleRate(node.amountPerMinute))}
+            <span class="tree-node-title">
+              <span class="tree-step-label">${escapeHtml(depth ? "Step" : "Target")}</span>
+              ${goodChip(repository, node.goodsId, visibleRate(node.amountPerMinute))}
+            </span>
+            <span class="tree-badge">${state.completedTreeGoods.has(node.goodsId) ? "done" : "planned"}</span>
             ${node.recipe?.durationTicks && !state.treeView.showRecipePreviews ? `<span class="tree-stat">${formatDuration(node.recipe.durationTicks)}</span>` : ""}
             ${node.recipe?.eut ? `<span class="tree-stat">${formatAverageEut(node.recipe, node.runsPerMinute)}</span>` : ""}
             ${actions}
           </span>
+          ${node.recipe ? machineRequirementBanner(node, type) : ""}
           ${state.treeView.showRecipeChoices && node.recipe ? treeRecipeChoiceControl(repository, node, externalGoods) : ""}
           ${state.treeView.showRecipePreviews ? recipeVisual(repository, node.recipe, { compactMachineStage: true }) : ""}
           ${treeCostStrip(repository, node)}
@@ -646,6 +796,14 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
       </div>
     </details>
   `;
+}
+
+function treeNodeMarker(node) {
+  if (state.completedTreeGoods.has(node.goodsId)) return "OK";
+  if (node.reason === "external") return "B";
+  if (node.reason === "missing" || node.reason === "unresolved" || node.reason === "cycle" || node.reason === "depth") return "!";
+  if (node.recipe && isCraftingRecipe(node.recipe)) return "C";
+  return "M";
 }
 
 function treeOpenAttribute(goodsId) {
@@ -719,13 +877,23 @@ function treeCostStrip(repository, node) {
   `;
 }
 
-function treeActionButtons(repository, node) {
+function treeActionButtons(repository, node, externalGoods) {
+  const isTarget = state.products.some((product) => product.goodsId === node.goodsId);
+  const isDone = state.completedTreeGoods.has(node.goodsId);
   const canMake = node.reason === "external" && repository.findRecipesProducing(node.goodsId).length > 0;
-  return goodActionButtons(repository, node.goodsId, {
-    canMake,
-    className: "tree-actions",
-    showInspect: state.treeView.showInspectButtons
-  });
+  const canSupply = !isTarget && node.recipe && !externalGoods.has(node.goodsId);
+  const canInspect = state.treeView.showInspectButtons && Boolean(repository.getGood(node.goodsId));
+
+  if (!canMake && !canSupply && !canInspect && !node.goodsId) return "";
+
+  return `
+    <span class="tree-actions">
+      ${canMake ? `<button class="secondary-button" data-action="make-input" data-id="${escapeHtml(node.goodsId)}">Make branch</button>` : ""}
+      ${canSupply ? `<button class="secondary-button" data-action="supply-tree-good" data-id="${escapeHtml(node.goodsId)}">Supply</button>` : ""}
+      <button class="secondary-button done-button${isDone ? " active" : ""}" data-action="toggle-done-step" data-id="${escapeHtml(node.goodsId)}">${isDone ? "Done" : "Mark done"}</button>
+      ${canInspect ? `<button class="secondary-button" data-action="inspect-good" data-id="${escapeHtml(node.goodsId)}">Inspect</button>` : ""}
+    </span>
+  `;
 }
 
 function goodActionButtons(repository, goodsId, options = {}) {
@@ -1024,6 +1192,62 @@ function renderAll() {
   renderInspector();
 }
 
+function toggleDoneStep(goodsId) {
+  if (!goodsId) return;
+  if (state.completedTreeGoods.has(goodsId)) {
+    state.completedTreeGoods.delete(goodsId);
+  } else {
+    state.completedTreeGoods.add(goodsId);
+  }
+  renderPlan();
+}
+
+function clearDoneSteps() {
+  state.completedTreeGoods.clear();
+  renderPlan();
+}
+
+function focusTreeGood(goodsId) {
+  if (!goodsId) return;
+  const path = findTreePath(goodsId, state.currentPlan?.planTrees ?? []);
+
+  for (const pathGoodsId of path.slice(0, -1)) {
+    state.expandedTreeGoods.add(pathGoodsId);
+  }
+
+  renderPlan();
+  requestAnimationFrame(() => {
+    const node = elements.craftingTree.querySelector(`[data-goods-id="${cssEscape(goodsId)}"]`);
+    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
+}
+
+function findTreePath(goodsId, trees) {
+  function visit(node, path) {
+    const nextPath = [...path, node.goodsId];
+    if (node.goodsId === goodsId) return nextPath;
+
+    for (const child of node.children ?? []) {
+      const childPath = visit(child, nextPath);
+      if (childPath.length) return childPath;
+    }
+
+    return [];
+  }
+
+  for (const tree of trees) {
+    const path = visit(tree, []);
+    if (path.length) return path;
+  }
+
+  return [goodsId];
+}
+
+function cssEscape(value) {
+  if (window.CSS?.escape) return window.CSS.escape(value);
+  return String(value).replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+}
+
 function dataUrlFromLocation() {
   const params = new URLSearchParams(window.location.search);
   return params.get("data") || DEFAULT_DATA_URL;
@@ -1264,6 +1488,10 @@ function setupEvents() {
     if (target.dataset.action === "expand-tree") {
       setTreeExpansion(true);
     }
+
+    if (target.dataset.action === "clear-done-steps") {
+      clearDoneSteps();
+    }
   });
 
   document.addEventListener("change", (event) => {
@@ -1355,8 +1583,40 @@ function setupEvents() {
     const action = target.dataset.action;
     const goodsId = target.dataset.id;
 
+    if (action === "toggle-done-step" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleDoneStep(goodsId);
+      return;
+    }
+
+    if (action === "clear-done-steps") {
+      event.preventDefault();
+      event.stopPropagation();
+      clearDoneSteps();
+      return;
+    }
+
+    if (action === "focus-tree-good" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      focusTreeGood(goodsId);
+      return;
+    }
+
+    if (action === "supply-tree-good" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      setGoodAsExternal(goodsId);
+      renderBoundaryPresets();
+      renderPlan();
+      renderInspector();
+      return;
+    }
+
     if (action === "inspect-good" && goodsId) {
       event.preventDefault();
+      event.stopPropagation();
       state.selectedGoodsId = goodsId;
       state.inspectorOpen = true;
       renderInspector();
@@ -1371,6 +1631,7 @@ function setupEvents() {
 
     if (action === "make-input" && goodsId) {
       event.preventDefault();
+      event.stopPropagation();
       makeGoodInPlan(goodsId);
       return;
     }

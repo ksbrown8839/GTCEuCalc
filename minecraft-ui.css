@@ -1021,6 +1021,264 @@ input[type="range"] {
   white-space: nowrap;
 }
 
+.section-note {
+  color: #3f3f3f;
+  font-size: 11px;
+  line-height: 1.25;
+  text-shadow: 1px 1px 0 #eeeeee;
+}
+
+.recipe-tracker {
+  padding: 10px;
+  background: #a0a0a0;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #d9d9d9,
+    inset -2px -2px 0 #555555;
+}
+
+.recipe-tracker-grid {
+  gap: 8px;
+}
+
+.tracker-card {
+  border: 0;
+  border-radius: 0;
+  padding: 10px;
+  background: #c6c6c6;
+  box-shadow:
+    inset 2px 2px 0 #f3f3f3,
+    inset -2px -2px 0 #6a6a6a;
+}
+
+.tracker-goal {
+  background: #bfc5c7;
+}
+
+.tracker-next {
+  background: #bccdd5;
+  box-shadow:
+    inset 2px 2px 0 #e8f4f7,
+    inset -2px -2px 0 #60727a;
+}
+
+.tracker-next.branch {
+  background: #c9c19b;
+  box-shadow:
+    inset 2px 2px 0 #fff0ad,
+    inset -2px -2px 0 #7d7042;
+}
+
+.tracker-next.complete {
+  background: #b8cfad;
+  box-shadow:
+    inset 2px 2px 0 #e4f3d9,
+    inset -2px -2px 0 #627755;
+}
+
+.tracker-label {
+  color: #315a73;
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #e9f4f7;
+}
+
+.tracker-card strong {
+  color: #202020;
+  font-size: 15px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.tracker-card p {
+  color: #373737;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #e9e9e9;
+}
+
+.tracker-counts {
+  gap: 6px;
+}
+
+.tracker-counts span {
+  border: 0;
+  border-radius: 0;
+  padding: 7px;
+  background: #8b8b8b;
+  box-shadow:
+    inset 2px 2px 0 #cfcfcf,
+    inset -2px -2px 0 #4c4c4c;
+  color: #ffffff;
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #202020;
+  text-transform: uppercase;
+}
+
+.tracker-counts strong {
+  color: #ffffa0;
+  font-size: 16px;
+  text-shadow: 2px 2px 0 #202020;
+}
+
+.tracker-actions .secondary-button,
+.tree-actions .secondary-button {
+  min-height: 27px;
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.tree-recipe,
+.tree-leaf-card {
+  background: #b6b6b6;
+  box-shadow:
+    0 0 0 2px #3a3a3a,
+    inset 2px 2px 0 #e3e3e3,
+    inset -2px -2px 0 #676767;
+}
+
+.tree-recipe > summary {
+  grid-template-columns: 24px 26px minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 10px;
+}
+
+.tree-recipe > summary::before {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  background:
+    url("assets/gtnh-ui/Arrow_Small_Right.png") center / 20px 20px no-repeat,
+    #6f6f6f;
+  box-shadow:
+    inset 2px 2px 0 #9c9c9c,
+    inset -2px -2px 0 #373737;
+}
+
+.tree-recipe[open] > summary::before {
+  background:
+    url("assets/gtnh-ui/Arrow_Small_Down.png") center / 20px 20px no-repeat,
+    #6f6f6f;
+}
+
+.tree-step-marker {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0;
+  background: #315a73;
+  box-shadow:
+    inset 2px 2px 0 #7fa7bd,
+    inset -2px -2px 0 #1d3443;
+  color: #ffffa0;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.tree-state-external .tree-step-marker {
+  background: #5f6b5d;
+  box-shadow:
+    inset 2px 2px 0 #a9b7a3,
+    inset -2px -2px 0 #353d34;
+  color: #b6ffb6;
+}
+
+.tree-state-missing .tree-step-marker,
+.tree-state-unresolved .tree-step-marker,
+.tree-state-cycle .tree-step-marker,
+.tree-state-depth .tree-step-marker {
+  background: #734545;
+  box-shadow:
+    inset 2px 2px 0 #c18a8a,
+    inset -2px -2px 0 #3d2323;
+  color: #ffb8b8;
+}
+
+.tree-card-body {
+  gap: 7px;
+}
+
+.tree-node-header {
+  gap: 6px;
+}
+
+.tree-node-title {
+  gap: 5px;
+}
+
+.tree-step-label {
+  padding: 3px 5px;
+  background: #6f6f6f;
+  color: #ffffff;
+  font-size: 9px;
+  text-shadow: 1px 1px 0 #202020;
+  box-shadow:
+    inset 1px 1px 0 #b8b8b8,
+    inset -1px -1px 0 #373737;
+}
+
+.tree-machine-banner {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
+  width: min(100%, 620px);
+  padding: 6px 8px;
+}
+
+.tree-machine-banner > em {
+  grid-column: 1 / -1;
+}
+
+.tree-machine-banner > strong {
+  font-size: 13px;
+}
+
+.tree-recipe-choice {
+  width: min(100%, 680px);
+  padding: 6px;
+}
+
+.tree-cost-strip {
+  gap: 4px;
+  padding: 4px 0 0;
+}
+
+.tree-cost-label {
+  background: #405060;
+  color: #c8f3ff;
+}
+
+.tree-leaf-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.tree-leaf-card .tree-node-header {
+  flex: 1 1 auto;
+}
+
+.tree-done.tree-recipe,
+.tree-done .tree-leaf-card {
+  background: #a9bca0;
+}
+
+.tree-done .tree-step-marker,
+.tree-done.tree-state-external .tree-step-marker {
+  background: #3f6b43;
+  box-shadow:
+    inset 2px 2px 0 #9fc792,
+    inset -2px -2px 0 #233d25;
+  color: #b6ffb6;
+}
+
+.tree-done .good-chip {
+  opacity: 0.8;
+}
+
+.done-button.active {
+  color: #b6ffb6;
+}
+
 .tree-card-body .crafting-visual,
 .recipe-row .crafting-visual,
 .inspector-recipe-card .crafting-visual {
