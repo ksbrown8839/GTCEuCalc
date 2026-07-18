@@ -11,6 +11,7 @@ export function createPlan(repository, products, options = {}) {
   const planTrees = [];
   const maxWarnings = options.maxWarnings ?? 80;
   const externalGoods = new Set(options.externalGoods ?? []);
+  const expandedGoods = options.expandedGoods ? new Set(options.expandedGoods) : null;
 
   function add(map, id, amount) {
     map.set(id, (map.get(id) ?? 0) + amount);
@@ -65,6 +66,11 @@ export function createPlan(repository, products, options = {}) {
       add(externalInputs, goodsId, amountPerMinute);
       addWarning(`Cycle detected around ${repository.getGoodName(goodsId)}.`);
       node.reason = "cycle";
+      return node;
+    }
+    if (expandedGoods && !expandedGoods.has(goodsId)) {
+      add(externalInputs, goodsId, amountPerMinute);
+      node.reason = repository.findRecipesProducing(goodsId).length ? "collapsed" : "external";
       return node;
     }
 

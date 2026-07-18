@@ -1,6 +1,6 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
 import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
-import { createPlan } from "./planner.js?v=default-recipe-ranking-2026-05-31";
+import { createPlan } from "./planner.js?v=emi-tree-frontier-2026-07-17";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -353,6 +353,7 @@ function setSingleTarget(goodsId) {
   state.selectedGoodsId = goodsId;
   state.selectedTreeGoodsId = null;
   state.completedTreeGoods.clear();
+  state.expandedTreeGoods.clear();
 }
 
 function addTarget(goodsId) {
@@ -503,7 +504,8 @@ function renderPlan() {
   const externalGoods = getEffectiveExternalGoods(repository);
   const plan = createPlan(repository, state.products, {
     preferredRecipeByOutput: state.preferredRecipeByOutput,
-    externalGoods
+    externalGoods,
+    expandedGoods: state.expandedTreeGoods
   });
   state.currentPlan = plan;
 
@@ -729,6 +731,8 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
   const recipes = repository.rankRecipesForOutput(goodsId);
   const isTarget = state.products.some((product) => product.goodsId === goodsId);
   const isExternal = externalGoods.has(goodsId) && !isTarget;
+  const isCollapsed = selectedNode?.reason === "collapsed";
+  const canExpandBranch = recipes.length && (isCollapsed || (!isTarget && isExternal));
   const selectedRecipeId = isExternal
     ? EXTERNAL_RECIPE_VALUE
     : state.preferredRecipeByOutput[goodsId] ?? selectedNode?.recipe?.id ?? recipes[0]?.id ?? "";
@@ -745,7 +749,7 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
           ${goodChip(repository, goodsId, selectedAmount)}
         </div>
         <div class="tree-picker-actions">
-          ${!isTarget && isExternal && recipes.length ? `<button class="secondary-button" type="button" data-action="make-input" data-id="${escapeHtml(goodsId)}">Make branch</button>` : ""}
+          ${canExpandBranch ? `<button class="secondary-button" type="button" data-action="make-input" data-id="${escapeHtml(goodsId)}">Expand branch</button>` : ""}
           ${!isTarget && !isExternal ? `<button class="secondary-button" type="button" data-action="supply-tree-good" data-id="${escapeHtml(goodsId)}">Treat supplied</button>` : ""}
           ${!isTarget ? `<button class="secondary-button" type="button" data-action="set-tree-target" data-id="${escapeHtml(goodsId)}">Set target</button>` : ""}
           <button class="secondary-button" type="button" data-action="focus-tree-good" data-id="${escapeHtml(goodsId)}">Locate</button>
@@ -754,8 +758,8 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
         </div>
       </header>
       <div class="tree-picker-status">
-        <span>${isExternal ? "supplied base cost" : recipes.length ? "recipe-driven branch" : "base cost"}</span>
-        <span>${isExternal && recipes.length ? "make it here to expand this branch" : "recipe cards change this branch only"}</span>
+        <span>${isCollapsed ? "ready to expand" : isExternal ? "supplied base cost" : recipes.length ? "recipe-driven branch" : "base cost"}</span>
+        <span>${isCollapsed || (isExternal && recipes.length) ? "expand when you want the next recipe layer" : "recipe cards change this branch only"}</span>
         ${selectedNode?.recipe ? `<span>${escapeHtml(repository.getRecipeType(selectedNode.recipe.type).name)}</span>` : ""}
         ${selectedNode?.machine ? `<span>${escapeHtml(machineName(selectedNode.machine, selectedNode.voltageTier))}</span>` : ""}
       </div>
@@ -918,8 +922,9 @@ function selectTreeGood(goodsId) {
   if (!goodsId) return;
   const repository = state.repository;
   const externalGoods = getEffectiveExternalGoods(repository);
+  const selectedNode = flattenPlanTrees(state.currentPlan?.planTrees ?? []).find((entry) => entry.node.goodsId === goodsId)?.node;
   const isTarget = state.products.some((product) => product.goodsId === goodsId);
-  const canExpand = !isTarget && externalGoods.has(goodsId) && repository.findRecipesProducing(goodsId).length > 0;
+  const canExpand = selectedNode?.reason === "collapsed" || (!isTarget && externalGoods.has(goodsId) && repository.findRecipesProducing(goodsId).length > 0);
 
   state.selectedTreeGoodsId = goodsId;
   state.selectedGoodsId = goodsId;
@@ -935,6 +940,7 @@ function selectTreeGood(goodsId) {
 function useTreeRecipe(outputId, recipeId) {
   if (!outputId || !recipeId) return;
   setGoodAsMade(outputId);
+  state.expandedTreeGoods.add(outputId);
   state.preferredRecipeByOutput[outputId] = recipeId;
   state.selectedTreeGoodsId = outputId;
   state.selectedGoodsId = outputId;
@@ -1174,6 +1180,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
 
 function treeNodeMarker(node) {
   if (state.completedTreeGoods.has(node.goodsId)) return "OK";
+  if (node.reason === "collapsed") return "+";
   if (node.reason === "external") return "B";
   if (node.reason === "missing" || node.reason === "unresolved" || node.reason === "cycle" || node.reason === "depth") return "!";
   if (node.recipe && isCraftingRecipe(node.recipe)) return "C";
@@ -1254,7 +1261,7 @@ function treeCostStrip(repository, node) {
 function treeActionButtons(repository, node, externalGoods) {
   const isTarget = state.products.some((product) => product.goodsId === node.goodsId);
   const isDone = state.completedTreeGoods.has(node.goodsId);
-  const canMake = node.reason === "external" && repository.findRecipesProducing(node.goodsId).length > 0;
+  const canMake = (node.reason === "external" || node.reason === "collapsed") && repository.findRecipesProducing(node.goodsId).length > 0;
   const canSupply = !isTarget && node.recipe && !externalGoods.has(node.goodsId);
   const canInspect = state.treeView.showInspectButtons && Boolean(repository.getGood(node.goodsId));
 
@@ -1289,6 +1296,8 @@ function treeReasonLabel(reason) {
   switch (reason) {
     case "external":
       return "supplied";
+    case "collapsed":
+      return "expand";
     case "missing":
       return "no recipe";
     case "cycle":
@@ -2185,19 +2194,20 @@ function setupRecipeGraphViewport() {
 }
 
 function setTreeExpansion(open) {
-  const nodes = [...elements.craftingTree.querySelectorAll("details.tree-recipe")];
-
   if (open) {
-    for (const node of nodes) {
-      if (node.dataset.goodsId) state.expandedTreeGoods.add(node.dataset.goodsId);
-    }
+    const repository = state.repository;
+    const fullPlan = createPlan(repository, state.products, {
+      preferredRecipeByOutput: state.preferredRecipeByOutput,
+      externalGoods: getEffectiveExternalGoods(repository)
+    });
+    flattenPlanTrees(fullPlan.planTrees).forEach((entry) => {
+      if (entry.node.goodsId) state.expandedTreeGoods.add(entry.node.goodsId);
+    });
   } else {
     state.expandedTreeGoods.clear();
   }
 
-  nodes.forEach((node) => {
-    node.open = open;
-  });
+  renderPlan();
 }
 
 async function main() {

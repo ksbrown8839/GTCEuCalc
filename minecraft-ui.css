@@ -1435,12 +1435,21 @@ input[type="range"] {
   text-shadow: 1px 1px 0 #000000;
 }
 
-.tree-state-external .tree-step-marker {
+.tree-state-external .tree-step-marker,
+.tree-state-collapsed .tree-step-marker {
   background: #5f6b5d;
   box-shadow:
     inset 2px 2px 0 #a9b7a3,
     inset -2px -2px 0 #353d34;
   color: #b6ffb6;
+}
+
+.tree-state-collapsed .tree-step-marker {
+  background: #315a73;
+  box-shadow:
+    inset 2px 2px 0 #7fa7bd,
+    inset -2px -2px 0 #1d3443;
+  color: #ffffa0;
 }
 
 .tree-state-missing .tree-step-marker,
