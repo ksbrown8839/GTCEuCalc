@@ -1125,6 +1125,210 @@ input[type="range"] {
   font-size: 10px;
 }
 
+.tree-good-picker-card {
+  border: 0;
+  border-radius: 0;
+  background: #b6b6b6;
+  box-shadow:
+    0 0 0 2px #3a3a3a,
+    inset 2px 2px 0 #e3e3e3,
+    inset -2px -2px 0 #676767;
+}
+
+.tree-good-picker-card header > div:first-child {
+  min-width: 0;
+}
+
+.tree-picker-status span,
+.tree-picker-recipe {
+  border: 0;
+  border-radius: 0;
+  background: #c6c6c6;
+  box-shadow:
+    inset 2px 2px 0 #f3f3f3,
+    inset -2px -2px 0 #6a6a6a;
+}
+
+.tree-picker-status span {
+  padding: 5px 7px;
+  color: #315a73;
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #e9f4f7;
+  text-transform: uppercase;
+}
+
+.tree-picker-recipe {
+  padding: 8px;
+}
+
+.tree-picker-recipe.selected {
+  background: #bccdd5;
+  box-shadow:
+    0 0 0 2px #ffffa0,
+    inset 2px 2px 0 #e8f4f7,
+    inset -2px -2px 0 #60727a;
+}
+
+.tree-picker-recipe strong {
+  color: #202020;
+  font-size: 12px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.tree-picker-recipe p,
+.tree-picker-recipe-side,
+.tree-picker-mini-flow {
+  color: #373737;
+  font-size: 10px;
+  line-height: 1.25;
+  text-shadow: 1px 1px 0 #eeeeee;
+}
+
+.tree-picker-mini-flow .good-chip {
+  max-width: 160px;
+}
+
+.emi-tree-workbench {
+  gap: 12px;
+}
+
+.emi-tree-scroll {
+  min-height: 430px;
+  border: 0;
+  border-radius: 0;
+  background-color: #201811;
+  background-image: url("assets/gui/minecraft/options_background.png");
+  background-size: 64px 64px;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 rgba(255, 255, 255, 0.18),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.emi-children {
+  gap: 30px;
+}
+
+.emi-children::before,
+.emi-children.multi::after,
+.emi-children > .emi-subtree::before {
+  border-color: #f8f8f8;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.72));
+}
+
+.emi-node,
+.emi-cost-entry {
+  font-family: var(--minecraft-font);
+}
+
+.emi-node-frame {
+  border-radius: 0;
+}
+
+.emi-craft-node .emi-node-frame {
+  border: 3px solid #ffffff;
+  background: rgba(0, 0, 0, 0.18);
+  box-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.7),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.18);
+}
+
+.emi-node.selected .emi-node-frame,
+.emi-node:hover .emi-node-frame,
+.emi-cost-entry:hover .emi-good-icon {
+  outline: 3px solid #ffffa0;
+  outline-offset: 3px;
+}
+
+.emi-node.done {
+  opacity: 0.58;
+}
+
+.emi-recipe-symbol {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background:
+    linear-gradient(#ffffff, #ffffff) 8px 8px / 18px 3px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 8px 16px / 18px 3px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 8px 24px / 18px 3px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 8px 8px / 3px 18px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 16px 8px / 3px 18px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 24px 8px / 3px 18px no-repeat;
+  color: transparent;
+  font-size: 0;
+}
+
+.emi-recipe-symbol.machine {
+  background:
+    linear-gradient(#d8edf6, #d8edf6) 8px 8px / 18px 18px no-repeat,
+    linear-gradient(#315a73, #315a73);
+  box-shadow:
+    inset 2px 2px 0 #7fa7bd,
+    inset -2px -2px 0 #1d3443;
+}
+
+.emi-good-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.emi-good-icon .slot-image,
+.emi-good-icon .slot-swatch {
+  width: 34px;
+  height: 34px;
+}
+
+.emi-good-icon .slot-swatch {
+  border-radius: 0;
+}
+
+.emi-good-icon .slot-amount,
+.emi-node-count {
+  right: -8px;
+  bottom: -4px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 18px;
+  text-shadow: 2px 2px 0 #342c34;
+}
+
+.emi-node-count {
+  right: -34px;
+  bottom: 0;
+  min-width: 34px;
+}
+
+.emi-leaf-node.craftable::after {
+  right: -5px;
+  top: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 0;
+  background: #315a73;
+  box-shadow:
+    inset 2px 2px 0 #7fa7bd,
+    inset -2px -2px 0 #1d3443;
+  color: #ffffa0;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.emi-graph-totals {
+  padding: 6px 0 0;
+}
+
+.emi-graph-totals h3 {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 400;
+  text-shadow: 2px 2px 0 #342c34;
+}
+
+.emi-cost-row {
+  gap: 24px;
+}
+
 .tree-recipe,
 .tree-leaf-card {
   background: #b6b6b6;

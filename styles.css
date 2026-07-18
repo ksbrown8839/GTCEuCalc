@@ -879,6 +879,295 @@ select {
   color: var(--accent);
 }
 
+.tree-good-picker-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tree-good-picker-card header,
+.tree-picker-actions,
+.tree-picker-status,
+.tree-picker-mini-flow,
+.tree-picker-recipe-side {
+  display: flex;
+  gap: 8px;
+}
+
+.tree-good-picker-card header {
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.tree-good-picker-card header > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.tree-picker-actions,
+.tree-picker-status {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tree-picker-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tree-picker-status span {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fafbf8;
+}
+
+.tree-picker-recipes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.tree-picker-recipe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbf8;
+}
+
+.tree-picker-recipe.selected {
+  border-color: var(--accent-3);
+  background: #eef6fb;
+}
+
+.tree-picker-recipe strong,
+.tree-picker-recipe p {
+  display: block;
+  margin: 0;
+}
+
+.tree-picker-recipe p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tree-picker-mini-flow {
+  align-items: start;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.tree-picker-mini-flow > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tree-picker-recipe-side {
+  align-items: end;
+  flex-direction: column;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.emi-tree-workbench {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.emi-tree-scroll {
+  overflow: auto;
+  min-height: 360px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #201811;
+}
+
+.emi-tree-forest {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 40px;
+  min-width: max-content;
+}
+
+.emi-subtree {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-direction: column;
+  min-width: 56px;
+}
+
+.emi-children {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 26px;
+  margin-top: 26px;
+  padding-top: 28px;
+}
+
+.emi-children::before {
+  content: "";
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  height: 28px;
+  border-left: 2px solid #f2f2f2;
+}
+
+.emi-children.multi::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(50% / var(--child-count));
+  right: calc(50% / var(--child-count));
+  border-top: 2px solid #f2f2f2;
+}
+
+.emi-children > .emi-subtree::before {
+  content: "";
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  height: 28px;
+  border-left: 2px solid #f2f2f2;
+}
+
+.emi-children.single::after,
+.emi-children.single > .emi-subtree::before {
+  display: none;
+}
+
+.emi-node,
+.emi-cost-entry {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+
+.emi-node-frame {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid transparent;
+}
+
+.emi-craft-node .emi-node-frame {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.emi-node.selected .emi-node-frame,
+.emi-node:hover .emi-node-frame,
+.emi-cost-entry:hover .emi-good-icon {
+  outline: 2px solid var(--accent-3);
+  outline-offset: 3px;
+}
+
+.emi-node.done {
+  opacity: 0.62;
+}
+
+.emi-recipe-symbol {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid currentColor;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.emi-good-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+}
+
+.emi-good-icon .slot-image,
+.emi-good-icon .slot-swatch {
+  width: 32px;
+  height: 32px;
+}
+
+.emi-node-count {
+  position: absolute;
+  right: -22px;
+  bottom: 0;
+  min-width: 22px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: left;
+  text-shadow: 1px 1px 0 #000000;
+}
+
+.emi-leaf-node.craftable::after {
+  content: "+";
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.emi-graph-totals {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.emi-graph-totals section {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.emi-graph-totals h3 {
+  margin: 0;
+}
+
+.emi-cost-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  max-width: 100%;
+}
+
 .recipe-visual {
   display: grid;
   align-items: center;
@@ -1414,6 +1703,16 @@ button.recipe-slot:hover {
   .machine-stage {
     justify-self: start;
     min-width: 120px;
+  }
+
+  .tree-picker-recipe {
+    grid-template-columns: 1fr;
+  }
+
+  .tree-picker-recipe-side {
+    align-items: start;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .sidebar,

@@ -17,9 +17,11 @@ const state = {
   targetSearch: "",
   inspectSearch: "",
   selectedGoodsId: null,
+  selectedTreeGoodsId: null,
   inspectorOpen: false,
   currentPlan: null,
   treeView: {
+    showGraph: true,
     showRecipeChoices: false,
     showRecipePreviews: true,
     showInspectButtons: false,
@@ -53,6 +55,7 @@ const elements = {
   craftingTree: document.querySelector("[data-role='crafting-tree']"),
   treeViewControls: document.querySelector("[data-role='tree-view-controls']"),
   recipeTracker: document.querySelector("[data-role='recipe-tracker']"),
+  treeGoodPicker: document.querySelector("[data-role='tree-good-picker']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
   machinePlan: document.querySelector("[data-role='machine-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
@@ -197,6 +200,19 @@ function goodSlot(repository, id, amountText = "", options = {}) {
   `;
 }
 
+function graphGoodIcon(repository, id, amountText = "") {
+  const good = repository.getGood(id);
+  const color = good?.color ?? "#7d8790";
+  const name = good?.name ?? id;
+  const kind = good?.kind ?? "item";
+  return `
+    <span class="emi-good-icon ${kind}" ${goodTooltipAttrs(good, id, amountText)}>
+      ${slotIconMarkup({ goodsId: id, kind, color, label: name, fallback: id })}
+      ${amountText ? `<strong class="slot-amount">${escapeHtml(amountText)}</strong>` : ""}
+    </span>
+  `;
+}
+
 function ingredientSlot(repository, ingredient) {
   if (!ingredient) {
     return `<span class="recipe-slot empty" aria-hidden="true"></span>`;
@@ -332,6 +348,7 @@ function setSingleTarget(goodsId) {
   state.products = [{ goodsId, amountPerMinute: 1 }];
   setGoodAsMade(goodsId);
   state.selectedGoodsId = goodsId;
+  state.selectedTreeGoodsId = null;
   state.completedTreeGoods.clear();
 }
 
@@ -350,6 +367,7 @@ function makeGoodInPlan(goodsId) {
   state.expandedTreeGoods.add(goodsId);
   state.completedTreeGoods.delete(goodsId);
   state.selectedGoodsId = goodsId;
+  state.selectedTreeGoodsId = goodsId;
   renderBoundaryPresets();
   renderPlan();
   renderInspector();
@@ -505,6 +523,7 @@ function renderPlan() {
   elements.recipeTracker.innerHTML = recipeTrackerPanel(repository, plan, externalGoods);
 
   elements.machinePlan.innerHTML = machinePlanRows(repository, plan.machineRows);
+  elements.treeGoodPicker.innerHTML = treeGoodPickerPanel(repository, plan, externalGoods);
 
   if (elements.recipePlan) {
     elements.recipePlan.innerHTML = plan.recipeRows.length
@@ -513,7 +532,9 @@ function renderPlan() {
   }
 
   elements.craftingTree.innerHTML = plan.planTrees.length
-    ? plan.planTrees.map((tree) => craftingTreeNode(repository, tree, 0, externalGoods)).join("")
+    ? (state.treeView.showGraph
+      ? recipeGraphView(repository, plan, externalGoods)
+      : plan.planTrees.map((tree) => craftingTreeNode(repository, tree, 0, externalGoods)).join(""))
     : `<div class="empty-state">Choose a product to build a tree.</div>`;
 
   elements.externalInputs.innerHTML = plan.externalRows.length
@@ -523,6 +544,10 @@ function renderPlan() {
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
     : `<div class="empty-state">No byproducts in this chain.</div>`;
+
+  if (state.treeView.showGraph) {
+    requestAnimationFrame(positionRecipeGraph);
+  }
 }
 
 function neededInputsOverview(repository, plan, assumptionCount) {
@@ -683,6 +708,243 @@ function trackerActionButtons(goodsId, actions) {
       ${actions.map((entry) => `<button class="secondary-button" type="button" data-action="${escapeHtml(entry.action)}" data-id="${escapeHtml(goodsId)}">${escapeHtml(entry.label)}</button>`).join("")}
     </div>
   `;
+}
+
+function treeGoodPickerPanel(repository, plan, externalGoods) {
+  const goodsId = selectedTreeGoodsId(plan);
+  if (!goodsId) return "";
+
+  const good = repository.getGood(goodsId);
+  if (!good) return "";
+
+  const selectedNode = flattenPlanTrees(plan.planTrees).find((entry) => entry.node.goodsId === goodsId)?.node;
+  const recipes = repository.rankRecipesForOutput(goodsId);
+  const isTarget = state.products.some((product) => product.goodsId === goodsId);
+  const isExternal = externalGoods.has(goodsId) && !isTarget;
+  const selectedRecipeId = isExternal
+    ? EXTERNAL_RECIPE_VALUE
+    : state.preferredRecipeByOutput[goodsId] ?? selectedNode?.recipe?.id ?? recipes[0]?.id ?? "";
+  const recipeCards = recipes.length
+    ? recipes.slice(0, 6).map((recipe, index) => treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId)).join("")
+    : `<div class="empty-state">No exported recipe. This remains a base cost.</div>`;
+  const selectedAmount = selectedNode ? graphAmountText(selectedNode.amountPerMinute) : "";
+
+  return `
+    <section class="tree-good-picker-card">
+      <header>
+        <div>
+          <span class="tracker-label">Branch options</span>
+          ${goodChip(repository, goodsId, selectedAmount)}
+        </div>
+        <div class="tree-picker-actions">
+          ${!isTarget && isExternal && recipes.length ? `<button class="secondary-button" type="button" data-action="make-input" data-id="${escapeHtml(goodsId)}">Make branch</button>` : ""}
+          ${!isTarget && !isExternal ? `<button class="secondary-button" type="button" data-action="supply-tree-good" data-id="${escapeHtml(goodsId)}">Treat supplied</button>` : ""}
+          ${!isTarget ? `<button class="secondary-button" type="button" data-action="set-tree-target" data-id="${escapeHtml(goodsId)}">Set target</button>` : ""}
+          <button class="secondary-button" type="button" data-action="focus-tree-good" data-id="${escapeHtml(goodsId)}">Locate</button>
+          <button class="secondary-button" type="button" data-action="inspect-good" data-id="${escapeHtml(goodsId)}">Inspect</button>
+        </div>
+      </header>
+      <div class="tree-picker-status">
+        <span>${isExternal ? "supplied base cost" : recipes.length ? "recipe-driven branch" : "base cost"}</span>
+        <span>${isExternal && recipes.length ? "click its graph node to expand cost" : "click recipe cards to change this branch only"}</span>
+        ${selectedNode?.recipe ? `<span>${escapeHtml(repository.getRecipeType(selectedNode.recipe.type).name)}</span>` : ""}
+        ${selectedNode?.machine ? `<span>${escapeHtml(machineName(selectedNode.machine, selectedNode.voltageTier))}</span>` : ""}
+      </div>
+      <div class="tree-picker-recipes">
+        ${!isTarget ? treePickerSuppliedCard(repository, goodsId, selectedRecipeId) : ""}
+        ${recipeCards}
+      </div>
+    </section>
+  `;
+}
+
+function selectedTreeGoodsId(plan) {
+  const treeNodes = flattenPlanTrees(plan.planTrees);
+  if (state.selectedTreeGoodsId && treeNodes.some((entry) => entry.node.goodsId === state.selectedTreeGoodsId)) {
+    return state.selectedTreeGoodsId;
+  }
+  return null;
+}
+
+function treePickerSuppliedCard(repository, goodsId, selectedRecipeId) {
+  const selected = selectedRecipeId === EXTERNAL_RECIPE_VALUE ? " selected" : "";
+  return `
+    <article class="tree-picker-recipe supplied${selected}">
+      <div>
+        <strong>Treat as supplied</strong>
+        <p>${escapeHtml(repository.getGoodName(goodsId))} stays in Total Cost and does not expand further.</p>
+      </div>
+      <button class="secondary-button" type="button" data-action="supply-tree-good" data-id="${escapeHtml(goodsId)}">Use</button>
+    </article>
+  `;
+}
+
+function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId) {
+  const type = repository.getRecipeType(recipe.type);
+  const selected = recipe.id === selectedRecipeId ? " selected" : "";
+  const recommended = index === 0 ? `<span class="preferred-pill">recommended</span>` : "";
+  const inputs = recipe.inputs.filter((input) => !input.notConsumed).slice(0, 5).map((input) => ingredientChip(repository, input)).join("");
+  const outputs = recipe.outputs.filter((output) => repository.getGood(output.id)).slice(0, 4).map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
+
+  return `
+    <article class="tree-picker-recipe${selected}">
+      <div>
+        <strong>${escapeHtml(type.name)}</strong>
+        <p>${escapeHtml(recipe.id)}</p>
+        <div class="tree-picker-mini-flow">
+          <span>${inputs || "No inputs"}</span>
+          <span>${outputs || "No outputs"}</span>
+        </div>
+      </div>
+      <div class="tree-picker-recipe-side">
+        ${recommended}
+        <span>${formatDuration(recipe.durationTicks)}</span>
+        <span>${formatAmount(recipe.eut)} EU/t</span>
+        <button class="secondary-button" type="button" data-action="use-tree-recipe" data-output-id="${escapeHtml(goodsId)}" data-recipe-id="${escapeHtml(recipe.id)}">Use</button>
+      </div>
+    </article>
+  `;
+}
+
+function recipeGraphView(repository, plan, externalGoods) {
+  return `
+    <div class="emi-tree-workbench">
+      <div class="emi-tree-scroll">
+        <div class="emi-tree-forest">
+          ${plan.planTrees.map((tree) => recipeGraphSubtree(repository, tree, externalGoods, 0)).join("")}
+        </div>
+      </div>
+      ${recipeGraphTotals(repository, plan)}
+    </div>
+  `;
+}
+
+function recipeGraphSubtree(repository, node, externalGoods, depth) {
+  const childCount = node.children.length;
+  const childClass = childCount > 1 ? " multi" : childCount === 1 ? " single" : "";
+  const children = childCount
+    ? `
+      <div class="emi-children${childClass}" style="--child-count:${childCount}">
+        ${node.children.map((child) => recipeGraphSubtree(repository, child, externalGoods, depth + 1)).join("")}
+      </div>
+    `
+    : "";
+
+  return `
+    <div class="emi-subtree" style="--graph-depth:${depth}">
+      ${node.recipe ? recipeGraphCraftNode(repository, node, externalGoods) : recipeGraphLeafNode(repository, node)}
+      ${children}
+    </div>
+  `;
+}
+
+function recipeGraphCraftNode(repository, node, externalGoods) {
+  const type = repository.getRecipeType(node.recipe.type);
+  const selected = state.selectedTreeGoodsId === node.goodsId ? " selected" : "";
+  const done = state.completedTreeGoods.has(node.goodsId) ? " done" : "";
+  const supplied = externalGoods.has(node.goodsId) ? " supplied" : "";
+  const recipeKind = isCraftingRecipe(node.recipe) ? "crafting" : "machine";
+  const tooltip = `${type.name}${node.machine ? ` · ${machineName(node.machine, node.voltageTier)}` : ""}`;
+
+  return `
+    <button class="emi-node emi-craft-node ${recipeKind}${selected}${done}${supplied}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
+      <span class="emi-node-frame" title="${escapeHtml(tooltip)}">
+        <span class="emi-recipe-symbol ${recipeKind}" aria-hidden="true">${recipeKind === "crafting" ? "C" : "M"}</span>
+        ${graphGoodIcon(repository, node.goodsId)}
+      </span>
+      <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
+    </button>
+  `;
+}
+
+function recipeGraphLeafNode(repository, node) {
+  const selected = state.selectedTreeGoodsId === node.goodsId ? " selected" : "";
+  const done = state.completedTreeGoods.has(node.goodsId) ? " done" : "";
+  const canMake = repository.findRecipesProducing(node.goodsId).length > 0;
+  const reason = node.reason ?? "external";
+
+  return `
+    <button class="emi-node emi-leaf-node ${escapeHtml(reason)}${canMake ? " craftable" : ""}${selected}${done}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
+      ${graphGoodIcon(repository, node.goodsId)}
+      <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
+    </button>
+  `;
+}
+
+function recipeGraphTotals(repository, plan) {
+  const costRows = plan.externalRows.slice(0, 18).map((row) => graphCostEntry(repository, row)).join("");
+  const leftoverRows = plan.byproductRows.slice(0, 18).map((row) => graphCostEntry(repository, row)).join("");
+  return `
+    <div class="emi-graph-totals">
+      <section>
+        <h3>Total Cost</h3>
+        <div class="emi-cost-row">${costRows || `<span class="needed-empty">None</span>`}</div>
+      </section>
+      <section>
+        <h3>Leftovers</h3>
+        <div class="emi-cost-row">${leftoverRows || `<span class="needed-empty">None</span>`}</div>
+      </section>
+    </div>
+  `;
+}
+
+function graphCostEntry(repository, row) {
+  return `
+    <button class="emi-cost-entry" type="button" data-action="select-tree-good" data-id="${escapeHtml(row.goodsId)}">
+      ${graphGoodIcon(repository, row.goodsId, graphAmountText(row.amountPerMinute))}
+    </button>
+  `;
+}
+
+function selectTreeGood(goodsId) {
+  if (!goodsId) return;
+  const repository = state.repository;
+  const externalGoods = getEffectiveExternalGoods(repository);
+  const isTarget = state.products.some((product) => product.goodsId === goodsId);
+  const canExpand = !isTarget && externalGoods.has(goodsId) && repository.findRecipesProducing(goodsId).length > 0;
+
+  state.selectedTreeGoodsId = goodsId;
+  state.selectedGoodsId = goodsId;
+
+  if (canExpand) {
+    makeGoodInPlan(goodsId);
+    return;
+  }
+
+  renderPlan();
+}
+
+function useTreeRecipe(outputId, recipeId) {
+  if (!outputId || !recipeId) return;
+  setGoodAsMade(outputId);
+  state.preferredRecipeByOutput[outputId] = recipeId;
+  state.selectedTreeGoodsId = outputId;
+  state.selectedGoodsId = outputId;
+  renderBoundaryPresets();
+  renderPlan();
+  renderInspector();
+}
+
+function positionRecipeGraph() {
+  const scroll = elements.craftingTree.querySelector(".emi-tree-scroll");
+  if (!(scroll instanceof HTMLElement)) return;
+
+  const selected = state.selectedTreeGoodsId
+    ? elements.craftingTree.querySelector(`.emi-node[data-id="${cssEscape(state.selectedTreeGoodsId)}"]`)
+    : null;
+
+  if (selected instanceof HTMLElement) {
+    selected.scrollIntoView({ block: "nearest", inline: "center" });
+    return;
+  }
+
+  scroll.scrollLeft = Math.max(0, (scroll.scrollWidth - scroll.clientWidth) / 2);
+  scroll.scrollTop = 0;
+}
+
+function graphAmountText(amountPerMinute) {
+  if (!Number.isFinite(amountPerMinute) || amountPerMinute <= 0) return "";
+  return state.treeView.showRates ? formatRate(amountPerMinute) : `x${formatAmount(amountPerMinute)}`;
 }
 
 function machinePlanRows(repository, machineRows) {
@@ -1608,9 +1870,37 @@ function setupEvents() {
       event.preventDefault();
       event.stopPropagation();
       setGoodAsExternal(goodsId);
+      state.selectedTreeGoodsId = goodsId;
       renderBoundaryPresets();
       renderPlan();
       renderInspector();
+      return;
+    }
+
+    if (action === "select-tree-good" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      selectTreeGood(goodsId);
+      return;
+    }
+
+    if (action === "set-tree-target" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      setSingleTarget(goodsId);
+      state.targetSearch = "";
+      elements.targetSearchInput.value = "";
+      renderAll();
+      return;
+    }
+
+    if (action === "use-tree-recipe") {
+      const outputId = target.dataset.outputId;
+      const recipeId = target.dataset.recipeId;
+      if (!outputId || !recipeId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      useTreeRecipe(outputId, recipeId);
       return;
     }
 
@@ -1709,6 +1999,7 @@ async function main() {
     state.textureAtlas = await loadTextureAtlas(textureAtlasUrlFromLocation());
     state.products = chooseInitialProducts(state.repository);
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
+    state.selectedTreeGoodsId = null;
     const meta = state.repository.metadata;
     const packCounts = `${formatAmount(state.repository.goods.size)} goods / ${formatAmount(state.repository.recipes.length)} recipes / ${formatAmount(state.repository.machines.size)} machines`;
     elements.packName.textContent = meta.packName;

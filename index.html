@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=emi-tree-tracker-2026-07-17">
-    <link rel="stylesheet" href="minecraft-ui.css?v=emi-tree-tracker-2026-07-17">
+    <link rel="stylesheet" href="styles.css?v=emi-tree-graph-2026-07-17">
+    <link rel="stylesheet" href="minecraft-ui.css?v=emi-tree-graph-2026-07-17">
     <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
@@ -76,6 +76,10 @@
                 <h2>Recipe Steps</h2>
                 <div class="tree-view-controls" data-role="tree-view-controls" aria-label="Crafting tree display options">
                   <label>
+                    <input type="checkbox" data-action="toggle-tree-option" data-option="showGraph" checked>
+                    <span>Graph</span>
+                  </label>
+                  <label>
                     <input type="checkbox" data-action="toggle-tree-option" data-option="showRecipeChoices">
                     <span>Choices</span>
                   </label>
@@ -97,6 +101,7 @@
                 </div>
               </header>
               <div data-role="crafting-tree"></div>
+              <div data-role="tree-good-picker"></div>
             </section>
           </div>
 
@@ -140,6 +145,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=emi-tree-tracker-2026-07-17"></script>
+    <script type="module" src="src/main.js?v=emi-tree-graph-2026-07-17"></script>
   </body>
 </html>
