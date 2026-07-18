@@ -949,6 +949,7 @@ function applyRecipeGraphZoom(scroll = elements.craftingTree.querySelector(".emi
   elements.craftingTree.querySelectorAll("[data-role='recipe-graph-zoom']").forEach((node) => {
     node.textContent = `${Math.round(state.recipeGraph.zoom * 100)}%`;
   });
+  requestAnimationFrame(drawRecipeGraphConnectors);
 }
 
 function setRecipeGraphZoom(value, anchor = null) {
@@ -980,6 +981,7 @@ function positionRecipeGraph() {
 
   scroll.scrollLeft = Math.max(0, (scroll.scrollWidth - scroll.clientWidth) / 2);
   scroll.scrollTop = 0;
+  drawRecipeGraphConnectors();
 }
 
 function centerRecipeGraphNode(scroll, node) {
@@ -989,6 +991,67 @@ function centerRecipeGraphNode(scroll, node) {
   const nodeY = nodeRect.top - scrollRect.top + scroll.scrollTop;
   scroll.scrollLeft = Math.max(0, nodeX - (scroll.clientWidth - nodeRect.width) / 2);
   scroll.scrollTop = Math.max(0, nodeY - (scroll.clientHeight - nodeRect.height) / 2);
+  drawRecipeGraphConnectors();
+}
+
+function drawRecipeGraphConnectors() {
+  const forest = elements.craftingTree.querySelector(".emi-tree-forest");
+  if (!(forest instanceof HTMLElement)) return;
+
+  let svg = forest.querySelector(".emi-tree-connectors");
+  if (!(svg instanceof SVGSVGElement)) {
+    svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("emi-tree-connectors");
+    svg.setAttribute("aria-hidden", "true");
+    forest.prepend(svg);
+  }
+
+  const scale = state.recipeGraph.zoom || 1;
+  const forestRect = forest.getBoundingClientRect();
+  const forestWidth = Math.max(1, forest.scrollWidth / scale);
+  const forestHeight = Math.max(1, forest.scrollHeight / scale);
+  svg.setAttribute("viewBox", `0 0 ${forestWidth} ${forestHeight}`);
+  svg.setAttribute("width", String(forestWidth));
+  svg.setAttribute("height", String(forestHeight));
+
+  const paths = [];
+  const topSubtrees = [...forest.children].filter((child) => child.classList?.contains("emi-subtree"));
+
+  for (const subtree of topSubtrees) {
+    drawSubtreeConnectors(subtree, forestRect, scale, paths);
+  }
+
+  svg.innerHTML = paths.map((path) => `<path class="emi-connector-path" d="${path}"></path>`).join("");
+}
+
+function drawSubtreeConnectors(subtree, forestRect, scale, paths) {
+  const parentNode = [...subtree.children].find((child) => child.classList?.contains("emi-node"));
+  const childWrap = [...subtree.children].find((child) => child.classList?.contains("emi-children"));
+  if (!(parentNode instanceof HTMLElement) || !(childWrap instanceof HTMLElement)) return;
+
+  const childSubtrees = [...childWrap.children].filter((child) => child.classList?.contains("emi-subtree"));
+  for (const childSubtree of childSubtrees) {
+    const childNode = [...childSubtree.children].find((child) => child.classList?.contains("emi-node"));
+    if (!(childNode instanceof HTMLElement)) continue;
+
+    const start = graphNodePoint(parentNode, forestRect, scale, "bottom");
+    const end = graphNodePoint(childNode, forestRect, scale, "top");
+    const midY = start.y + Math.max(18, (end.y - start.y) / 2);
+    paths.push(`M ${roundGraphCoord(start.x)} ${roundGraphCoord(start.y)} V ${roundGraphCoord(midY)} H ${roundGraphCoord(end.x)} V ${roundGraphCoord(end.y)}`);
+    drawSubtreeConnectors(childSubtree, forestRect, scale, paths);
+  }
+}
+
+function graphNodePoint(node, forestRect, scale, edge) {
+  const rect = node.getBoundingClientRect();
+  return {
+    x: (rect.left - forestRect.left + rect.width / 2) / scale,
+    y: (rect.top - forestRect.top + (edge === "bottom" ? rect.height : 0)) / scale
+  };
+}
+
+function roundGraphCoord(value) {
+  return Math.round(value * 10) / 10;
 }
 
 function graphAmountText(amountPerMinute) {
@@ -2082,6 +2145,10 @@ function setupRecipeGraphViewport() {
     };
     setRecipeGraphZoom(state.recipeGraph.zoom + (event.deltaY > 0 ? -0.1 : 0.1), anchor);
   }, { passive: false });
+
+  window.addEventListener("resize", () => {
+    if (state.treeView.showGraph) requestAnimationFrame(drawRecipeGraphConnectors);
+  });
 
   elements.craftingTree.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;

@@ -1260,19 +1260,23 @@ input[type="range"] {
 }
 
 .emi-children {
-  gap: 30px;
+  gap: 44px;
 }
 
-.emi-children::before,
-.emi-children.multi::after,
-.emi-children > .emi-subtree::before {
-  border-color: #f8f8f8;
+.emi-connector-path {
+  stroke: #f8f8f8;
+  stroke-width: 2px;
   filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.72));
 }
 
 .emi-node,
 .emi-cost-entry {
   font-family: var(--minecraft-font);
+  min-width: 68px;
+}
+
+.emi-craft-node {
+  min-width: 104px;
 }
 
 .emi-node-frame {
