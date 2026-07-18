@@ -889,6 +889,17 @@ select {
   background: #fff;
 }
 
+.tree-good-picker-window {
+  position: fixed;
+  z-index: 850;
+  top: clamp(84px, 10vh, 118px);
+  right: clamp(12px, 3vw, 34px);
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(76vh, 720px);
+  margin-top: 0;
+  overflow: auto;
+}
+
 .tree-good-picker-card header,
 .tree-picker-actions,
 .tree-picker-status,
@@ -904,15 +915,30 @@ select {
   flex-wrap: wrap;
 }
 
+.tree-picker-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: inherit;
+}
+
 .tree-good-picker-card header > div:first-child {
   display: grid;
   gap: 6px;
+}
+
+.tree-picker-heading {
+  min-width: 0;
 }
 
 .tree-picker-actions,
 .tree-picker-status {
   align-items: center;
   flex-wrap: wrap;
+}
+
+.tree-picker-close {
+  flex: 0 0 auto;
 }
 
 .tree-picker-status {
@@ -985,6 +1011,27 @@ select {
   min-width: 0;
 }
 
+.emi-tree-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.emi-tree-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.emi-tree-toolbar strong {
+  min-width: 42px;
+  text-align: center;
+}
+
 .emi-tree-scroll {
   overflow: auto;
   min-height: 360px;
@@ -992,6 +1039,19 @@ select {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #201811;
+  cursor: grab;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  user-select: none;
+}
+
+.emi-tree-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.emi-tree-scroll.panning {
+  cursor: grabbing;
 }
 
 .emi-tree-forest {
@@ -1000,6 +1060,14 @@ select {
   justify-content: center;
   gap: 40px;
   min-width: max-content;
+  zoom: var(--graph-scale, 1);
+  transform-origin: top center;
+}
+
+@supports not (zoom: 1) {
+  .emi-tree-forest {
+    transform: scale(var(--graph-scale, 1));
+  }
 }
 
 .emi-subtree {
@@ -1713,6 +1781,18 @@ button.recipe-slot:hover {
     align-items: start;
     flex-direction: row;
     flex-wrap: wrap;
+  }
+
+  .tree-good-picker-window {
+    left: 12px;
+    right: 12px;
+    top: 72px;
+    width: auto;
+    max-height: calc(100vh - 96px);
+  }
+
+  .emi-tree-toolbar {
+    align-items: start;
   }
 
   .sidebar,

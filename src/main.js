@@ -27,6 +27,9 @@ const state = {
     showInspectButtons: false,
     showRates: false
   },
+  recipeGraph: {
+    zoom: 1
+  },
   completedTreeGoods: new Set(),
   expandedTreeGoods: new Set(),
   dataUrl: DEFAULT_DATA_URL
@@ -372,6 +375,11 @@ function makeGoodInPlan(goodsId) {
   renderPlan();
   renderInspector();
   requestAnimationFrame(() => {
+    if (state.treeView.showGraph) {
+      positionRecipeGraph();
+      return;
+    }
+
     const node = elements.craftingTree.querySelector(`[data-goods-id="${cssEscape(goodsId)}"]`);
     node?.scrollIntoView({ block: "center", behavior: "smooth" });
   });
@@ -730,9 +738,9 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
   const selectedAmount = selectedNode ? graphAmountText(selectedNode.amountPerMinute) : "";
 
   return `
-    <section class="tree-good-picker-card">
-      <header>
-        <div>
+    <section class="tree-good-picker-card tree-good-picker-window" role="dialog" aria-modal="false" aria-label="Branch recipe options for ${escapeHtml(good.name)}">
+      <header class="tree-picker-header">
+        <div class="tree-picker-heading">
           <span class="tracker-label">Branch options</span>
           ${goodChip(repository, goodsId, selectedAmount)}
         </div>
@@ -742,11 +750,12 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
           ${!isTarget ? `<button class="secondary-button" type="button" data-action="set-tree-target" data-id="${escapeHtml(goodsId)}">Set target</button>` : ""}
           <button class="secondary-button" type="button" data-action="focus-tree-good" data-id="${escapeHtml(goodsId)}">Locate</button>
           <button class="secondary-button" type="button" data-action="inspect-good" data-id="${escapeHtml(goodsId)}">Inspect</button>
+          <button class="icon-button tree-picker-close" type="button" data-action="close-tree-picker" aria-label="Close branch options">x</button>
         </div>
       </header>
       <div class="tree-picker-status">
         <span>${isExternal ? "supplied base cost" : recipes.length ? "recipe-driven branch" : "base cost"}</span>
-        <span>${isExternal && recipes.length ? "click its graph node to expand cost" : "click recipe cards to change this branch only"}</span>
+        <span>${isExternal && recipes.length ? "make it here to expand this branch" : "recipe cards change this branch only"}</span>
         ${selectedNode?.recipe ? `<span>${escapeHtml(repository.getRecipeType(selectedNode.recipe.type).name)}</span>` : ""}
         ${selectedNode?.machine ? `<span>${escapeHtml(machineName(selectedNode.machine, selectedNode.voltageTier))}</span>` : ""}
       </div>
@@ -809,7 +818,16 @@ function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipe
 function recipeGraphView(repository, plan, externalGoods) {
   return `
     <div class="emi-tree-workbench">
-      <div class="emi-tree-scroll">
+      <div class="emi-tree-toolbar" aria-label="Recipe graph view controls">
+        <span>Drag empty space to pan. Use the mouse wheel to zoom.</span>
+        <div>
+          <button class="secondary-button" type="button" data-action="recipe-graph-zoom-out" aria-label="Zoom recipe graph out">-</button>
+          <strong data-role="recipe-graph-zoom">${Math.round(state.recipeGraph.zoom * 100)}%</strong>
+          <button class="secondary-button" type="button" data-action="recipe-graph-zoom-in" aria-label="Zoom recipe graph in">+</button>
+          <button class="secondary-button" type="button" data-action="recipe-graph-reset">Reset</button>
+        </div>
+      </div>
+      <div class="emi-tree-scroll" style="--graph-scale:${state.recipeGraph.zoom}">
         <div class="emi-tree-forest">
           ${plan.planTrees.map((tree) => recipeGraphSubtree(repository, tree, externalGoods, 0)).join("")}
         </div>
@@ -925,21 +943,52 @@ function useTreeRecipe(outputId, recipeId) {
   renderInspector();
 }
 
+function applyRecipeGraphZoom(scroll = elements.craftingTree.querySelector(".emi-tree-scroll")) {
+  if (!(scroll instanceof HTMLElement)) return;
+  scroll.style.setProperty("--graph-scale", String(state.recipeGraph.zoom));
+  elements.craftingTree.querySelectorAll("[data-role='recipe-graph-zoom']").forEach((node) => {
+    node.textContent = `${Math.round(state.recipeGraph.zoom * 100)}%`;
+  });
+}
+
+function setRecipeGraphZoom(value, anchor = null) {
+  const nextZoom = Math.round(Math.min(1.8, Math.max(0.55, Number(value) || 1)) * 100) / 100;
+  const scroll = elements.craftingTree.querySelector(".emi-tree-scroll");
+
+  state.recipeGraph.zoom = nextZoom;
+  applyRecipeGraphZoom(scroll);
+
+  if (anchor && scroll instanceof HTMLElement) {
+    scroll.scrollLeft = anchor.contentX * nextZoom - anchor.offsetX;
+    scroll.scrollTop = anchor.contentY * nextZoom - anchor.offsetY;
+  }
+}
+
 function positionRecipeGraph() {
   const scroll = elements.craftingTree.querySelector(".emi-tree-scroll");
   if (!(scroll instanceof HTMLElement)) return;
+  applyRecipeGraphZoom(scroll);
 
   const selected = state.selectedTreeGoodsId
     ? elements.craftingTree.querySelector(`.emi-node[data-id="${cssEscape(state.selectedTreeGoodsId)}"]`)
     : null;
 
   if (selected instanceof HTMLElement) {
-    selected.scrollIntoView({ block: "nearest", inline: "center" });
+    centerRecipeGraphNode(scroll, selected);
     return;
   }
 
   scroll.scrollLeft = Math.max(0, (scroll.scrollWidth - scroll.clientWidth) / 2);
   scroll.scrollTop = 0;
+}
+
+function centerRecipeGraphNode(scroll, node) {
+  const scrollRect = scroll.getBoundingClientRect();
+  const nodeRect = node.getBoundingClientRect();
+  const nodeX = nodeRect.left - scrollRect.left + scroll.scrollLeft;
+  const nodeY = nodeRect.top - scrollRect.top + scroll.scrollTop;
+  scroll.scrollLeft = Math.max(0, nodeX - (scroll.clientWidth - nodeRect.width) / 2);
+  scroll.scrollTop = Math.max(0, nodeY - (scroll.clientHeight - nodeRect.height) / 2);
 }
 
 function graphAmountText(amountPerMinute) {
@@ -1477,8 +1526,14 @@ function focusTreeGood(goodsId) {
     state.expandedTreeGoods.add(pathGoodsId);
   }
 
+  state.selectedTreeGoodsId = goodsId;
   renderPlan();
   requestAnimationFrame(() => {
+    if (state.treeView.showGraph) {
+      positionRecipeGraph();
+      return;
+    }
+
     const node = elements.craftingTree.querySelector(`[data-goods-id="${cssEscape(goodsId)}"]`);
     node?.scrollIntoView({ block: "center", behavior: "smooth" });
   });
@@ -1697,6 +1752,7 @@ function positionMinecraftTooltip(clientX, clientY) {
 
 function setupEvents() {
   setupMinecraftTooltips();
+  setupRecipeGraphViewport();
 
   elements.productList.addEventListener("input", (event) => {
     const target = event.target;
@@ -1859,6 +1915,36 @@ function setupEvents() {
       return;
     }
 
+    if (action === "close-tree-picker") {
+      event.preventDefault();
+      event.stopPropagation();
+      state.selectedTreeGoodsId = null;
+      renderPlan();
+      return;
+    }
+
+    if (action === "recipe-graph-zoom-out") {
+      event.preventDefault();
+      event.stopPropagation();
+      setRecipeGraphZoom(state.recipeGraph.zoom - 0.1);
+      return;
+    }
+
+    if (action === "recipe-graph-zoom-in") {
+      event.preventDefault();
+      event.stopPropagation();
+      setRecipeGraphZoom(state.recipeGraph.zoom + 0.1);
+      return;
+    }
+
+    if (action === "recipe-graph-reset") {
+      event.preventDefault();
+      event.stopPropagation();
+      setRecipeGraphZoom(1);
+      positionRecipeGraph();
+      return;
+    }
+
     if (action === "focus-tree-good" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
@@ -1974,6 +2060,61 @@ function setupEvents() {
       renderInspector();
     }
   });
+}
+
+function setupRecipeGraphViewport() {
+  let pan = null;
+
+  elements.craftingTree.addEventListener("wheel", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const scroll = event.target.closest(".emi-tree-scroll");
+    if (!(scroll instanceof HTMLElement)) return;
+
+    event.preventDefault();
+    const rect = scroll.getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
+    const anchor = {
+      offsetX,
+      offsetY,
+      contentX: (scroll.scrollLeft + offsetX) / state.recipeGraph.zoom,
+      contentY: (scroll.scrollTop + offsetY) / state.recipeGraph.zoom
+    };
+    setRecipeGraphZoom(state.recipeGraph.zoom + (event.deltaY > 0 ? -0.1 : 0.1), anchor);
+  }, { passive: false });
+
+  elements.craftingTree.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    if (!(event.target instanceof Element)) return;
+    const scroll = event.target.closest(".emi-tree-scroll");
+    if (!(scroll instanceof HTMLElement)) return;
+    if (event.target.closest(".emi-node, .emi-cost-entry, button, input, select, textarea, a")) return;
+
+    pan = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      scrollLeft: scroll.scrollLeft,
+      scrollTop: scroll.scrollTop,
+      scroll
+    };
+    scroll.setPointerCapture(event.pointerId);
+    scroll.classList.add("panning");
+  });
+
+  elements.craftingTree.addEventListener("pointermove", (event) => {
+    if (!pan || pan.pointerId !== event.pointerId) return;
+    pan.scroll.scrollLeft = pan.scrollLeft - (event.clientX - pan.x);
+    pan.scroll.scrollTop = pan.scrollTop - (event.clientY - pan.y);
+  });
+
+  for (const eventName of ["pointerup", "pointercancel"]) {
+    elements.craftingTree.addEventListener(eventName, (event) => {
+      if (!pan || pan.pointerId !== event.pointerId) return;
+      pan.scroll.classList.remove("panning");
+      pan = null;
+    });
+  }
 }
 
 function setTreeExpansion(open) {
