@@ -974,6 +974,12 @@ select {
   background: #eef6fb;
 }
 
+.tree-picker-structure {
+  grid-column: 1 / -1;
+  border-color: #b78f35;
+  background: #fff7dd;
+}
+
 .tree-picker-recipe strong,
 .tree-picker-recipe p {
   display: block;
@@ -1001,6 +1007,34 @@ select {
 .tree-picker-recipe-side {
   align-items: end;
   flex-direction: column;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tree-structure-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.tree-structure-requirement {
+  display: inline-grid;
+  gap: 3px;
+}
+
+.tree-structure-requirement em {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+.tree-structure-notes {
+  display: grid;
+  gap: 3px;
+  margin: 10px 0 0;
+  padding-left: 18px;
   color: var(--muted);
   font-size: 11px;
 }
@@ -1034,6 +1068,7 @@ select {
 
 .emi-tree-scroll {
   overflow: auto;
+  height: min(66vh, 680px);
   min-height: 360px;
   padding: 28px;
   border: 1px solid var(--line);
@@ -1042,6 +1077,7 @@ select {
   cursor: grab;
   overscroll-behavior: contain;
   scrollbar-width: none;
+  touch-action: none;
   user-select: none;
 }
 
@@ -1061,6 +1097,9 @@ select {
   justify-content: center;
   gap: 40px;
   min-width: max-content;
+  min-height: 560px;
+  box-sizing: content-box;
+  padding: 200px max(52vw, 560px) 240px;
   zoom: var(--graph-scale, 1);
   transform-origin: top center;
 }

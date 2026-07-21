@@ -1191,6 +1191,14 @@ input[type="range"] {
     inset -2px -2px 0 #60727a;
 }
 
+.tree-picker-structure {
+  background: #cfc3a4;
+  box-shadow:
+    0 0 0 2px #d8a934,
+    inset 2px 2px 0 #f2e4be,
+    inset -2px -2px 0 #746849;
+}
+
 .tree-picker-recipe strong {
   color: #202020;
   font-size: 12px;
@@ -1208,6 +1216,22 @@ input[type="range"] {
 
 .tree-picker-mini-flow .good-chip {
   max-width: 160px;
+}
+
+.tree-structure-requirements {
+  gap: 7px;
+}
+
+.tree-structure-requirement {
+  align-content: start;
+}
+
+.tree-structure-requirement em,
+.tree-structure-notes {
+  color: #3d321e;
+  font-size: 10px;
+  line-height: 1.25;
+  text-shadow: 1px 1px 0 #eadcb4;
 }
 
 .emi-tree-workbench {

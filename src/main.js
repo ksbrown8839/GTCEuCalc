@@ -5,6 +5,7 @@ import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, g
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
 const DEFAULT_TEXTURE_ATLAS_URL = "data/texture-atlas.json";
+const DEFAULT_MULTIBLOCK_STRUCTURES_URL = "data/multiblock-structures.json";
 
 const state = {
   repository: null,
@@ -32,6 +33,7 @@ const state = {
   },
   completedTreeGoods: new Set(),
   expandedTreeGoods: new Set(),
+  multiblockStructures: new Map(),
   dataUrl: DEFAULT_DATA_URL
 };
 
@@ -431,14 +433,16 @@ function targetBrowserMatches(repository) {
   return source
     .map((good, index) => {
       const recipeCount = repository.findRecipesProducing(good.id).length;
+      const hasStructure = Boolean(structureForGood(good.id));
       return {
         good,
         index,
         recipeCount,
-        score: targetBrowserScore(good, recipeCount)
+        hasStructure,
+        score: targetBrowserScore(good, recipeCount, hasStructure)
       };
     })
-    .filter((match) => query || match.recipeCount > 0)
+    .filter((match) => query || match.recipeCount > 0 || match.hasStructure)
     .sort((a, b) => {
       if (query) return b.score - a.score || a.index - b.index;
       return b.score - a.score || a.good.name.localeCompare(b.good.name) || a.good.id.localeCompare(b.good.id);
@@ -446,10 +450,11 @@ function targetBrowserMatches(repository) {
     .slice(0, TARGET_BROWSER_LIMIT);
 }
 
-function targetBrowserScore(good, recipeCount) {
+function targetBrowserScore(good, recipeCount, hasStructure = false) {
   let score = 0;
   if (state.products.some((product) => product.goodsId === good.id)) score += 10000;
   if (recipeCount) score += 1000 + Math.min(recipeCount, 99);
+  if (hasStructure) score += 180;
   if (state.textureAtlas?.icons?.[good.id] !== undefined) score += 100;
   if (good.kind === "item") score += 20;
   if (good.mod === "gtceu") score += 10;
@@ -457,21 +462,22 @@ function targetBrowserScore(good, recipeCount) {
 }
 
 function targetBrowserCard(repository, match) {
-  const { good, recipeCount } = match;
+  const { good, recipeCount, hasStructure } = match;
   const selected = state.products.some((product) => product.goodsId === good.id) ? " selected" : "";
   const kindLabel = good.kind === "fluid" ? "fluid" : good.mod;
   const recipeText = recipeCount
     ? planCountText(recipeCount, "recipe")
     : "no exported recipe";
+  const metaText = hasStructure ? `${recipeText} · multiblock build · ${kindLabel}` : `${recipeText} · ${kindLabel}`;
 
   return `
     <article class="target-card${selected}">
       <button class="target-card-main" type="button" data-action="set-target" data-id="${escapeHtml(good.id)}" aria-label="Set ${escapeHtml(good.name)} as target">
-        ${goodIconMarkup(repository, good.id)}
+          ${goodIconMarkup(repository, good.id)}
         <span class="target-card-text">
           <strong title="${escapeHtml(good.name)}">${escapeHtml(good.name)}</strong>
           <span>${escapeHtml(good.id)}</span>
-          <em>${escapeHtml(`${recipeText} · ${kindLabel}`)}</em>
+          <em>${escapeHtml(metaText)}</em>
         </span>
       </button>
       <button class="target-card-add" type="button" data-action="add-target-card" data-id="${escapeHtml(good.id)}" aria-label="Add ${escapeHtml(good.name)} target">+</button>
@@ -729,6 +735,7 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
 
   const selectedNode = flattenPlanTrees(plan.planTrees).find((entry) => entry.node.goodsId === goodsId)?.node;
   const recipes = repository.rankRecipesForOutput(goodsId);
+  const structure = structureForGood(goodsId);
   const isTarget = state.products.some((product) => product.goodsId === goodsId);
   const isExternal = externalGoods.has(goodsId) && !isTarget;
   const isCollapsed = selectedNode?.reason === "collapsed";
@@ -762,9 +769,11 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
         <span>${isCollapsed || (isExternal && recipes.length) ? "expand when you want the next recipe layer" : "recipe cards change this branch only"}</span>
         ${selectedNode?.recipe ? `<span>${escapeHtml(repository.getRecipeType(selectedNode.recipe.type).name)}</span>` : ""}
         ${selectedNode?.machine ? `<span>${escapeHtml(machineName(selectedNode.machine, selectedNode.voltageTier))}</span>` : ""}
+        ${structure ? `<span>multiblock structure</span>` : ""}
       </div>
       <div class="tree-picker-recipes">
         ${!isTarget ? treePickerSuppliedCard(repository, goodsId, selectedRecipeId) : ""}
+        ${structure ? treePickerStructureCard(repository, structure) : ""}
         ${recipeCards}
       </div>
     </section>
@@ -814,6 +823,41 @@ function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipe
         <span>${formatDuration(recipe.durationTicks)}</span>
         <span>${formatAmount(recipe.eut)} EU/t</span>
         <button class="secondary-button" type="button" data-action="use-tree-recipe" data-output-id="${escapeHtml(goodsId)}" data-recipe-id="${escapeHtml(recipe.id)}">Use</button>
+      </div>
+    </article>
+  `;
+}
+
+function treePickerStructureCard(repository, structure) {
+  const requirements = (structure.requirements ?? [])
+    .map((requirement) => {
+      const role = requirement.role ? `<em>${escapeHtml(requirement.role)}</em>` : "";
+      return `
+        <span class="tree-structure-requirement">
+          ${goodChip(repository, requirement.id, `x${formatAmount(requirement.amount ?? 1)}`)}
+          ${role}
+        </span>
+      `;
+    })
+    .join("");
+  const notes = (structure.notes ?? [])
+    .slice(0, 3)
+    .map((note) => `<li>${escapeHtml(note)}</li>`)
+    .join("");
+
+  return `
+    <article class="tree-picker-recipe tree-picker-structure">
+      <div>
+        <strong>${escapeHtml(structure.name ?? "Multiblock structure")}</strong>
+        <p>${escapeHtml(structure.description ?? "Build the formed multiblock around this controller.")}</p>
+        <div class="tree-structure-requirements">
+          ${requirements || `<span class="needed-empty">No structure parts recorded yet.</span>`}
+        </div>
+        ${notes ? `<ul class="tree-structure-notes">${notes}</ul>` : ""}
+      </div>
+      <div class="tree-picker-recipe-side">
+        <span class="preferred-pill">structure</span>
+        <span>supplemental</span>
       </div>
     </article>
   `;
@@ -1649,6 +1693,13 @@ function textureAtlasUrlFromLocation() {
   return value || DEFAULT_TEXTURE_ATLAS_URL;
 }
 
+function multiblockStructuresUrlFromLocation() {
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get("structures");
+  if (value === "none") return null;
+  return value || DEFAULT_MULTIBLOCK_STRUCTURES_URL;
+}
+
 async function loadTextureAtlas(url) {
   if (!url) return null;
 
@@ -1665,6 +1716,34 @@ async function loadTextureAtlas(url) {
     console.warn(`Could not load texture atlas ${url}.`, error);
     return null;
   }
+}
+
+async function loadMultiblockStructures(url) {
+  const structures = new Map();
+  if (!url) return structures;
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return structures;
+    const data = await response.json();
+    if (data.schema !== "gtceu-planner-multiblock-structures-v1" || !Array.isArray(data.structures)) {
+      console.warn(`Ignoring unsupported multiblock structure schema: ${data.schema}`);
+      return structures;
+    }
+
+    for (const structure of data.structures) {
+      if (!structure?.controller || !Array.isArray(structure.requirements)) continue;
+      structures.set(structure.controller, structure);
+    }
+  } catch (error) {
+    console.warn(`Could not load multiblock structures ${url}.`, error);
+  }
+
+  return structures;
+}
+
+function structureForGood(goodsId) {
+  return state.multiblockStructures.get(goodsId) ?? null;
 }
 
 function chooseInitialProducts(repository) {
@@ -2137,6 +2216,46 @@ function setupEvents() {
 function setupRecipeGraphViewport() {
   let pan = null;
 
+  function panTargetFromEvent(event) {
+    if (!(event.target instanceof Element)) return null;
+    const scroll = event.target.closest(".emi-tree-scroll");
+    if (!(scroll instanceof HTMLElement)) return null;
+    if (event.target.closest(".emi-node, .emi-cost-entry, button, input, select, textarea, a")) return null;
+    return scroll;
+  }
+
+  function beginPan(event, pointerId) {
+    const scroll = panTargetFromEvent(event);
+    if (!scroll) return false;
+
+    event.preventDefault();
+    pan = {
+      pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      scrollLeft: scroll.scrollLeft,
+      scrollTop: scroll.scrollTop,
+      scroll
+    };
+    scroll.classList.add("panning");
+    return true;
+  }
+
+  function movePan(event, pointerId) {
+    if (!pan || pan.pointerId !== pointerId) return false;
+    event.preventDefault();
+    pan.scroll.scrollLeft = pan.scrollLeft - (event.clientX - pan.x);
+    pan.scroll.scrollTop = pan.scrollTop - (event.clientY - pan.y);
+    return true;
+  }
+
+  function endPan(pointerId) {
+    if (!pan || pan.pointerId !== pointerId) return false;
+    pan.scroll.classList.remove("panning");
+    pan = null;
+    return true;
+  }
+
   elements.craftingTree.addEventListener("wheel", (event) => {
     if (!(event.target instanceof Element)) return;
     const scroll = event.target.closest(".emi-tree-scroll");
@@ -2161,36 +2280,33 @@ function setupRecipeGraphViewport() {
 
   elements.craftingTree.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
-    if (!(event.target instanceof Element)) return;
-    const scroll = event.target.closest(".emi-tree-scroll");
-    if (!(scroll instanceof HTMLElement)) return;
-    if (event.target.closest(".emi-node, .emi-cost-entry, button, input, select, textarea, a")) return;
-
-    pan = {
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      scrollLeft: scroll.scrollLeft,
-      scrollTop: scroll.scrollTop,
-      scroll
-    };
-    scroll.setPointerCapture(event.pointerId);
-    scroll.classList.add("panning");
+    if (beginPan(event, event.pointerId)) {
+      pan.scroll.setPointerCapture(event.pointerId);
+    }
   });
 
   elements.craftingTree.addEventListener("pointermove", (event) => {
-    if (!pan || pan.pointerId !== event.pointerId) return;
-    pan.scroll.scrollLeft = pan.scrollLeft - (event.clientX - pan.x);
-    pan.scroll.scrollTop = pan.scrollTop - (event.clientY - pan.y);
+    movePan(event, event.pointerId);
   });
 
   for (const eventName of ["pointerup", "pointercancel"]) {
     elements.craftingTree.addEventListener(eventName, (event) => {
-      if (!pan || pan.pointerId !== event.pointerId) return;
-      pan.scroll.classList.remove("panning");
-      pan = null;
+      endPan(event.pointerId);
     });
   }
+
+  elements.craftingTree.addEventListener("mousedown", (event) => {
+    if (event.button !== 0 || pan) return;
+    beginPan(event, "mouse");
+  });
+
+  window.addEventListener("mousemove", (event) => {
+    movePan(event, "mouse");
+  });
+
+  window.addEventListener("mouseup", () => {
+    endPan("mouse");
+  });
 }
 
 function setTreeExpansion(open) {
@@ -2215,6 +2331,7 @@ async function main() {
     state.dataUrl = dataUrlFromLocation();
     state.repository = await loadRepository(state.dataUrl);
     state.textureAtlas = await loadTextureAtlas(textureAtlasUrlFromLocation());
+    state.multiblockStructures = await loadMultiblockStructures(multiblockStructuresUrlFromLocation());
     state.products = chooseInitialProducts(state.repository);
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     state.selectedTreeGoodsId = null;
