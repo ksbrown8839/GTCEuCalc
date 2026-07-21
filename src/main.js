@@ -528,7 +528,8 @@ function renderProductControls() {
     .join("");
 }
 
-function renderPlan() {
+function renderPlan(options = {}) {
+  const graphViewport = options.preserveGraphViewport ? captureRecipeGraphViewport() : null;
   const repository = state.repository;
   const externalGoods = getEffectiveExternalGoods(repository);
   const plan = createPlan(repository, state.products, {
@@ -588,7 +589,14 @@ function renderPlan() {
     : `<div class="empty-state">No byproducts in this chain.</div>`;
 
   if (state.treeView.showGraph) {
-    requestAnimationFrame(positionRecipeGraph);
+    requestAnimationFrame(() => {
+      if (graphViewport) {
+        restoreRecipeGraphViewport(graphViewport);
+        return;
+      }
+
+      positionRecipeGraph();
+    });
   }
 }
 
@@ -1131,13 +1139,18 @@ function useTreeRecipe(outputId, recipeId, options = {}) {
   }
   state.expandedTreeGoods.add(outputId);
   state.preferredRecipeByOutput[outputId] = recipeId;
-  state.selectedTreeGoodsId = outputId;
-  if (options.nodeKey !== undefined) {
-    state.selectedTreeNodeKey = options.nodeKey || null;
+  if (options.closePicker) {
+    state.selectedTreeGoodsId = null;
+    state.selectedTreeNodeKey = null;
+  } else {
+    state.selectedTreeGoodsId = outputId;
+    if (options.nodeKey !== undefined) {
+      state.selectedTreeNodeKey = options.nodeKey || null;
+    }
   }
   state.selectedGoodsId = outputId;
   renderBoundaryPresets();
-  renderPlan();
+  renderPlan(options.closePicker ? { preserveGraphViewport: true } : {});
   renderInspector();
 }
 
@@ -1147,13 +1160,18 @@ function useTreeStructure(goodsId, options = {}) {
   state.structureTreeGoods.add(goodsId);
   state.expandedTreeGoods.add(goodsId);
   delete state.preferredRecipeByOutput[goodsId];
-  state.selectedTreeGoodsId = goodsId;
-  if (options.nodeKey !== undefined) {
-    state.selectedTreeNodeKey = options.nodeKey || null;
+  if (options.closePicker) {
+    state.selectedTreeGoodsId = null;
+    state.selectedTreeNodeKey = null;
+  } else {
+    state.selectedTreeGoodsId = goodsId;
+    if (options.nodeKey !== undefined) {
+      state.selectedTreeNodeKey = options.nodeKey || null;
+    }
   }
   state.selectedGoodsId = goodsId;
   renderBoundaryPresets();
-  renderPlan();
+  renderPlan(options.closePicker ? { preserveGraphViewport: true } : {});
   renderInspector();
 }
 
@@ -1177,6 +1195,26 @@ function setRecipeGraphZoom(value, anchor = null) {
     scroll.scrollLeft = anchor.contentX * nextZoom - anchor.offsetX;
     scroll.scrollTop = anchor.contentY * nextZoom - anchor.offsetY;
   }
+}
+
+function captureRecipeGraphViewport() {
+  const scroll = elements.craftingTree.querySelector(".emi-tree-scroll");
+  if (!(scroll instanceof HTMLElement)) return null;
+
+  return {
+    scrollLeft: scroll.scrollLeft,
+    scrollTop: scroll.scrollTop
+  };
+}
+
+function restoreRecipeGraphViewport(viewport) {
+  const scroll = elements.craftingTree.querySelector(".emi-tree-scroll");
+  if (!(scroll instanceof HTMLElement) || !viewport) return;
+
+  applyRecipeGraphZoom(scroll);
+  scroll.scrollLeft = Math.max(0, Math.min(viewport.scrollLeft, scroll.scrollWidth - scroll.clientWidth));
+  scroll.scrollTop = Math.max(0, Math.min(viewport.scrollTop, scroll.scrollHeight - scroll.clientHeight));
+  drawRecipeGraphConnectors();
 }
 
 function positionRecipeGraph() {
@@ -1843,13 +1881,13 @@ function toggleDoneStep(goodsId) {
   } else {
     state.completedTreeGoods.add(goodsId);
   }
-  renderPlan();
+  renderPlan({ preserveGraphViewport: true });
 }
 
 function clearDoneSteps() {
   state.treeContextMenu = null;
   state.completedTreeGoods.clear();
-  renderPlan();
+  renderPlan({ preserveGraphViewport: true });
 }
 
 function setTreeBranchDone(goodsId, nodeKey = "", done = true) {
@@ -1865,7 +1903,7 @@ function setTreeBranchDone(goodsId, nodeKey = "", done = true) {
   }
 
   state.treeContextMenu = null;
-  renderPlan();
+  renderPlan({ preserveGraphViewport: true });
 }
 
 function collapseTreeBranch(goodsId, nodeKey = "") {
@@ -2430,10 +2468,15 @@ function setupEvents() {
       event.preventDefault();
       event.stopPropagation();
       setGoodAsExternal(goodsId);
-      state.selectedTreeGoodsId = goodsId;
-      state.selectedTreeNodeKey = target.dataset.nodeKey ?? state.selectedTreeNodeKey;
+      if (clickedInsideTreePicker) {
+        state.selectedTreeGoodsId = null;
+        state.selectedTreeNodeKey = null;
+      } else {
+        state.selectedTreeGoodsId = goodsId;
+        state.selectedTreeNodeKey = target.dataset.nodeKey ?? state.selectedTreeNodeKey;
+      }
       renderBoundaryPresets();
-      renderPlan();
+      renderPlan(clickedInsideTreePicker ? { preserveGraphViewport: true } : {});
       renderInspector();
       return;
     }
@@ -2463,7 +2506,8 @@ function setupEvents() {
       event.stopPropagation();
       useTreeRecipe(outputId, recipeId, {
         nodeKey: target.dataset.nodeKey ?? "",
-        clearStructure: target.dataset.clearStructure === "true"
+        clearStructure: target.dataset.clearStructure === "true",
+        closePicker: clickedInsideTreePicker
       });
       return;
     }
@@ -2471,7 +2515,7 @@ function setupEvents() {
     if (action === "use-tree-structure" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
-      useTreeStructure(goodsId);
+      useTreeStructure(goodsId, { closePicker: clickedInsideTreePicker });
       return;
     }
 
