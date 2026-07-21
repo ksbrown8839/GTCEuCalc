@@ -905,7 +905,6 @@ select {
 .tree-good-picker-card header,
 .tree-picker-actions,
 .tree-picker-status,
-.tree-picker-mini-flow,
 .tree-picker-recipe-side {
   display: flex;
   gap: 8px;
@@ -957,7 +956,7 @@ select {
 
 .tree-picker-recipes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -997,6 +996,22 @@ select {
   margin-top: 3px;
   color: var(--muted);
   font-size: 11px;
+}
+
+.tree-picker-recipe-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tree-picker-recipe-preview {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 3px 2px 5px;
+}
+
+.tree-picker-recipe-preview .recipe-visual {
+  max-width: none;
 }
 
 .tree-picker-mini-flow {

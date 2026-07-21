@@ -823,7 +823,8 @@ input[type="range"] {
   image-rendering: pixelated;
 }
 
-.tree-card-body .machine-visual {
+.tree-card-body .machine-visual,
+.tree-picker-recipe-preview .machine-visual {
   display: inline-grid;
   grid-template-columns: minmax(72px, max-content) 112px 48px minmax(var(--minecraft-slot-size), max-content);
   align-items: center;
@@ -846,7 +847,9 @@ input[type="range"] {
 }
 
 .tree-card-body .machine-inputs,
-.tree-card-body .machine-visual .recipe-output-stack {
+.tree-card-body .machine-visual .recipe-output-stack,
+.tree-picker-recipe-preview .machine-inputs,
+.tree-picker-recipe-preview .machine-visual .recipe-output-stack {
   display: grid;
   grid-template-columns: repeat(2, var(--minecraft-slot-size));
   align-items: start;
@@ -859,13 +862,15 @@ input[type="range"] {
   box-shadow: none;
 }
 
-.tree-card-body .machine-visual .recipe-output-stack {
+.tree-card-body .machine-visual .recipe-output-stack,
+.tree-picker-recipe-preview .machine-visual .recipe-output-stack {
   grid-template-columns: var(--minecraft-slot-size);
   width: auto;
   height: auto;
 }
 
-.tree-card-body .machine-stage {
+.tree-card-body .machine-stage,
+.tree-picker-recipe-preview .machine-stage {
   min-height: 50px;
   padding: 8px;
   border: 0;
@@ -879,7 +884,8 @@ input[type="range"] {
   text-shadow: none;
 }
 
-.tree-card-body .machine-stage em {
+.tree-card-body .machine-stage em,
+.tree-picker-recipe-preview .machine-stage em {
   color: #4b626d;
   font-size: 9px;
   font-style: normal;
@@ -887,28 +893,34 @@ input[type="range"] {
   text-transform: uppercase;
 }
 
-.tree-card-body .machine-stage span {
+.tree-card-body .machine-stage span,
+.tree-picker-recipe-preview .machine-stage span {
   overflow-wrap: anywhere;
   font-weight: 900;
 }
 
-.tree-card-body .machine-stage strong {
+.tree-card-body .machine-stage strong,
+.tree-picker-recipe-preview .machine-stage strong {
   color: #2f4149;
 }
 
-.tree-card-body .machine-stage.compact {
+.tree-card-body .machine-stage.compact,
+.tree-picker-recipe-preview .machine-stage.compact {
   min-width: 86px;
 }
 
-.tree-card-body .machine-stage.compact em {
+.tree-card-body .machine-stage.compact em,
+.tree-picker-recipe-preview .machine-stage.compact em {
   font-size: 10px;
 }
 
-.tree-card-body .machine-stage.compact strong {
+.tree-card-body .machine-stage.compact strong,
+.tree-picker-recipe-preview .machine-stage.compact strong {
   font-size: 13px;
 }
 
-.tree-card-body .machine-visual .recipe-arrow {
+.tree-card-body .machine-visual .recipe-arrow,
+.tree-picker-recipe-preview .machine-visual .recipe-arrow {
   display: block;
   width: 48px;
   height: 32px;
@@ -945,7 +957,8 @@ input[type="range"] {
   box-shadow: none;
 }
 
-.tree-card-body .machine-visual .recipe-slot {
+.tree-card-body .machine-visual .recipe-slot,
+.tree-picker-recipe-preview .machine-visual .recipe-slot {
   width: var(--minecraft-slot-size);
   height: var(--minecraft-slot-size);
   min-height: var(--minecraft-slot-size);
@@ -969,13 +982,16 @@ input[type="range"] {
 .crafting-visual button.recipe-slot:hover,
 .crafting-visual button.recipe-slot:focus-visible,
 .tree-card-body .machine-visual button.recipe-slot:hover,
-.tree-card-body .machine-visual button.recipe-slot:focus-visible {
+.tree-card-body .machine-visual button.recipe-slot:focus-visible,
+.tree-picker-recipe-preview .machine-visual button.recipe-slot:hover,
+.tree-picker-recipe-preview .machine-visual button.recipe-slot:focus-visible {
   outline: 2px solid var(--minecraft-highlight);
   outline-offset: -3px;
 }
 
 .crafting-visual .slot-image,
-.tree-card-body .machine-visual .slot-image {
+.tree-card-body .machine-visual .slot-image,
+.tree-picker-recipe-preview .machine-visual .slot-image {
   transform: none;
 }
 
@@ -984,13 +1000,15 @@ input[type="range"] {
   height: var(--minecraft-slot-inner);
 }
 
-.tree-card-body .machine-visual .slot-image {
+.tree-card-body .machine-visual .slot-image,
+.tree-picker-recipe-preview .machine-visual .slot-image {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
 }
 
 .crafting-visual .slot-swatch,
-.tree-card-body .machine-visual .slot-swatch {
+.tree-card-body .machine-visual .slot-swatch,
+.tree-picker-recipe-preview .machine-visual .slot-swatch {
   transform: none;
 }
 
@@ -999,7 +1017,8 @@ input[type="range"] {
   height: var(--minecraft-slot-inner);
 }
 
-.tree-card-body .machine-visual .slot-swatch {
+.tree-card-body .machine-visual .slot-swatch,
+.tree-picker-recipe-preview .machine-visual .slot-swatch {
   width: var(--minecraft-slot-inner);
   height: var(--minecraft-slot-inner);
 }
@@ -1596,6 +1615,7 @@ input[type="range"] {
 }
 
 .tree-card-body .crafting-visual,
+.tree-picker-recipe-preview .crafting-visual,
 .recipe-row .crafting-visual,
 .inspector-recipe-card .crafting-visual {
   margin-top: 4px;

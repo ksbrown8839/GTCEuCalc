@@ -849,19 +849,17 @@ function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipe
   const type = repository.getRecipeType(recipe.type);
   const selected = recipe.id === selectedRecipeId ? " selected" : "";
   const recommended = index === 0 ? `<span class="preferred-pill">recommended</span>` : "";
-  const inputs = recipe.inputs.filter((input) => !input.notConsumed).slice(0, 5).map((input) => ingredientChip(repository, input)).join("");
-  const outputs = recipe.outputs.filter((output) => repository.getGood(output.id)).slice(0, 4).map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
+  const preview = recipeVisual(repository, recipe, { compactMachineStage: true });
   const nodeKey = options.nodeKey ? ` data-node-key="${escapeHtml(options.nodeKey)}"` : "";
   const clearStructure = options.clearStructure ? ` data-clear-structure="true"` : "";
 
   return `
     <article class="tree-picker-recipe${selected}">
-      <div>
+      <div class="tree-picker-recipe-main">
         <strong>${escapeHtml(type.name)}</strong>
         <p>${escapeHtml(recipe.id)}</p>
-        <div class="tree-picker-mini-flow">
-          <span>${inputs || "No inputs"}</span>
-          <span>${outputs || "No outputs"}</span>
+        <div class="tree-picker-recipe-preview">
+          ${preview}
         </div>
       </div>
       <div class="tree-picker-recipe-side">
