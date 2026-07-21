@@ -32,6 +32,7 @@ const state = {
   recipeGraph: {
     zoom: 1
   },
+  treeContextMenu: null,
   completedTreeGoods: new Set(),
   expandedTreeGoods: new Set(),
   structureTreeGoods: new Set(),
@@ -64,6 +65,7 @@ const elements = {
   treeViewControls: document.querySelector("[data-role='tree-view-controls']"),
   recipeTracker: document.querySelector("[data-role='recipe-tracker']"),
   treeGoodPicker: document.querySelector("[data-role='tree-good-picker']"),
+  treeContextMenu: document.querySelector("[data-role='tree-context-menu']"),
   recipePlan: document.querySelector("[data-role='recipe-plan']"),
   machinePlan: document.querySelector("[data-role='machine-plan']"),
   externalInputs: document.querySelector("[data-role='external-inputs']"),
@@ -394,6 +396,7 @@ function makeGoodInPlan(goodsId) {
   state.completedTreeGoods.delete(goodsId);
   state.selectedGoodsId = goodsId;
   state.selectedTreeGoodsId = goodsId;
+  state.treeContextMenu = null;
   renderBoundaryPresets();
   renderPlan();
   renderInspector();
@@ -562,6 +565,7 @@ function renderPlan() {
 
   elements.machinePlan.innerHTML = machinePlanRows(repository, plan.machineRows);
   elements.treeGoodPicker.innerHTML = treeGoodPickerPanel(repository, plan, externalGoods);
+  renderTreeContextMenu();
 
   if (elements.recipePlan) {
     elements.recipePlan.innerHTML = plan.recipeRows.length
@@ -828,6 +832,78 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
   `;
 }
 
+function renderTreeContextMenu() {
+  if (!elements.treeContextMenu) return;
+  elements.treeContextMenu.innerHTML = treeContextMenuPanel(state.repository, state.currentPlan);
+}
+
+function treeContextMenuPanel(repository, plan) {
+  const menu = state.treeContextMenu;
+  if (!menu || !repository || !plan) return "";
+
+  const entry = treeEntryForContext(menu.goodsId, menu.nodeKey, plan);
+  const node = entry?.node;
+  const goodsId = node?.goodsId ?? menu.goodsId;
+  const good = repository.getGood(goodsId);
+  if (!goodsId || !good) return "";
+
+  const visibleBranchGoods = node ? collectVisibleBranchGoods(node) : new Set([goodsId]);
+  const completedCount = [...visibleBranchGoods].filter((id) => state.completedTreeGoods.has(id)).length;
+  const hasBranch = Boolean(node?.children?.length);
+  const isDone = state.completedTreeGoods.has(goodsId);
+  const isTarget = state.products.some((product) => product.goodsId === goodsId);
+  const canCollapse = !isTarget && Boolean(node?.recipe || node?.children?.length || state.expandedTreeGoods.has(goodsId) || state.structureTreeGoods.has(goodsId));
+  const canExpand = Boolean(
+    node?.reason === "collapsed"
+      ? repository.findRecipesProducing(goodsId).length
+      : !isTarget && node?.reason === "external" && repository.findRecipesProducing(goodsId).length
+  );
+  const nodeKey = entry?.key ?? menu.nodeKey ?? "";
+  const left = Math.max(8, Math.min(menu.x, window.innerWidth - 292));
+  const top = Math.max(8, Math.min(menu.y, window.innerHeight - 260));
+  const nodeKeyAttr = nodeKey ? ` data-node-key="${escapeHtml(nodeKey)}"` : "";
+
+  return `
+    <section class="tree-context-menu" style="left:${left}px;top:${top}px" role="menu" aria-label="Tree actions for ${escapeHtml(good.name)}">
+      <header>
+        <span class="tracker-label">Tree actions</span>
+        ${goodChip(repository, goodsId, "")}
+      </header>
+      <div class="tree-context-menu-actions">
+        <button type="button" data-action="toggle-done-step" data-id="${escapeHtml(goodsId)}">${isDone ? "Clear item done" : "Mark item done"}</button>
+        ${hasBranch ? `<button type="button" data-action="mark-tree-branch-done" data-id="${escapeHtml(goodsId)}"${nodeKeyAttr}>Mark branch done</button>` : ""}
+        ${hasBranch && completedCount ? `<button type="button" data-action="clear-tree-branch-done" data-id="${escapeHtml(goodsId)}"${nodeKeyAttr}>Clear branch done</button>` : ""}
+        ${canCollapse ? `<button type="button" data-action="collapse-tree-branch" data-id="${escapeHtml(goodsId)}"${nodeKeyAttr}>Collapse branch</button>` : ""}
+        ${canExpand ? `<button type="button" data-action="make-input" data-id="${escapeHtml(goodsId)}">Expand branch</button>` : ""}
+        <button type="button" data-action="focus-tree-good" data-id="${escapeHtml(goodsId)}">Locate</button>
+        <button type="button" data-action="inspect-good" data-id="${escapeHtml(goodsId)}">Inspect</button>
+      </div>
+    </section>
+  `;
+}
+
+function treeEntryForContext(goodsId, nodeKey = "", plan = state.currentPlan) {
+  const entries = flattenPlanTrees(plan?.planTrees ?? []);
+  if (nodeKey) {
+    const keyed = entries.find((entry) => entry.key === nodeKey);
+    if (keyed) return keyed;
+  }
+  return entries.find((entry) => entry.node.goodsId === goodsId) ?? null;
+}
+
+function collectVisibleBranchGoods(node) {
+  const ids = new Set();
+
+  function visit(current) {
+    if (!current?.goodsId) return;
+    ids.add(current.goodsId);
+    (current.children ?? []).forEach(visit);
+  }
+
+  visit(node);
+  return ids;
+}
+
 function selectedTreeGoodsId(plan) {
   return selectedTreeEntry(plan)?.node.goodsId ?? null;
 }
@@ -951,34 +1027,51 @@ function recipeGraphSubtree(repository, node, externalGoods, depth, nodeKey) {
 
 function recipeGraphCraftNode(repository, node, externalGoods, nodeKey) {
   const type = repository.getRecipeType(node.recipe.type);
+  const isDone = state.completedTreeGoods.has(node.goodsId);
   const selected = state.selectedTreeNodeKey === nodeKey || (!state.selectedTreeNodeKey && state.selectedTreeGoodsId === node.goodsId) ? " selected" : "";
-  const done = state.completedTreeGoods.has(node.goodsId) ? " done" : "";
+  const done = isDone ? " done" : "";
   const supplied = externalGoods.has(node.goodsId) ? " supplied" : "";
   const recipeKind = isStructureRecipe(node.recipe) ? "structure" : isCraftingRecipe(node.recipe) ? "crafting" : "machine";
   const recipeSymbol = recipeKind === "structure" ? "S" : recipeKind === "crafting" ? "C" : "M";
   const tooltip = `${node.structure?.name ?? type.name}${node.machine ? ` · ${machineName(node.machine, node.voltageTier)}` : ""}`;
 
   return `
-    <button class="emi-node emi-craft-node ${recipeKind}${selected}${done}${supplied}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
-      <span class="emi-node-frame" title="${escapeHtml(tooltip)}">
-        <span class="emi-recipe-symbol ${recipeKind}" aria-hidden="true">${recipeSymbol}</span>
-        ${graphGoodIcon(repository, node.goodsId)}
-      </span>
-      <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
-    </button>
+    <span class="emi-node-wrap">
+      <button class="emi-node emi-craft-node ${recipeKind}${selected}${done}${supplied}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
+        <span class="emi-node-frame" title="${escapeHtml(tooltip)}">
+          <span class="emi-recipe-symbol ${recipeKind}" aria-hidden="true">${recipeSymbol}</span>
+          ${graphGoodIcon(repository, node.goodsId)}
+        </span>
+        <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
+      </button>
+      ${graphDoneButton(repository, node.goodsId, isDone)}
+    </span>
   `;
 }
 
 function recipeGraphLeafNode(repository, node, nodeKey) {
+  const isDone = state.completedTreeGoods.has(node.goodsId);
   const selected = state.selectedTreeNodeKey === nodeKey || (!state.selectedTreeNodeKey && state.selectedTreeGoodsId === node.goodsId) ? " selected" : "";
-  const done = state.completedTreeGoods.has(node.goodsId) ? " done" : "";
+  const done = isDone ? " done" : "";
   const canMake = repository.findRecipesProducing(node.goodsId).length > 0;
   const reason = node.reason ?? "external";
 
   return `
-    <button class="emi-node emi-leaf-node ${escapeHtml(reason)}${canMake ? " craftable" : ""}${selected}${done}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
-      ${graphGoodIcon(repository, node.goodsId)}
-      <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
+    <span class="emi-node-wrap">
+      <button class="emi-node emi-leaf-node ${escapeHtml(reason)}${canMake ? " craftable" : ""}${selected}${done}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
+        ${graphGoodIcon(repository, node.goodsId)}
+        <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
+      </button>
+      ${graphDoneButton(repository, node.goodsId, isDone)}
+    </span>
+  `;
+}
+
+function graphDoneButton(repository, goodsId, isDone) {
+  const name = repository.getGoodName(goodsId);
+  return `
+    <button class="emi-node-done-button${isDone ? " active" : ""}" type="button" data-action="toggle-done-step" data-id="${escapeHtml(goodsId)}" aria-label="${isDone ? "Clear done" : "Mark done"} for ${escapeHtml(name)}">
+      ${isDone ? "&#10003;" : ""}
     </button>
   `;
 }
@@ -1148,13 +1241,13 @@ function drawRecipeGraphConnectors() {
 }
 
 function drawSubtreeConnectors(subtree, forestRect, scale, paths) {
-  const parentNode = [...subtree.children].find((child) => child.classList?.contains("emi-node"));
+  const parentNode = subtreeGraphNode(subtree);
   const childWrap = [...subtree.children].find((child) => child.classList?.contains("emi-children"));
   if (!(parentNode instanceof HTMLElement) || !(childWrap instanceof HTMLElement)) return;
 
   const childSubtrees = [...childWrap.children].filter((child) => child.classList?.contains("emi-subtree"));
   for (const childSubtree of childSubtrees) {
-    const childNode = [...childSubtree.children].find((child) => child.classList?.contains("emi-node"));
+    const childNode = subtreeGraphNode(childSubtree);
     if (!(childNode instanceof HTMLElement)) continue;
 
     const start = graphNodePoint(parentNode, forestRect, scale, "bottom");
@@ -1163,6 +1256,16 @@ function drawSubtreeConnectors(subtree, forestRect, scale, paths) {
     paths.push(`M ${roundGraphCoord(start.x)} ${roundGraphCoord(start.y)} V ${roundGraphCoord(midY)} H ${roundGraphCoord(end.x)} V ${roundGraphCoord(end.y)}`);
     drawSubtreeConnectors(childSubtree, forestRect, scale, paths);
   }
+}
+
+function subtreeGraphNode(subtree) {
+  for (const child of subtree.children) {
+    if (child.classList?.contains("emi-node")) return child;
+    if (child.classList?.contains("emi-node-wrap")) {
+      return child.querySelector(".emi-node");
+    }
+  }
+  return null;
 }
 
 function graphNodePoint(node, forestRect, scale, edge) {
@@ -1734,6 +1837,7 @@ function renderAll() {
 
 function toggleDoneStep(goodsId) {
   if (!goodsId) return;
+  state.treeContextMenu = null;
   if (state.completedTreeGoods.has(goodsId)) {
     state.completedTreeGoods.delete(goodsId);
   } else {
@@ -1743,8 +1847,37 @@ function toggleDoneStep(goodsId) {
 }
 
 function clearDoneSteps() {
+  state.treeContextMenu = null;
   state.completedTreeGoods.clear();
   renderPlan();
+}
+
+function setTreeBranchDone(goodsId, nodeKey = "", done = true) {
+  const entry = treeEntryForContext(goodsId, nodeKey);
+  const ids = entry?.node ? collectVisibleBranchGoods(entry.node) : new Set([goodsId]);
+
+  for (const id of ids) {
+    if (done) {
+      state.completedTreeGoods.add(id);
+    } else {
+      state.completedTreeGoods.delete(id);
+    }
+  }
+
+  state.treeContextMenu = null;
+  renderPlan();
+}
+
+function collapseTreeBranch(goodsId, nodeKey = "") {
+  if (!goodsId || state.products.some((product) => product.goodsId === goodsId)) return;
+  setGoodAsExternal(goodsId);
+  state.selectedGoodsId = goodsId;
+  state.selectedTreeGoodsId = goodsId;
+  state.selectedTreeNodeKey = nodeKey || null;
+  state.treeContextMenu = null;
+  renderBoundaryPresets();
+  renderPlan();
+  renderInspector();
 }
 
 function closeTreePicker() {
@@ -1752,6 +1885,18 @@ function closeTreePicker() {
   state.selectedTreeGoodsId = null;
   state.selectedTreeNodeKey = null;
   renderPlan();
+}
+
+function closeTreeContextMenu() {
+  if (!state.treeContextMenu) return;
+  state.treeContextMenu = null;
+  renderTreeContextMenu();
+}
+
+function openTreeContextMenu(goodsId, nodeKey, x, y) {
+  if (!goodsId) return;
+  state.treeContextMenu = { goodsId, nodeKey: nodeKey ?? "", x, y };
+  renderTreeContextMenu();
 }
 
 function focusTreeGood(goodsId) {
@@ -1764,6 +1909,7 @@ function focusTreeGood(goodsId) {
 
   state.selectedTreeGoodsId = goodsId;
   state.selectedTreeNodeKey = null;
+  state.treeContextMenu = null;
   renderPlan();
   requestAnimationFrame(() => {
     if (state.treeView.showGraph) {
@@ -2055,6 +2201,18 @@ function setupEvents() {
     }
   }, true);
 
+  elements.craftingTree.addEventListener("contextmenu", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest(".emi-node, .emi-cost-entry, .tree-node");
+    if (!(target instanceof HTMLElement)) return;
+    const goodsId = target.dataset.id ?? target.dataset.goodsId;
+    if (!goodsId) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    openTreeContextMenu(goodsId, target.dataset.nodeKey ?? "", event.clientX, event.clientY);
+  });
+
   elements.treeViewControls?.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.dataset.action !== "toggle-tree-option") return;
@@ -2178,16 +2336,24 @@ function setupEvents() {
   document.addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
     const clickedInsideTreePicker = Boolean(event.target.closest(".tree-good-picker-window"));
+    const clickedInsideTreeContext = Boolean(event.target.closest(".tree-context-menu"));
     const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) {
       if (!clickedInsideTreePicker) {
         closeTreePicker();
+      }
+      if (!clickedInsideTreeContext) {
+        closeTreeContextMenu();
       }
       return;
     }
 
     const action = target.dataset.action;
     const goodsId = target.dataset.id;
+
+    if (!clickedInsideTreeContext && state.treeContextMenu) {
+      closeTreeContextMenu();
+    }
 
     if (action === "toggle-done-step" && goodsId) {
       event.preventDefault();
@@ -2200,6 +2366,27 @@ function setupEvents() {
       event.preventDefault();
       event.stopPropagation();
       clearDoneSteps();
+      return;
+    }
+
+    if (action === "mark-tree-branch-done" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      setTreeBranchDone(goodsId, target.dataset.nodeKey ?? "", true);
+      return;
+    }
+
+    if (action === "clear-tree-branch-done" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      setTreeBranchDone(goodsId, target.dataset.nodeKey ?? "", false);
+      return;
+    }
+
+    if (action === "collapse-tree-branch" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      collapseTreeBranch(goodsId, target.dataset.nodeKey ?? "");
       return;
     }
 
@@ -2291,8 +2478,10 @@ function setupEvents() {
     if (action === "inspect-good" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
+      state.treeContextMenu = null;
       state.selectedGoodsId = goodsId;
       state.inspectorOpen = true;
+      renderTreeContextMenu();
       renderInspector();
       return;
     }
