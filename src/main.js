@@ -1749,6 +1749,13 @@ function clearDoneSteps() {
   renderPlan();
 }
 
+function closeTreePicker() {
+  if (!state.selectedTreeGoodsId && !state.selectedTreeNodeKey) return;
+  state.selectedTreeGoodsId = null;
+  state.selectedTreeNodeKey = null;
+  renderPlan();
+}
+
 function focusTreeGood(goodsId) {
   if (!goodsId) return;
   const path = findTreePath(goodsId, state.currentPlan?.planTrees ?? []);
@@ -2171,8 +2178,15 @@ function setupEvents() {
   });
 
   document.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element)) return;
+    const clickedInsideTreePicker = Boolean(event.target.closest(".tree-good-picker-window"));
     const target = event.target.closest("[data-action]");
-    if (!(target instanceof HTMLElement)) return;
+    if (!(target instanceof HTMLElement)) {
+      if (!clickedInsideTreePicker) {
+        closeTreePicker();
+      }
+      return;
+    }
 
     const action = target.dataset.action;
     const goodsId = target.dataset.id;
@@ -2194,9 +2208,7 @@ function setupEvents() {
     if (action === "close-tree-picker") {
       event.preventDefault();
       event.stopPropagation();
-      state.selectedTreeGoodsId = null;
-      state.selectedTreeNodeKey = null;
-      renderPlan();
+      closeTreePicker();
       return;
     }
 

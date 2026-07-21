@@ -892,10 +892,12 @@ select {
 .tree-good-picker-window {
   position: fixed;
   z-index: 850;
-  top: clamp(84px, 10vh, 118px);
-  right: clamp(12px, 3vw, 34px);
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
   width: min(760px, calc(100vw - 32px));
-  max-height: min(76vh, 720px);
+  max-height: min(82vh, 720px);
   margin-top: 0;
   overflow: auto;
 }
