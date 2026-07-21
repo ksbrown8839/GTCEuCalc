@@ -980,6 +980,11 @@ select {
   background: #fff7dd;
 }
 
+.tree-picker-structure.selected {
+  border-color: #d6a938;
+  background: #fff0bd;
+}
+
 .tree-picker-recipe strong,
 .tree-picker-recipe p {
   display: block;
@@ -1362,6 +1367,12 @@ select {
   color: var(--muted);
   font-size: 10px;
   font-weight: 700;
+}
+
+.structure-visual .machine-stage {
+  border-color: #d6b15f;
+  background: #fff4cd;
+  color: #6d5115;
 }
 
 .recipe-arrow {

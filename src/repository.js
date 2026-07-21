@@ -53,6 +53,9 @@ export class Repository {
   }
 
   getRecipeType(id) {
+    if (id === "gtceu:multiblock_structure") {
+      return { id, name: "Multiblock Structure", category: "structure" };
+    }
     return this.recipeTypes.get(id) ?? { id, name: id, category: "unknown" };
   }
 

@@ -1199,6 +1199,14 @@ input[type="range"] {
     inset -2px -2px 0 #746849;
 }
 
+.tree-picker-structure.selected {
+  background: #d9c78d;
+  box-shadow:
+    0 0 0 2px #ffffa0,
+    inset 2px 2px 0 #fff2bf,
+    inset -2px -2px 0 #766228;
+}
+
 .tree-picker-recipe strong {
   color: #202020;
   font-size: 12px;
@@ -1236,6 +1244,19 @@ input[type="range"] {
 
 .emi-tree-workbench {
   gap: 12px;
+}
+
+.tree-machine-banner.structure,
+.emi-recipe-symbol.structure {
+  background: #75622c;
+}
+
+.structure-visual .machine-stage {
+  background: #d2c18c;
+  box-shadow:
+    inset 2px 2px 0 #fff0b7,
+    inset -2px -2px 0 #65531d;
+  color: #392f15;
 }
 
 .emi-tree-toolbar {

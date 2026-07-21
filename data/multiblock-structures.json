@@ -6,11 +6,10 @@
       "controller": "gtceu:steam_grinder",
       "name": "Steam Grinder Multiblock",
       "description": "Build requirements for the formed Steam Grinder structure. This is supplemental planner metadata because the exporter only exposes the controller block recipes.",
-      "source": "GregTech Modern GTMultiMachines Steam Grinder multiblock pattern",
+      "source": "GTCEu Modern Pack 1.14.5 in-game multiblock preview",
       "notes": [
-        "3x3x3 shell with the controller in the front center and air in the middle.",
         "Uses Steam Grinder macerating and ore-grinding recipes.",
-        "Steam hatch is required for steam input."
+        "Counts the controller and structure parts so the recipe tree can include the full build cost."
       ],
       "requirements": [
         {
@@ -19,9 +18,9 @@
           "role": "controller"
         },
         {
-          "id": "gtceu:bronze_brick_casing",
-          "amount": 14,
-          "role": "minimum casing"
+          "id": "gtceu:steam_machine_casing",
+          "amount": 22,
+          "role": "structure casing"
         },
         {
           "id": "gtceu:steam_input_hatch",

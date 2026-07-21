@@ -12,6 +12,8 @@ export function createPlan(repository, products, options = {}) {
   const maxWarnings = options.maxWarnings ?? 80;
   const externalGoods = new Set(options.externalGoods ?? []);
   const expandedGoods = options.expandedGoods ? new Set(options.expandedGoods) : null;
+  const structureTargets = new Set(options.structureTargets ?? []);
+  const structuresByController = options.structuresByController ?? new Map();
 
   function add(map, id, amount) {
     map.set(id, (map.get(id) ?? 0) + amount);
@@ -40,7 +42,37 @@ export function createPlan(repository, products, options = {}) {
     }
   }
 
-  function planGood(goodsId, amountPerMinute, stack) {
+  function structureForGood(goodsId) {
+    if (typeof structuresByController.get === "function") {
+      return structuresByController.get(goodsId) ?? null;
+    }
+    return structuresByController[goodsId] ?? null;
+  }
+
+  function hasProducingPlan(goodsId) {
+    return repository.findRecipesProducing(goodsId).length > 0
+      || (structureTargets.has(goodsId) && Boolean(structureForGood(goodsId)));
+  }
+
+  function structureRecipe(goodsId, structure) {
+    return {
+      id: structure.id,
+      type: "gtceu:multiblock_structure",
+      durationTicks: 0,
+      eut: 0,
+      synthetic: true,
+      structure,
+      inputs: (structure.requirements ?? []).map((requirement) => ({
+        kind: "item",
+        id: requirement.id,
+        amount: requirement.amount ?? 1,
+        structureRole: requirement.role ?? ""
+      })),
+      outputs: [{ id: goodsId, amount: 1 }]
+    };
+  }
+
+  function planGood(goodsId, amountPerMinute, stack, context = {}) {
     const node = {
       goodsId,
       amountPerMinute,
@@ -70,7 +102,43 @@ export function createPlan(repository, products, options = {}) {
     }
     if (expandedGoods && !expandedGoods.has(goodsId)) {
       add(externalInputs, goodsId, amountPerMinute);
-      node.reason = repository.findRecipesProducing(goodsId).length ? "collapsed" : "external";
+      node.reason = hasProducingPlan(goodsId) ? "collapsed" : "external";
+      return node;
+    }
+
+    const structure = !context.skipStructure && structureTargets.has(goodsId)
+      ? structureForGood(goodsId)
+      : null;
+    if (structure) {
+      const recipe = structureRecipe(goodsId, structure);
+      node.recipe = recipe;
+      node.runsPerMinute = amountPerMinute;
+      node.reason = "structure";
+      node.structure = structure;
+      recordRecipe(recipe, amountPerMinute, goodsId, amountPerMinute);
+
+      const childDemands = new Map();
+      for (const input of recipe.inputs) {
+        const key = `good:${input.id}`;
+        const current = childDemands.get(key);
+        if (current) {
+          current.amountPerMinute += input.amount * amountPerMinute;
+        } else {
+          childDemands.set(key, {
+            goodsId: input.id,
+            amountPerMinute: input.amount * amountPerMinute
+          });
+        }
+      }
+
+      const nextStack = [...stack, structure.id ?? `${goodsId}:structure`];
+      for (const demand of childDemands.values()) {
+        const child = planGood(demand.goodsId, demand.amountPerMinute, nextStack, {
+          skipStructure: demand.goodsId === goodsId
+        });
+        if (child) node.children.push(child);
+      }
+
       return node;
     }
 

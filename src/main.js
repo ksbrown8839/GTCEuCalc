@@ -1,6 +1,6 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=default-recipe-ranking-2026-05-31";
-import { createPlan } from "./planner.js?v=emi-tree-frontier-2026-07-17";
+import { loadRepository } from "./repository.js?v=structure-recipe-tree-2026-07-20";
+import { createPlan } from "./planner.js?v=structure-recipe-tree-2026-07-20";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -33,11 +33,13 @@ const state = {
   },
   completedTreeGoods: new Set(),
   expandedTreeGoods: new Set(),
+  structureTreeGoods: new Set(),
   multiblockStructures: new Map(),
   dataUrl: DEFAULT_DATA_URL
 };
 
 const EXTERNAL_RECIPE_VALUE = "__external__";
+const STRUCTURE_RECIPE_VALUE = "__structure__";
 
 const EXTERNAL_INPUT_GROUPS = [
   { id: "fluids", label: "Fluids" },
@@ -253,6 +255,7 @@ function recipeVisual(repository, recipe, options = {}) {
   const type = repository.getRecipeType(recipe.type);
   const inputs = recipe.inputs.filter((input) => !input.notConsumed);
   const outputs = recipe.outputs.filter((output) => repository.getGood(output.id));
+  const isStructure = isStructureRecipe(recipe);
   const isCrafting = isCraftingRecipe(recipe);
 
   if (isCrafting) {
@@ -274,13 +277,15 @@ function recipeVisual(repository, recipe, options = {}) {
   const visibleOutputs = outputs.slice(0, 4);
 
   return `
-    <span class="recipe-visual machine-visual" aria-label="${escapeHtml(type.name)} recipe preview">
+    <span class="recipe-visual machine-visual${isStructure ? " structure-visual" : ""}" aria-label="${escapeHtml(type.name)} recipe preview">
       <span class="machine-inputs">
         ${visibleInputs.map((input) => ingredientSlot(repository, input)).join("")}
         ${hiddenInputCount ? overflowSlot(hiddenInputCount) : ""}
       </span>
       <span class="machine-stage${options.compactMachineStage ? " compact" : ""}">
-        ${options.compactMachineStage
+        ${isStructure
+          ? `<em>Structure</em> <span>${escapeHtml(recipe.structure?.name ?? type.name)}</span>`
+          : options.compactMachineStage
           ? `<em>Process</em>${recipe.durationTicks ? ` <strong>${formatDuration(recipe.durationTicks)}</strong>` : ""}`
           : `<em>Machine</em> <span>${escapeHtml(type.name)}</span>${recipe.durationTicks ? ` <strong>${formatDuration(recipe.durationTicks)}</strong>` : ""}`}
       </span>
@@ -319,6 +324,10 @@ function isCraftingRecipe(recipe) {
   return recipe.type.includes("crafting") || recipe.type.includes("shaped") || recipe.type.includes("shapeless");
 }
 
+function isStructureRecipe(recipe) {
+  return recipe?.type === "gtceu:multiblock_structure";
+}
+
 function getEffectiveExternalGoods(repository) {
   const externalGoods = getBoundaryPresetGoods(repository, state.activeBoundaryPresets);
 
@@ -346,6 +355,7 @@ function setGoodAsExternal(goodsId) {
   state.manualExternalGoods.add(goodsId);
   state.manualMadeGoods.delete(goodsId);
   state.expandedTreeGoods.delete(goodsId);
+  state.structureTreeGoods.delete(goodsId);
   delete state.preferredRecipeByOutput[goodsId];
 }
 
@@ -356,12 +366,19 @@ function setSingleTarget(goodsId) {
   state.selectedTreeGoodsId = null;
   state.completedTreeGoods.clear();
   state.expandedTreeGoods.clear();
+  state.structureTreeGoods.clear();
+  if (structureForGood(goodsId)) {
+    state.structureTreeGoods.add(goodsId);
+  }
 }
 
 function addTarget(goodsId) {
   setGoodAsMade(goodsId);
   state.selectedGoodsId = goodsId;
   state.products.push({ goodsId, amountPerMinute: 1 });
+  if (structureForGood(goodsId)) {
+    state.structureTreeGoods.add(goodsId);
+  }
 }
 
 function makeGoodInPlan(goodsId) {
@@ -511,7 +528,9 @@ function renderPlan() {
   const plan = createPlan(repository, state.products, {
     preferredRecipeByOutput: state.preferredRecipeByOutput,
     externalGoods,
-    expandedGoods: state.expandedTreeGoods
+    expandedGoods: state.expandedTreeGoods,
+    structureTargets: state.structureTreeGoods,
+    structuresByController: state.multiblockStructures
   });
   state.currentPlan = plan;
 
@@ -773,7 +792,7 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
       </div>
       <div class="tree-picker-recipes">
         ${!isTarget ? treePickerSuppliedCard(repository, goodsId, selectedRecipeId) : ""}
-        ${structure ? treePickerStructureCard(repository, structure) : ""}
+        ${structure ? treePickerStructureCard(repository, structure, selectedRecipeId === structure.id || state.structureTreeGoods.has(goodsId)) : ""}
         ${recipeCards}
       </div>
     </section>
@@ -828,7 +847,7 @@ function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipe
   `;
 }
 
-function treePickerStructureCard(repository, structure) {
+function treePickerStructureCard(repository, structure, selected = false) {
   const requirements = (structure.requirements ?? [])
     .map((requirement) => {
       const role = requirement.role ? `<em>${escapeHtml(requirement.role)}</em>` : "";
@@ -846,7 +865,7 @@ function treePickerStructureCard(repository, structure) {
     .join("");
 
   return `
-    <article class="tree-picker-recipe tree-picker-structure">
+    <article class="tree-picker-recipe tree-picker-structure${selected ? " selected" : ""}">
       <div>
         <strong>${escapeHtml(structure.name ?? "Multiblock structure")}</strong>
         <p>${escapeHtml(structure.description ?? "Build the formed multiblock around this controller.")}</p>
@@ -856,8 +875,9 @@ function treePickerStructureCard(repository, structure) {
         ${notes ? `<ul class="tree-structure-notes">${notes}</ul>` : ""}
       </div>
       <div class="tree-picker-recipe-side">
-        <span class="preferred-pill">structure</span>
+        <span class="preferred-pill">${selected ? "selected" : "structure"}</span>
         <span>supplemental</span>
+        <button class="secondary-button" type="button" data-action="use-tree-structure" data-id="${escapeHtml(structure.controller)}">Use</button>
       </div>
     </article>
   `;
@@ -909,13 +929,14 @@ function recipeGraphCraftNode(repository, node, externalGoods) {
   const selected = state.selectedTreeGoodsId === node.goodsId ? " selected" : "";
   const done = state.completedTreeGoods.has(node.goodsId) ? " done" : "";
   const supplied = externalGoods.has(node.goodsId) ? " supplied" : "";
-  const recipeKind = isCraftingRecipe(node.recipe) ? "crafting" : "machine";
-  const tooltip = `${type.name}${node.machine ? ` · ${machineName(node.machine, node.voltageTier)}` : ""}`;
+  const recipeKind = isStructureRecipe(node.recipe) ? "structure" : isCraftingRecipe(node.recipe) ? "crafting" : "machine";
+  const recipeSymbol = recipeKind === "structure" ? "S" : recipeKind === "crafting" ? "C" : "M";
+  const tooltip = `${node.structure?.name ?? type.name}${node.machine ? ` · ${machineName(node.machine, node.voltageTier)}` : ""}`;
 
   return `
     <button class="emi-node emi-craft-node ${recipeKind}${selected}${done}${supplied}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
       <span class="emi-node-frame" title="${escapeHtml(tooltip)}">
-        <span class="emi-recipe-symbol ${recipeKind}" aria-hidden="true">${recipeKind === "crafting" ? "C" : "M"}</span>
+        <span class="emi-recipe-symbol ${recipeKind}" aria-hidden="true">${recipeSymbol}</span>
         ${graphGoodIcon(repository, node.goodsId)}
       </span>
       <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
@@ -984,10 +1005,24 @@ function selectTreeGood(goodsId) {
 function useTreeRecipe(outputId, recipeId) {
   if (!outputId || !recipeId) return;
   setGoodAsMade(outputId);
+  state.structureTreeGoods.delete(outputId);
   state.expandedTreeGoods.add(outputId);
   state.preferredRecipeByOutput[outputId] = recipeId;
   state.selectedTreeGoodsId = outputId;
   state.selectedGoodsId = outputId;
+  renderBoundaryPresets();
+  renderPlan();
+  renderInspector();
+}
+
+function useTreeStructure(goodsId) {
+  if (!goodsId || !structureForGood(goodsId)) return;
+  setGoodAsMade(goodsId);
+  state.structureTreeGoods.add(goodsId);
+  state.expandedTreeGoods.add(goodsId);
+  delete state.preferredRecipeByOutput[goodsId];
+  state.selectedTreeGoodsId = goodsId;
+  state.selectedGoodsId = goodsId;
   renderBoundaryPresets();
   renderPlan();
   renderInspector();
@@ -1173,7 +1208,13 @@ function renderTreeViewControls() {
 function craftingTreeNode(repository, node, depth, externalGoods) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
-  const recipeKindClass = node.recipe && isCraftingRecipe(node.recipe) ? " tree-crafting" : " tree-machine-node";
+  const recipeKindClass = node.recipe
+    ? isStructureRecipe(node.recipe)
+      ? " tree-structure-node"
+      : isCraftingRecipe(node.recipe)
+        ? " tree-crafting"
+        : " tree-machine-node"
+    : "";
   const actions = treeActionButtons(repository, node, externalGoods);
   const doneClass = state.completedTreeGoods.has(node.goodsId) ? " tree-done" : "";
   const stateClass = ` tree-state-${escapeHtml(node.reason ?? (node.recipe ? "recipe" : "step"))}`;
@@ -1227,6 +1268,7 @@ function treeNodeMarker(node) {
   if (node.reason === "collapsed") return "+";
   if (node.reason === "external") return "B";
   if (node.reason === "missing" || node.reason === "unresolved" || node.reason === "cycle" || node.reason === "depth") return "!";
+  if (node.recipe && isStructureRecipe(node.recipe)) return "S";
   if (node.recipe && isCraftingRecipe(node.recipe)) return "C";
   return "M";
 }
@@ -1237,6 +1279,16 @@ function treeOpenAttribute(goodsId) {
 
 function machineRequirementBanner(node, type) {
   const { recipe } = node;
+  if (isStructureRecipe(recipe)) {
+    return `
+      <span class="tree-machine-banner structure">
+        <span>Structure build</span>
+        <strong>${escapeHtml(recipe.structure?.name ?? type?.name ?? "Multiblock Structure")}</strong>
+        <em>${escapeHtml(planCountText(recipe.inputs?.length ?? 0, "part type"))}</em>
+      </span>
+    `;
+  }
+
   const crafting = isCraftingRecipe(recipe);
   const label = crafting ? "Crafting method" : "Machine required";
   const name = crafting
@@ -1409,18 +1461,23 @@ function externalInputRow(repository, row, externalGoods) {
 function recipeRow(repository, row, externalGoods) {
   const { recipe, runsPerMinute } = row;
   const type = repository.getRecipeType(recipe.type);
+  const isStructure = isStructureRecipe(recipe);
   const outputs = recipe.outputs.map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
   const inputs = recipe.inputs.map((input) => ingredientChip(repository, input)).join("");
   const plannedOutputs = [...row.plannedOutputs.entries()].sort((a, b) => b[1] - a[1]);
   const recipeChoices = plannedOutputs
     .map(([goodsId, amountPerMinute]) => recipeChoiceControl(repository, goodsId, recipe.id, amountPerMinute, externalGoods))
     .join("");
-  const machine = row.machineCount > 0
+  const machine = !isStructure && row.machineCount > 0
     ? `<span>${formatAmount(row.machineCount)} x ${escapeHtml(machineName(row.machine, row.voltageTier, type.name))}</span>`
     : "";
-  const machineLoad = row.machineLoad > 0
+  const machineLoad = !isStructure && row.machineLoad > 0
     ? `<span>${escapeHtml(machineLoadLabel(row.machineLoad, row.machineCount))}</span>`
     : "";
+  const structureMeta = isStructure ? `<span>structure checklist</span>` : "";
+  const durationMeta = recipe.durationTicks ? `<span>${formatDuration(recipe.durationTicks)}</span>` : "";
+  const eutMeta = recipe.eut ? `<span>${formatAmount(recipe.eut)} EU/t</span>` : "";
+  const averageMeta = row.averageEut ? `<span>${formatAverageEut(recipe, runsPerMinute)}</span>` : "";
 
   return `
     <article class="recipe-row">
@@ -1443,11 +1500,12 @@ function recipeRow(repository, row, externalGoods) {
         </div>
       </div>
       <div class="recipe-meta">
+        ${structureMeta}
         ${machine}
         ${machineLoad}
-        <span>${formatDuration(recipe.durationTicks)}</span>
-        <span>${formatAmount(recipe.eut)} EU/t</span>
-        <span>${formatAverageEut(recipe, runsPerMinute)}</span>
+        ${durationMeta}
+        ${eutMeta}
+        ${averageMeta}
       </div>
     </article>
   `;
@@ -1456,9 +1514,11 @@ function recipeRow(repository, row, externalGoods) {
 function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinute, externalGoods) {
   const recipes = repository.rankRecipesForOutput(goodsId);
   const goodName = repository.getGoodName(goodsId);
+  const structure = structureForGood(goodsId);
   const selectedRecipeId = externalGoods.has(goodsId)
     ? EXTERNAL_RECIPE_VALUE
     : state.preferredRecipeByOutput[goodsId] ?? currentRecipeId;
+  const structureSelected = Boolean(structure && (selectedRecipeId === structure.id || state.structureTreeGoods.has(goodsId)));
 
   const recipeOptions = recipes
     .map((candidate, index) => {
@@ -1469,12 +1529,16 @@ function recipeChoiceControl(repository, goodsId, currentRecipeId, amountPerMinu
     })
     .join("");
   const externalSelected = selectedRecipeId === EXTERNAL_RECIPE_VALUE ? " selected" : "";
+  const structureOption = structure
+    ? `<option value="${STRUCTURE_RECIPE_VALUE}"${structureSelected ? " selected" : ""}>Multiblock Structure · ${escapeHtml(structure.name ?? goodName)}</option>`
+    : "";
 
   return `
     <label class="recipe-choice">
       <span>Recipe for ${goodChip(repository, goodsId, formatRate(amountPerMinute))}</span>
       <select data-action="choose-recipe" data-output-id="${escapeHtml(goodsId)}" aria-label="Choose recipe for ${escapeHtml(goodName)}">
         <option value="${EXTERNAL_RECIPE_VALUE}"${externalSelected}>Treat as external input</option>
+        ${structureOption}
         ${recipeOptions}
       </select>
     </label>
@@ -1971,8 +2035,12 @@ function setupEvents() {
 
     if (target.value === EXTERNAL_RECIPE_VALUE) {
       setGoodAsExternal(outputId);
+    } else if (target.value === STRUCTURE_RECIPE_VALUE) {
+      useTreeStructure(outputId);
+      return;
     } else {
       setGoodAsMade(outputId);
+      state.structureTreeGoods.delete(outputId);
       state.preferredRecipeByOutput[outputId] = target.value;
     }
     renderBoundaryPresets();
@@ -2141,6 +2209,13 @@ function setupEvents() {
       return;
     }
 
+    if (action === "use-tree-structure" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      useTreeStructure(goodsId);
+      return;
+    }
+
     if (action === "inspect-good" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
@@ -2204,6 +2279,7 @@ function setupEvents() {
       if (!outputId || !recipeId) return;
       event.preventDefault();
       setGoodAsMade(outputId);
+      state.structureTreeGoods.delete(outputId);
       state.preferredRecipeByOutput[outputId] = recipeId;
       state.selectedGoodsId = outputId;
       renderBoundaryPresets();
@@ -2314,7 +2390,9 @@ function setTreeExpansion(open) {
     const repository = state.repository;
     const fullPlan = createPlan(repository, state.products, {
       preferredRecipeByOutput: state.preferredRecipeByOutput,
-      externalGoods: getEffectiveExternalGoods(repository)
+      externalGoods: getEffectiveExternalGoods(repository),
+      structureTargets: state.structureTreeGoods,
+      structuresByController: state.multiblockStructures
     });
     flattenPlanTrees(fullPlan.planTrees).forEach((entry) => {
       if (entry.node.goodsId) state.expandedTreeGoods.add(entry.node.goodsId);
