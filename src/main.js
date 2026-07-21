@@ -19,6 +19,7 @@ const state = {
   inspectSearch: "",
   selectedGoodsId: null,
   selectedTreeGoodsId: null,
+  selectedTreeNodeKey: null,
   inspectorOpen: false,
   currentPlan: null,
   treeView: {
@@ -364,6 +365,7 @@ function setSingleTarget(goodsId) {
   setGoodAsMade(goodsId);
   state.selectedGoodsId = goodsId;
   state.selectedTreeGoodsId = null;
+  state.selectedTreeNodeKey = null;
   state.completedTreeGoods.clear();
   state.expandedTreeGoods.clear();
   state.structureTreeGoods.clear();
@@ -375,6 +377,7 @@ function setSingleTarget(goodsId) {
 function addTarget(goodsId) {
   setGoodAsMade(goodsId);
   state.selectedGoodsId = goodsId;
+  state.selectedTreeNodeKey = null;
   state.products.push({ goodsId, amountPerMinute: 1 });
   if (structureForGood(goodsId)) {
     state.structureTreeGoods.add(goodsId);
@@ -569,7 +572,7 @@ function renderPlan() {
   elements.craftingTree.innerHTML = plan.planTrees.length
     ? (state.treeView.showGraph
       ? recipeGraphView(repository, plan, externalGoods)
-      : plan.planTrees.map((tree) => craftingTreeNode(repository, tree, 0, externalGoods)).join(""))
+      : plan.planTrees.map((tree, index) => craftingTreeNode(repository, tree, 0, externalGoods, String(index))).join(""))
     : `<div class="empty-state">Choose a product to build a tree.</div>`;
 
   elements.externalInputs.innerHTML = plan.externalRows.length
@@ -654,18 +657,37 @@ function recipeTrackerPanel(repository, plan, externalGoods) {
 function flattenPlanTrees(trees) {
   const nodes = [];
 
-  function visit(node, depth, ancestors) {
-    nodes.push({ node, depth, ancestors });
-    for (const child of node.children ?? []) {
-      visit(child, depth + 1, [...ancestors, node.goodsId]);
+  function visit(node, depth, ancestors, key) {
+    nodes.push({ node, depth, ancestors, key });
+    (node.children ?? []).forEach((child, index) => {
+      visit(child, depth + 1, [...ancestors, node.goodsId], `${key}/${index}`);
+    });
+  }
+
+  trees.forEach((tree, index) => {
+    visit(tree, 0, [], String(index));
+  });
+
+  return nodes;
+}
+
+function selectedTreeEntry(plan) {
+  const treeNodes = flattenPlanTrees(plan.planTrees);
+  if (state.selectedTreeNodeKey) {
+    const keyed = treeNodes.find((entry) => entry.key === state.selectedTreeNodeKey);
+    if (keyed) return keyed;
+    state.selectedTreeNodeKey = null;
+  }
+
+  if (state.selectedTreeGoodsId) {
+    const matched = treeNodes.find((entry) => entry.node.goodsId === state.selectedTreeGoodsId);
+    if (matched) {
+      state.selectedTreeNodeKey = matched.key;
+      return matched;
     }
   }
 
-  for (const tree of trees) {
-    visit(tree, 0, []);
-  }
-
-  return nodes;
+  return null;
 }
 
 function nextTreeAction(repository, plan, externalGoods, treeNodes) {
@@ -746,24 +768,31 @@ function trackerActionButtons(goodsId, actions) {
 }
 
 function treeGoodPickerPanel(repository, plan, externalGoods) {
-  const goodsId = selectedTreeGoodsId(plan);
-  if (!goodsId) return "";
+  const selectedEntry = selectedTreeEntry(plan);
+  if (!selectedEntry) return "";
 
+  const { node: selectedNode, key: selectedNodeKey } = selectedEntry;
+  const goodsId = selectedNode.goodsId;
   const good = repository.getGood(goodsId);
   if (!good) return "";
 
-  const selectedNode = flattenPlanTrees(plan.planTrees).find((entry) => entry.node.goodsId === goodsId)?.node;
   const recipes = repository.rankRecipesForOutput(goodsId);
   const structure = structureForGood(goodsId);
   const isTarget = state.products.some((product) => product.goodsId === goodsId);
   const isExternal = externalGoods.has(goodsId) && !isTarget;
   const isCollapsed = selectedNode?.reason === "collapsed";
   const canExpandBranch = recipes.length && (isCollapsed || (!isTarget && isExternal));
+  const selectedIsStructure = isStructureRecipe(selectedNode?.recipe);
   const selectedRecipeId = isExternal
     ? EXTERNAL_RECIPE_VALUE
-    : state.preferredRecipeByOutput[goodsId] ?? selectedNode?.recipe?.id ?? recipes[0]?.id ?? "";
+    : selectedIsStructure
+      ? selectedNode.recipe.id
+      : state.preferredRecipeByOutput[goodsId] ?? selectedNode?.recipe?.id ?? recipes[0]?.id ?? "";
   const recipeCards = recipes.length
-    ? recipes.slice(0, 6).map((recipe, index) => treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId)).join("")
+    ? recipes.slice(0, 6).map((recipe, index) => treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId, {
+        nodeKey: selectedNodeKey,
+        clearStructure: selectedIsStructure
+      })).join("")
     : `<div class="empty-state">No exported recipe. This remains a base cost.</div>`;
   const selectedAmount = selectedNode ? graphAmountText(selectedNode.amountPerMinute) : "";
 
@@ -792,7 +821,7 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
       </div>
       <div class="tree-picker-recipes">
         ${!isTarget ? treePickerSuppliedCard(repository, goodsId, selectedRecipeId) : ""}
-        ${structure ? treePickerStructureCard(repository, structure, selectedRecipeId === structure.id || state.structureTreeGoods.has(goodsId)) : ""}
+        ${structure ? treePickerStructureCard(repository, structure, selectedIsStructure || selectedRecipeId === structure.id) : ""}
         ${recipeCards}
       </div>
     </section>
@@ -800,11 +829,7 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
 }
 
 function selectedTreeGoodsId(plan) {
-  const treeNodes = flattenPlanTrees(plan.planTrees);
-  if (state.selectedTreeGoodsId && treeNodes.some((entry) => entry.node.goodsId === state.selectedTreeGoodsId)) {
-    return state.selectedTreeGoodsId;
-  }
-  return null;
+  return selectedTreeEntry(plan)?.node.goodsId ?? null;
 }
 
 function treePickerSuppliedCard(repository, goodsId, selectedRecipeId) {
@@ -820,12 +845,14 @@ function treePickerSuppliedCard(repository, goodsId, selectedRecipeId) {
   `;
 }
 
-function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId) {
+function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId, options = {}) {
   const type = repository.getRecipeType(recipe.type);
   const selected = recipe.id === selectedRecipeId ? " selected" : "";
   const recommended = index === 0 ? `<span class="preferred-pill">recommended</span>` : "";
   const inputs = recipe.inputs.filter((input) => !input.notConsumed).slice(0, 5).map((input) => ingredientChip(repository, input)).join("");
   const outputs = recipe.outputs.filter((output) => repository.getGood(output.id)).slice(0, 4).map((output) => goodChip(repository, output.id, formatAmount(output.amount))).join("");
+  const nodeKey = options.nodeKey ? ` data-node-key="${escapeHtml(options.nodeKey)}"` : "";
+  const clearStructure = options.clearStructure ? ` data-clear-structure="true"` : "";
 
   return `
     <article class="tree-picker-recipe${selected}">
@@ -841,7 +868,7 @@ function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipe
         ${recommended}
         <span>${formatDuration(recipe.durationTicks)}</span>
         <span>${formatAmount(recipe.eut)} EU/t</span>
-        <button class="secondary-button" type="button" data-action="use-tree-recipe" data-output-id="${escapeHtml(goodsId)}" data-recipe-id="${escapeHtml(recipe.id)}">Use</button>
+        <button class="secondary-button" type="button" data-action="use-tree-recipe" data-output-id="${escapeHtml(goodsId)}" data-recipe-id="${escapeHtml(recipe.id)}"${nodeKey}${clearStructure}>Use</button>
       </div>
     </article>
   `;
@@ -897,7 +924,7 @@ function recipeGraphView(repository, plan, externalGoods) {
       </div>
       <div class="emi-tree-scroll" style="--graph-scale:${state.recipeGraph.zoom}">
         <div class="emi-tree-forest">
-          ${plan.planTrees.map((tree) => recipeGraphSubtree(repository, tree, externalGoods, 0)).join("")}
+          ${plan.planTrees.map((tree, index) => recipeGraphSubtree(repository, tree, externalGoods, 0, String(index))).join("")}
         </div>
       </div>
       ${recipeGraphTotals(repository, plan)}
@@ -905,28 +932,28 @@ function recipeGraphView(repository, plan, externalGoods) {
   `;
 }
 
-function recipeGraphSubtree(repository, node, externalGoods, depth) {
+function recipeGraphSubtree(repository, node, externalGoods, depth, nodeKey) {
   const childCount = node.children.length;
   const childClass = childCount > 1 ? " multi" : childCount === 1 ? " single" : "";
   const children = childCount
     ? `
       <div class="emi-children${childClass}" style="--child-count:${childCount}">
-        ${node.children.map((child) => recipeGraphSubtree(repository, child, externalGoods, depth + 1)).join("")}
+        ${node.children.map((child, index) => recipeGraphSubtree(repository, child, externalGoods, depth + 1, `${nodeKey}/${index}`)).join("")}
       </div>
     `
     : "";
 
   return `
     <div class="emi-subtree" style="--graph-depth:${depth}">
-      ${node.recipe ? recipeGraphCraftNode(repository, node, externalGoods) : recipeGraphLeafNode(repository, node)}
+      ${node.recipe ? recipeGraphCraftNode(repository, node, externalGoods, nodeKey) : recipeGraphLeafNode(repository, node, nodeKey)}
       ${children}
     </div>
   `;
 }
 
-function recipeGraphCraftNode(repository, node, externalGoods) {
+function recipeGraphCraftNode(repository, node, externalGoods, nodeKey) {
   const type = repository.getRecipeType(node.recipe.type);
-  const selected = state.selectedTreeGoodsId === node.goodsId ? " selected" : "";
+  const selected = state.selectedTreeNodeKey === nodeKey || (!state.selectedTreeNodeKey && state.selectedTreeGoodsId === node.goodsId) ? " selected" : "";
   const done = state.completedTreeGoods.has(node.goodsId) ? " done" : "";
   const supplied = externalGoods.has(node.goodsId) ? " supplied" : "";
   const recipeKind = isStructureRecipe(node.recipe) ? "structure" : isCraftingRecipe(node.recipe) ? "crafting" : "machine";
@@ -934,7 +961,7 @@ function recipeGraphCraftNode(repository, node, externalGoods) {
   const tooltip = `${node.structure?.name ?? type.name}${node.machine ? ` · ${machineName(node.machine, node.voltageTier)}` : ""}`;
 
   return `
-    <button class="emi-node emi-craft-node ${recipeKind}${selected}${done}${supplied}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
+    <button class="emi-node emi-craft-node ${recipeKind}${selected}${done}${supplied}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
       <span class="emi-node-frame" title="${escapeHtml(tooltip)}">
         <span class="emi-recipe-symbol ${recipeKind}" aria-hidden="true">${recipeSymbol}</span>
         ${graphGoodIcon(repository, node.goodsId)}
@@ -944,14 +971,14 @@ function recipeGraphCraftNode(repository, node, externalGoods) {
   `;
 }
 
-function recipeGraphLeafNode(repository, node) {
-  const selected = state.selectedTreeGoodsId === node.goodsId ? " selected" : "";
+function recipeGraphLeafNode(repository, node, nodeKey) {
+  const selected = state.selectedTreeNodeKey === nodeKey || (!state.selectedTreeNodeKey && state.selectedTreeGoodsId === node.goodsId) ? " selected" : "";
   const done = state.completedTreeGoods.has(node.goodsId) ? " done" : "";
   const canMake = repository.findRecipesProducing(node.goodsId).length > 0;
   const reason = node.reason ?? "external";
 
   return `
-    <button class="emi-node emi-leaf-node ${escapeHtml(reason)}${canMake ? " craftable" : ""}${selected}${done}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
+    <button class="emi-node emi-leaf-node ${escapeHtml(reason)}${canMake ? " craftable" : ""}${selected}${done}" type="button" data-action="select-tree-good" data-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" aria-label="Select ${escapeHtml(repository.getGoodName(node.goodsId))}">
       ${graphGoodIcon(repository, node.goodsId)}
       <span class="emi-node-count">${escapeHtml(graphAmountText(node.amountPerMinute))}</span>
     </button>
@@ -983,15 +1010,18 @@ function graphCostEntry(repository, row) {
   `;
 }
 
-function selectTreeGood(goodsId) {
+function selectTreeGood(goodsId, nodeKey = "") {
   if (!goodsId) return;
   const repository = state.repository;
   const externalGoods = getEffectiveExternalGoods(repository);
-  const selectedNode = flattenPlanTrees(state.currentPlan?.planTrees ?? []).find((entry) => entry.node.goodsId === goodsId)?.node;
+  const selectedEntry = flattenPlanTrees(state.currentPlan?.planTrees ?? [])
+    .find((entry) => nodeKey ? entry.key === nodeKey : entry.node.goodsId === goodsId);
+  const selectedNode = selectedEntry?.node;
   const isTarget = state.products.some((product) => product.goodsId === goodsId);
   const canExpand = selectedNode?.reason === "collapsed" || (!isTarget && externalGoods.has(goodsId) && repository.findRecipesProducing(goodsId).length > 0);
 
   state.selectedTreeGoodsId = goodsId;
+  state.selectedTreeNodeKey = selectedEntry?.key ?? null;
   state.selectedGoodsId = goodsId;
 
   if (canExpand) {
@@ -1002,26 +1032,34 @@ function selectTreeGood(goodsId) {
   renderPlan();
 }
 
-function useTreeRecipe(outputId, recipeId) {
+function useTreeRecipe(outputId, recipeId, options = {}) {
   if (!outputId || !recipeId) return;
   setGoodAsMade(outputId);
-  state.structureTreeGoods.delete(outputId);
+  if (options.clearStructure) {
+    state.structureTreeGoods.delete(outputId);
+  }
   state.expandedTreeGoods.add(outputId);
   state.preferredRecipeByOutput[outputId] = recipeId;
   state.selectedTreeGoodsId = outputId;
+  if (options.nodeKey !== undefined) {
+    state.selectedTreeNodeKey = options.nodeKey || null;
+  }
   state.selectedGoodsId = outputId;
   renderBoundaryPresets();
   renderPlan();
   renderInspector();
 }
 
-function useTreeStructure(goodsId) {
+function useTreeStructure(goodsId, options = {}) {
   if (!goodsId || !structureForGood(goodsId)) return;
   setGoodAsMade(goodsId);
   state.structureTreeGoods.add(goodsId);
   state.expandedTreeGoods.add(goodsId);
   delete state.preferredRecipeByOutput[goodsId];
   state.selectedTreeGoodsId = goodsId;
+  if (options.nodeKey !== undefined) {
+    state.selectedTreeNodeKey = options.nodeKey || null;
+  }
   state.selectedGoodsId = goodsId;
   renderBoundaryPresets();
   renderPlan();
@@ -1055,7 +1093,9 @@ function positionRecipeGraph() {
   if (!(scroll instanceof HTMLElement)) return;
   applyRecipeGraphZoom(scroll);
 
-  const selected = state.selectedTreeGoodsId
+  const selected = state.selectedTreeNodeKey
+    ? elements.craftingTree.querySelector(`.emi-node[data-node-key="${cssEscape(state.selectedTreeNodeKey)}"]`)
+    : state.selectedTreeGoodsId
     ? elements.craftingTree.querySelector(`.emi-node[data-id="${cssEscape(state.selectedTreeGoodsId)}"]`)
     : null;
 
@@ -1205,7 +1245,7 @@ function renderTreeViewControls() {
   });
 }
 
-function craftingTreeNode(repository, node, depth, externalGoods) {
+function craftingTreeNode(repository, node, depth, externalGoods, nodeKey) {
   const hasChildren = node.children.length > 0;
   const type = node.recipe ? repository.getRecipeType(node.recipe.type) : null;
   const recipeKindClass = node.recipe
@@ -1221,7 +1261,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
 
   if (!hasChildren) {
     return `
-      <div class="tree-node tree-leaf ${escapeHtml(node.reason ?? "external")}${doneClass}${stateClass}" data-goods-id="${escapeHtml(node.goodsId)}" style="--tree-depth:${depth}">
+      <div class="tree-node tree-leaf ${escapeHtml(node.reason ?? "external")}${doneClass}${stateClass}" data-goods-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" style="--tree-depth:${depth}">
         <div class="tree-leaf-card">
           <span class="tree-step-marker">${treeNodeMarker(node)}</span>
           <div class="tree-node-header">
@@ -1235,7 +1275,7 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
   }
 
   return `
-    <details class="tree-node tree-recipe${recipeKindClass}${doneClass}${stateClass}" data-goods-id="${escapeHtml(node.goodsId)}" style="--tree-depth:${depth}"${treeOpenAttribute(node.goodsId)}>
+    <details class="tree-node tree-recipe${recipeKindClass}${doneClass}${stateClass}" data-goods-id="${escapeHtml(node.goodsId)}" data-node-key="${escapeHtml(nodeKey)}" style="--tree-depth:${depth}"${treeOpenAttribute(node.goodsId)}>
       <summary class="tree-card-summary">
         <span class="tree-step-marker">${treeNodeMarker(node)}</span>
         <span class="tree-card-body">
@@ -1250,14 +1290,14 @@ function craftingTreeNode(repository, node, depth, externalGoods) {
             ${actions}
           </span>
           ${node.recipe ? machineRequirementBanner(node, type) : ""}
-          ${state.treeView.showRecipeChoices && node.recipe ? treeRecipeChoiceControl(repository, node, externalGoods) : ""}
+          ${state.treeView.showRecipeChoices && node.recipe ? treeRecipeChoiceControl(repository, node, externalGoods, nodeKey) : ""}
           ${state.treeView.showRecipePreviews ? recipeVisual(repository, node.recipe, { compactMachineStage: true }) : ""}
           ${treeCostStrip(repository, node)}
         </span>
         ${state.treeView.showRates ? `<span class="tree-run-rate">${formatRate(node.runsPerMinute)} runs</span>` : ""}
       </summary>
       <div class="tree-children">
-        ${node.children.map((child) => craftingTreeNode(repository, child, depth + 1, externalGoods)).join("")}
+        ${node.children.map((child, index) => craftingTreeNode(repository, child, depth + 1, externalGoods, `${nodeKey}/${index}`)).join("")}
       </div>
     </details>
   `;
@@ -1306,17 +1346,22 @@ function machineRequirementBanner(node, type) {
   `;
 }
 
-function treeRecipeChoiceControl(repository, node, externalGoods) {
+function treeRecipeChoiceControl(repository, node, externalGoods, nodeKey = "") {
   const recipes = repository.rankRecipesForOutput(node.goodsId);
   const goodName = repository.getGoodName(node.goodsId);
+  const structure = structureForGood(node.goodsId);
   const isTarget = state.products.some((product) => product.goodsId === node.goodsId);
   const canTreatAsExternal = !isTarget;
+  const selectedIsStructure = isStructureRecipe(node.recipe);
 
-  if (recipes.length <= 1 && !canTreatAsExternal) return "";
+  if (recipes.length <= 1 && !canTreatAsExternal && !structure) return "";
 
   const selectedRecipeId = canTreatAsExternal && externalGoods.has(node.goodsId)
     ? EXTERNAL_RECIPE_VALUE
-    : state.preferredRecipeByOutput[node.goodsId] ?? node.recipe.id;
+    : selectedIsStructure
+      ? node.recipe.id
+      : state.preferredRecipeByOutput[node.goodsId] ?? node.recipe.id;
+  const structureSelected = Boolean(structure && (selectedIsStructure || selectedRecipeId === structure.id));
   const recipeOptions = recipes
     .map((candidate, index) => {
       const type = repository.getRecipeType(candidate.type);
@@ -1326,14 +1371,20 @@ function treeRecipeChoiceControl(repository, node, externalGoods) {
     })
     .join("");
   const externalSelected = selectedRecipeId === EXTERNAL_RECIPE_VALUE ? " selected" : "";
+  const structureOption = structure
+    ? `<option value="${STRUCTURE_RECIPE_VALUE}"${structureSelected ? " selected" : ""}>Multiblock Structure · ${escapeHtml(structure.name ?? goodName)}</option>`
+    : "";
+  const nodeKeyAttr = nodeKey ? ` data-node-key="${escapeHtml(nodeKey)}"` : "";
+  const clearStructureAttr = selectedIsStructure ? ` data-clear-structure="true"` : "";
 
   return `
     <label class="tree-recipe-choice">
       <span>
         <strong>Recipe</strong>
       </span>
-      <select data-action="choose-recipe" data-output-id="${escapeHtml(node.goodsId)}" aria-label="Choose recipe for ${escapeHtml(goodName)}">
+      <select data-action="choose-recipe" data-output-id="${escapeHtml(node.goodsId)}"${nodeKeyAttr}${clearStructureAttr} aria-label="Choose recipe for ${escapeHtml(goodName)}">
         ${canTreatAsExternal ? `<option value="${EXTERNAL_RECIPE_VALUE}"${externalSelected}>Treat as supplied</option>` : ""}
+        ${structureOption}
         ${recipeOptions}
       </select>
     </label>
@@ -1707,6 +1758,7 @@ function focusTreeGood(goodsId) {
   }
 
   state.selectedTreeGoodsId = goodsId;
+  state.selectedTreeNodeKey = null;
   renderPlan();
   requestAnimationFrame(() => {
     if (state.treeView.showGraph) {
@@ -2036,12 +2088,17 @@ function setupEvents() {
     if (target.value === EXTERNAL_RECIPE_VALUE) {
       setGoodAsExternal(outputId);
     } else if (target.value === STRUCTURE_RECIPE_VALUE) {
-      useTreeStructure(outputId);
+      useTreeStructure(outputId, {
+        nodeKey: target.dataset.nodeKey ?? ""
+      });
       return;
     } else {
       setGoodAsMade(outputId);
-      state.structureTreeGoods.delete(outputId);
+      if (target.dataset.clearStructure === "true") {
+        state.structureTreeGoods.delete(outputId);
+      }
       state.preferredRecipeByOutput[outputId] = target.value;
+      state.selectedTreeNodeKey = target.dataset.nodeKey ?? state.selectedTreeNodeKey;
     }
     renderBoundaryPresets();
     renderPlan();
@@ -2138,6 +2195,7 @@ function setupEvents() {
       event.preventDefault();
       event.stopPropagation();
       state.selectedTreeGoodsId = null;
+      state.selectedTreeNodeKey = null;
       renderPlan();
       return;
     }
@@ -2176,6 +2234,7 @@ function setupEvents() {
       event.stopPropagation();
       setGoodAsExternal(goodsId);
       state.selectedTreeGoodsId = goodsId;
+      state.selectedTreeNodeKey = target.dataset.nodeKey ?? state.selectedTreeNodeKey;
       renderBoundaryPresets();
       renderPlan();
       renderInspector();
@@ -2185,7 +2244,7 @@ function setupEvents() {
     if (action === "select-tree-good" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
-      selectTreeGood(goodsId);
+      selectTreeGood(goodsId, target.dataset.nodeKey ?? "");
       return;
     }
 
@@ -2205,7 +2264,10 @@ function setupEvents() {
       if (!outputId || !recipeId) return;
       event.preventDefault();
       event.stopPropagation();
-      useTreeRecipe(outputId, recipeId);
+      useTreeRecipe(outputId, recipeId, {
+        nodeKey: target.dataset.nodeKey ?? "",
+        clearStructure: target.dataset.clearStructure === "true"
+      });
       return;
     }
 
@@ -2413,6 +2475,7 @@ async function main() {
     state.products = chooseInitialProducts(state.repository);
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     state.selectedTreeGoodsId = null;
+    state.selectedTreeNodeKey = null;
     const meta = state.repository.metadata;
     const packCounts = `${formatAmount(state.repository.goods.size)} goods / ${formatAmount(state.repository.recipes.length)} recipes / ${formatAmount(state.repository.machines.size)} machines`;
     elements.packName.textContent = meta.packName;
