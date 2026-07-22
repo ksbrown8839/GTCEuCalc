@@ -16,6 +16,7 @@ const state = {
   manualMadeGoods: new Set(),
   activeBoundaryPresets: new Set(["fluids", "base-materials", "stock-parts", "circuits"]),
   targetSearch: "",
+  targetFilter: "all",
   inspectSearch: "",
   selectedGoodsId: null,
   selectedTreeGoodsId: null,
@@ -52,11 +53,14 @@ const EXTERNAL_INPUT_GROUPS = [
   { id: "unresolved", label: "Unresolved" }
 ];
 
-const TARGET_BROWSER_LIMIT = 72;
+const TARGET_BROWSER_LIMIT = 180;
 
 const elements = {
   status: document.querySelector("[data-role='status']"),
   productList: document.querySelector("[data-role='product-list']"),
+  targetBrowserPanel: document.querySelector("[data-role='target-browser-panel']"),
+  targetBrowserSelected: document.querySelector("[data-role='target-browser-selected']"),
+  targetFilterButtons: document.querySelectorAll("[data-action='target-filter']"),
   targetSearchInput: document.querySelector("[data-role='target-search']"),
   targetMatchSummary: document.querySelector("[data-role='target-match-summary']"),
   targetResults: document.querySelector("[data-role='target-results']"),
@@ -440,16 +444,21 @@ function renderTargetPicker() {
   const repository = state.repository;
   const matches = targetBrowserMatches(repository);
 
+  renderTargetBrowserCurrentTargets(repository);
+  renderTargetFilterButtons();
+
   elements.targetResults.innerHTML = matches.length
     ? matches.map((match) => targetBrowserCard(repository, match)).join("")
     : `<div class="empty-state">No target matches.</div>`;
 
+  const filterLabel = targetBrowserFilterLabel(state.targetFilter).toLowerCase();
   if (state.targetSearch.trim()) {
     elements.targetMatchSummary.textContent = matches.length
-      ? `${formatAmount(matches.length)} matches shown`
+      ? `${formatAmount(matches.length)} ${filterLabel} matches shown`
       : "No matches";
   } else {
-    elements.targetMatchSummary.textContent = `Showing ${formatAmount(matches.length)} craftable suggestions`;
+    const suggestionText = state.targetFilter === "all" ? "craftable suggestions" : `${filterLabel} entries`;
+    elements.targetMatchSummary.textContent = `Showing ${formatAmount(matches.length)} ${suggestionText}`;
   }
 }
 
@@ -471,12 +480,73 @@ function targetBrowserMatches(repository) {
         score: targetBrowserScore(good, recipeCount, hasStructure)
       };
     })
-    .filter((match) => query || match.recipeCount > 0 || match.hasStructure)
+    .filter((match) => query || state.targetFilter !== "all" || match.recipeCount > 0 || match.hasStructure)
+    .filter((match) => targetBrowserFilterMatch(match))
     .sort((a, b) => {
       if (query) return b.score - a.score || a.index - b.index;
       return b.score - a.score || a.good.name.localeCompare(b.good.name) || a.good.id.localeCompare(b.good.id);
     })
     .slice(0, TARGET_BROWSER_LIMIT);
+}
+
+function renderTargetBrowserCurrentTargets(repository) {
+  if (!elements.targetBrowserSelected) return;
+
+  elements.targetBrowserSelected.innerHTML = state.products.length
+    ? state.products
+      .map((product) => {
+        const good = repository.getGood(product.goodsId);
+        const name = good?.name ?? product.goodsId;
+        return `
+          <span class="target-current-chip" ${goodTooltipAttrs(good, product.goodsId, formatRate(product.amountPerMinute))}>
+            ${targetBrowserIconMarkup(good ?? { id: product.goodsId, kind: "item", color: "#7d8790" })}
+            <span>
+              <strong>${escapeHtml(name)}</strong>
+              <em>${escapeHtml(formatRate(product.amountPerMinute))}</em>
+            </span>
+          </span>
+        `;
+      })
+      .join("")
+    : `<span class="target-current-empty">No target selected</span>`;
+}
+
+function renderTargetFilterButtons() {
+  elements.targetFilterButtons.forEach((button) => {
+    const active = button.dataset.filter === state.targetFilter;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function targetBrowserFilterMatch(match) {
+  switch (state.targetFilter) {
+    case "craftable":
+      return match.recipeCount > 0 || match.hasStructure;
+    case "items":
+      return match.good.kind !== "fluid";
+    case "fluids":
+      return match.good.kind === "fluid";
+    case "structures":
+      return match.hasStructure;
+    default:
+      return true;
+  }
+}
+
+function targetBrowserFilterLabel(filter) {
+  switch (filter) {
+    case "craftable":
+      return "Craftable";
+    case "items":
+      return "Item";
+    case "fluids":
+      return "Fluid";
+    case "structures":
+      return "Structure";
+    default:
+      return "Target";
+  }
 }
 
 function targetBrowserScore(good, recipeCount, hasStructure = false) {
@@ -490,28 +560,54 @@ function targetBrowserScore(good, recipeCount, hasStructure = false) {
   return score;
 }
 
+function targetBrowserIconMarkup(good) {
+  const kind = good?.kind ?? "item";
+  const atlasIcon = atlasIconMarkup(good.id, kind, "target-grid-icon", 44);
+  if (atlasIcon) return atlasIcon;
+
+  return `<span class="target-grid-swatch ${kind}" style="--swatch:${escapeHtml(good?.color ?? "#7d8790")}"></span>`;
+}
+
 function targetBrowserCard(repository, match) {
   const { good, recipeCount, hasStructure } = match;
   const selected = state.products.some((product) => product.goodsId === good.id) ? " selected" : "";
-  const kindLabel = good.kind === "fluid" ? "fluid" : good.mod;
+  const kindLabel = good.kind === "fluid" ? "fluid" : (good.mod || "item");
   const recipeText = recipeCount
     ? planCountText(recipeCount, "recipe")
     : "no exported recipe";
-  const metaText = hasStructure ? `${recipeText} · multiblock build · ${kindLabel}` : `${recipeText} · ${kindLabel}`;
+  const typeText = hasStructure ? "multiblock" : good.kind;
 
   return `
-    <article class="target-card${selected}">
+    <article class="target-card${selected}" data-kind="${escapeHtml(good.kind)}">
       <button class="target-card-main" type="button" data-action="set-target" data-id="${escapeHtml(good.id)}" aria-label="Set ${escapeHtml(good.name)} as target">
-          ${goodIconMarkup(repository, good.id)}
+        <span class="target-grid-slot">
+          ${targetBrowserIconMarkup(good)}
+        </span>
         <span class="target-card-text">
           <strong title="${escapeHtml(good.name)}">${escapeHtml(good.name)}</strong>
-          <span>${escapeHtml(good.id)}</span>
-          <em>${escapeHtml(metaText)}</em>
+          <span>${escapeHtml(typeText)} / ${escapeHtml(kindLabel)}</span>
+          <em title="${escapeHtml(good.id)}">${escapeHtml(recipeText)}</em>
         </span>
       </button>
       <button class="target-card-add" type="button" data-action="add-target-card" data-id="${escapeHtml(good.id)}" aria-label="Add ${escapeHtml(good.name)} target">+</button>
     </article>
   `;
+}
+
+function openTargetBrowser() {
+  if (!elements.targetBrowserPanel) return;
+  elements.targetBrowserPanel.open = true;
+  renderTargetPicker();
+  requestAnimationFrame(() => {
+    elements.targetSearchInput?.focus();
+    elements.targetSearchInput?.select();
+  });
+}
+
+function closeTargetBrowser() {
+  if (elements.targetBrowserPanel) {
+    elements.targetBrowserPanel.open = false;
+  }
 }
 
 function renderProductControls() {
@@ -2446,6 +2542,7 @@ function setupEvents() {
     if (!firstMatch) return;
     event.preventDefault();
     setSingleTarget(firstMatch.good.id);
+    closeTargetBrowser();
     renderAll();
   });
 
@@ -2465,6 +2562,7 @@ function setupEvents() {
     if (target.dataset.action === "set-target") {
       event.preventDefault();
       setSingleTarget(goodsId);
+      closeTargetBrowser();
       renderAll();
     }
 
@@ -2488,8 +2586,12 @@ function setupEvents() {
     if (!(event.target instanceof Element)) return;
     const clickedInsideTreePicker = Boolean(event.target.closest(".tree-good-picker-window"));
     const clickedInsideTreeContext = Boolean(event.target.closest(".tree-context-menu"));
+    const clickedInsideTargetBrowser = Boolean(event.target.closest(".target-browser-panel"));
     const target = event.target.closest("[data-action]");
     if (!(target instanceof HTMLElement)) {
+      if (!clickedInsideTargetBrowser) {
+        closeTargetBrowser();
+      }
       if (!clickedInsideTreePicker) {
         closeTreePicker();
       }
@@ -2504,6 +2606,28 @@ function setupEvents() {
 
     if (!clickedInsideTreeContext && state.treeContextMenu) {
       closeTreeContextMenu();
+    }
+
+    if (action === "open-target-browser") {
+      event.preventDefault();
+      event.stopPropagation();
+      openTargetBrowser();
+      return;
+    }
+
+    if (action === "close-target-browser") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeTargetBrowser();
+      return;
+    }
+
+    if (action === "target-filter") {
+      event.preventDefault();
+      event.stopPropagation();
+      state.targetFilter = target.dataset.filter ?? "all";
+      renderTargetPicker();
+      return;
     }
 
     if (action === "toggle-done-step" && goodsId) {
@@ -2607,6 +2731,7 @@ function setupEvents() {
       setSingleTarget(goodsId);
       state.targetSearch = "";
       elements.targetSearchInput.value = "";
+      closeTargetBrowser();
       renderAll();
       return;
     }
@@ -2664,6 +2789,7 @@ function setupEvents() {
       state.targetSearch = "";
       elements.targetSearchInput.value = "";
       state.inspectorOpen = false;
+      closeTargetBrowser();
       renderAll();
       return;
     }
@@ -2706,6 +2832,12 @@ function setupEvents() {
       renderPlan();
       renderInspector();
     }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !elements.targetBrowserPanel?.open) return;
+    event.preventDefault();
+    closeTargetBrowser();
   });
 }
 

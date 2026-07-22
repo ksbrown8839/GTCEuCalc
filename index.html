@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=stack-costs-branch-default-2026-07-21">
-    <link rel="stylesheet" href="minecraft-ui.css?v=stack-costs-branch-default-2026-07-21">
+    <link rel="stylesheet" href="styles.css?v=target-browser-inventory-2026-07-21">
+    <link rel="stylesheet" href="minecraft-ui.css?v=target-browser-inventory-2026-07-21">
     <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
@@ -35,15 +35,37 @@
         <section class="panel">
           <h2>Targets</h2>
           <div data-role="product-list"></div>
-          <details class="target-browser-panel" open>
+          <button class="primary-button target-browser-launch" type="button" data-action="open-target-browser">Browse Targets</button>
+          <p class="section-note target-browser-hint">Open the catalog to search items and fluids like a creative inventory.</p>
+          <details class="target-browser-panel" data-role="target-browser-panel">
             <summary>Choose Target</summary>
             <div class="target-picker">
+              <div class="target-browser-toolbar">
+                <div>
+                  <strong>Choose What To Make</strong>
+                  <span>Click a tile to replace the target. Use + to add another target.</span>
+                </div>
+                <button class="icon-button target-browser-close" type="button" data-action="close-target-browser" aria-label="Close target browser">x</button>
+              </div>
               <div class="target-search-row">
                 <input data-role="target-search" type="search" placeholder="Search targets">
                 <button class="secondary-button target-clear" type="button" data-action="clear-target-search" aria-label="Clear target search">x</button>
               </div>
-              <p class="match-summary" data-role="target-match-summary"></p>
-              <div class="target-results" data-role="target-results"></div>
+              <div class="target-browser-tabs" aria-label="Target filters">
+                <button type="button" data-action="target-filter" data-filter="all">All</button>
+                <button type="button" data-action="target-filter" data-filter="craftable">Craftable</button>
+                <button type="button" data-action="target-filter" data-filter="items">Items</button>
+                <button type="button" data-action="target-filter" data-filter="fluids">Fluids</button>
+                <button type="button" data-action="target-filter" data-filter="structures">Structures</button>
+              </div>
+              <div class="target-browser-layout">
+                <aside class="target-browser-info">
+                  <h3>Current Targets</h3>
+                  <div class="target-browser-current" data-role="target-browser-selected"></div>
+                  <p class="match-summary" data-role="target-match-summary"></p>
+                </aside>
+                <div class="target-results" data-role="target-results"></div>
+              </div>
             </div>
           </details>
         </section>
@@ -146,6 +168,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=stack-costs-branch-default-2026-07-21"></script>
+    <script type="module" src="src/main.js?v=target-browser-inventory-2026-07-21"></script>
   </body>
 </html>

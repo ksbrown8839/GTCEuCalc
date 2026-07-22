@@ -233,21 +233,44 @@ select {
   margin-top: 8px;
 }
 
-.target-picker {
-  display: grid;
-  gap: 8px;
-  padding-top: 9px;
+.target-browser-launch {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.target-browser-hint {
+  margin: 8px 0 0;
 }
 
 .target-browser-panel {
-  margin-top: 12px;
+  display: none;
+}
+
+.target-browser-panel[open] {
+  position: fixed;
+  z-index: 780;
+  inset: clamp(16px, 4vh, 42px) clamp(16px, 5vw, 72px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: auto;
+  max-width: 1280px;
+  margin: 0 auto;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fafbf8;
+  box-shadow: 0 22px 70px rgba(13, 18, 17, 0.32);
+}
+
+.target-browser-panel[open]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(15, 13, 12, 0.46);
 }
 
 .target-browser-panel summary {
-  padding: 10px 11px;
+  padding: 12px 14px;
   color: var(--ink);
   cursor: pointer;
   font-size: 13px;
@@ -259,48 +282,160 @@ select {
 }
 
 .target-browser-panel summary::before {
-  content: "+";
-  display: inline-block;
-  margin-right: 6px;
+  content: "";
 }
 
-.target-browser-panel[open] summary::before {
-  content: "-";
+.target-picker {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+  padding: 0 14px 14px;
 }
 
-.target-browser-panel .target-picker {
-  padding: 0 10px 10px;
+.target-browser-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.target-browser-toolbar > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.target-browser-toolbar strong {
+  font-size: 20px;
+}
+
+.target-browser-toolbar span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.target-browser-close {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
 }
 
 .target-search-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 8px;
+}
+
+.target-search-row input {
+  min-height: 42px;
 }
 
 .target-clear {
-  min-width: 36px;
-  min-height: 34px;
+  min-width: 42px;
+  min-height: 42px;
   padding: 0;
+}
+
+.target-browser-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.target-browser-tabs button {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.target-browser-tabs button.active {
+  border-color: var(--accent-3);
+  color: var(--accent);
+  background: #eef6fb;
+}
+
+.target-browser-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.target-browser-info {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #eef1eb;
+}
+
+.target-browser-info h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.target-browser-current {
+  display: grid;
+  gap: 7px;
+}
+
+.target-current-chip {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.target-current-chip span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.target-current-chip strong,
+.target-current-chip em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-current-chip em {
+  color: var(--accent-3);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.target-current-empty {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .target-results {
   display: grid;
-  gap: 7px;
-  max-height: 360px;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
   overflow: auto;
-  padding: 2px;
+  padding: 4px;
   scrollbar-gutter: stable;
 }
 
 .target-card {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
-  gap: 6px;
-  align-items: stretch;
   min-width: 0;
+  min-height: 132px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: 8px;
   background: #fff;
 }
 
@@ -311,30 +446,64 @@ select {
 
 .target-card-main {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
+  grid-template-rows: 58px minmax(0, 1fr);
+  gap: 7px;
   min-width: 0;
-  min-height: 52px;
-  padding: 8px;
+  width: 100%;
+  min-height: 132px;
+  padding: 9px 7px 8px;
   border: 0;
   background: transparent;
   color: var(--ink);
-  text-align: left;
+  text-align: center;
 }
 
 .target-card-main:hover {
   background: #f3f6f1;
 }
 
+.target-grid-slot {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #eef1eb;
+}
+
+.target-grid-icon,
+.target-grid-swatch {
+  width: 44px;
+  height: 44px;
+  background-image: var(--atlas-url);
+  background-position: var(--atlas-x) var(--atlas-y);
+  background-repeat: no-repeat;
+  background-size: var(--atlas-width) auto;
+  image-rendering: pixelated;
+}
+
+.target-grid-swatch {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: var(--swatch);
+}
+
+.target-grid-swatch.fluid {
+  border-radius: 50%;
+}
+
 .target-card-text {
   display: grid;
-  gap: 2px;
+  align-content: start;
+  gap: 3px;
   min-width: 0;
 }
 
 .target-card-text strong,
-.target-card-text span {
+.target-card-text span,
+.target-card-text em {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -352,11 +521,16 @@ select {
 }
 
 .target-card-add {
-  align-self: stretch;
-  width: 34px;
-  min-height: 34px;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
   padding: 0;
   color: var(--accent);
+  z-index: 1;
 }
 
 .match-summary {
@@ -1962,6 +2136,27 @@ button.recipe-slot:hover {
     top: 72px;
     width: auto;
     max-height: calc(100vh - 96px);
+  }
+
+  .target-browser-panel[open] {
+    inset: 10px;
+  }
+
+  .target-picker {
+    padding: 0 10px 10px;
+  }
+
+  .target-browser-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .target-browser-info {
+    max-height: 150px;
+    overflow: auto;
+  }
+
+  .target-results {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   }
 
   .emi-tree-toolbar {

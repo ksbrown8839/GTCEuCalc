@@ -212,30 +212,129 @@ input[type="range"] {
 }
 
 .target-browser-panel summary::before {
-  color: #2f5f3d;
-  text-shadow: none;
+  display: none;
+}
+
+.target-browser-panel[open] {
+  background: var(--minecraft-panel);
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 0 0 3px #1f1f1f,
+    0 0 0 9999px rgba(0, 0, 0, 0.52),
+    inset 3px 3px 0 #ffffff,
+    inset -3px -3px 0 #555555;
+}
+
+.target-picker {
+  padding: 0 12px 12px;
+}
+
+.target-browser-toolbar {
+  padding: 9px 10px;
+  background: #a8a8a8;
+  box-shadow:
+    inset 2px 2px 0 #dcdcdc,
+    inset -2px -2px 0 #6d6d6d;
+}
+
+.target-browser-toolbar strong {
+  color: #202020;
+  font-size: 20px;
+  text-shadow: 1px 1px 0 #ffffff;
+  text-transform: uppercase;
+}
+
+.target-browser-toolbar span {
+  color: #3f3f3f;
+  text-shadow: 1px 1px 0 #d5d5d5;
+}
+
+.target-search-row input {
+  background: #111111;
+  color: #ffffff;
+  box-shadow:
+    inset 2px 2px 0 #000000,
+    inset -2px -2px 0 #666666;
+}
+
+.target-browser-tabs {
+  padding: 2px;
+  background: #707070;
+  box-shadow:
+    inset 2px 2px 0 #3f3f3f,
+    inset -2px -2px 0 #bdbdbd;
+}
+
+.target-browser-tabs button {
+  background: #8b8b8b;
+}
+
+.target-browser-tabs button.active {
+  background: #315a73;
+  color: #ffffa0;
+  box-shadow:
+    inset 2px 2px 0 #7fa7bd,
+    inset -2px -2px 0 #1d3443;
+}
+
+.target-browser-info {
+  background: #9f9f9f;
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    inset 2px 2px 0 #d7d7d7,
+    inset -2px -2px 0 #555555;
+}
+
+.target-browser-info h3 {
+  color: #202020;
+  text-shadow: 1px 1px 0 #d7d7d7;
+  text-transform: uppercase;
+}
+
+.target-current-chip {
+  border: 0;
+  border-radius: 0;
+  background: #c6c6c6;
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #555555;
+}
+
+.target-current-chip strong {
+  color: #202020;
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.target-current-chip em {
+  color: #2b5f9f;
 }
 
 .target-results {
-  max-height: 350px;
-  padding: 3px;
+  padding: 8px;
+  background: #5e5e5e;
+  box-shadow:
+    inset 3px 3px 0 #373737,
+    inset -3px -3px 0 #bdbdbd;
 }
 
 .target-card {
   border: 0;
   border-radius: 0;
-  background: #eeeeee;
+  background: #c6c6c6;
   box-shadow:
-    inset 1px 1px 0 #ffffff,
-    inset -1px -1px 0 #8b8b8b;
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #555555;
 }
 
 .target-card.selected {
-  background: #d5e4ee;
+  background: #b4c8d4;
   box-shadow:
     0 0 0 2px #ffffa0,
-    inset 1px 1px 0 #ffffff,
-    inset -1px -1px 0 #6b8796;
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #3f5f73;
 }
 
 .target-card-main {
@@ -249,8 +348,24 @@ input[type="range"] {
 
 .target-card-main:hover,
 .target-card-main:focus-visible {
-  background: #d8d8d8;
+  background: rgba(255, 255, 160, 0.16);
   box-shadow: none;
+}
+
+.target-grid-slot {
+  border: 0;
+  border-radius: 0;
+  background: #8b8b8b;
+  box-shadow:
+    inset 2px 2px 0 #373737,
+    inset -2px -2px 0 #ffffff;
+}
+
+.target-grid-swatch {
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.35),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .target-card-text strong {
@@ -260,11 +375,16 @@ input[type="range"] {
 
 .target-card-text span,
 .target-card-text em {
-  color: #4f4f4f;
+  color: #2f2f2f;
+  text-shadow: 1px 1px 0 #d5d5d5;
 }
 
 .target-card-add {
-  min-height: 100%;
+  background: #315a73;
+  color: #ffffa0;
+  box-shadow:
+    inset 2px 2px 0 #7fa7bd,
+    inset -2px -2px 0 #1d3443;
 }
 
 .target-rate-control {
