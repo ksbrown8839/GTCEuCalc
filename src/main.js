@@ -391,7 +391,7 @@ function makeGoodInPlan(goodsId, options = {}) {
   for (const pathGoodsId of path) {
     state.expandedTreeGoods.add(pathGoodsId);
   }
-  const shouldSelect = options.select !== false;
+  const shouldSelect = options.select === true;
   setGoodAsMade(goodsId);
   state.expandedTreeGoods.add(goodsId);
   state.completedTreeGoods.delete(goodsId);
@@ -1167,11 +1167,30 @@ function recipeGraphTotals(repository, plan) {
 }
 
 function graphCostEntry(repository, row) {
+  const stackText = stackBreakdownText(repository, row.goodsId, row.amountPerMinute);
   return `
     <button class="emi-cost-entry" type="button" data-action="select-tree-good" data-id="${escapeHtml(row.goodsId)}">
       ${graphGoodIcon(repository, row.goodsId, graphAmountText(row.amountPerMinute))}
+      ${stackText ? `<span class="emi-stack-breakdown">${escapeHtml(stackText)}</span>` : ""}
     </button>
   `;
+}
+
+function stackBreakdownText(repository, goodsId, amount) {
+  const good = repository.getGood(goodsId);
+  if (good?.kind !== "item") return "";
+
+  const count = Number(amount);
+  if (!Number.isFinite(count) || count <= 0) return "";
+
+  const rounded = Math.round(count);
+  if (Math.abs(rounded - count) > 0.001) return "";
+
+  const stacks = Math.floor(rounded / 64);
+  const extra = rounded % 64;
+  if (!stacks) return `${formatAmount(extra)} extra`;
+  if (!extra) return `${formatAmount(stacks)} ${stacks === 1 ? "stack" : "stacks"}`;
+  return `${formatAmount(stacks)} ${stacks === 1 ? "stack" : "stacks"} + ${formatAmount(extra)}`;
 }
 
 function selectTreeGood(goodsId, nodeKey = "") {
@@ -1189,7 +1208,9 @@ function selectTreeGood(goodsId, nodeKey = "") {
   state.selectedGoodsId = goodsId;
 
   if (canExpand) {
-    makeGoodInPlan(goodsId);
+    makeGoodInPlan(goodsId, {
+      preserveGraphViewport: state.treeView.showGraph
+    });
     return;
   }
 
@@ -2632,8 +2653,7 @@ function setupEvents() {
       event.preventDefault();
       event.stopPropagation();
       makeGoodInPlan(goodsId, {
-        select: !clickedInsideTreeContext,
-        preserveGraphViewport: clickedInsideTreeContext
+        preserveGraphViewport: state.treeView.showGraph
       });
       return;
     }

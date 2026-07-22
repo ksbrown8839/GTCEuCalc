@@ -1285,6 +1285,21 @@ select {
   color: #fff;
 }
 
+.emi-cost-entry {
+  gap: 4px;
+}
+
+.emi-stack-breakdown {
+  min-width: 78px;
+  color: #f2f2f2;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000000;
+  white-space: nowrap;
+}
+
 .emi-node-frame {
   display: inline-flex;
   align-items: center;

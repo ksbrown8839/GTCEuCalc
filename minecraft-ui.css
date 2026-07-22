@@ -1434,6 +1434,23 @@ input[type="range"] {
   min-width: 68px;
 }
 
+.emi-cost-entry {
+  gap: 5px;
+}
+
+.emi-stack-breakdown {
+  display: block;
+  min-width: 82px;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.32);
+  color: #ffffa0;
+  font-family: var(--minecraft-font);
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 2px 2px 0 #342c34;
+}
+
 .emi-node-wrap {
   position: relative;
   display: inline-grid;
