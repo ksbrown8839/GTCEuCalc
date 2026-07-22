@@ -1,5 +1,5 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=structure-recipe-tree-2026-07-20";
+import { loadRepository } from "./repository.js?v=target-rate-clay-2026-07-21";
 import { createPlan } from "./planner.js?v=structure-recipe-tree-2026-07-20";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
@@ -386,20 +386,26 @@ function addTarget(goodsId) {
   }
 }
 
-function makeGoodInPlan(goodsId) {
+function makeGoodInPlan(goodsId, options = {}) {
   const path = findTreePath(goodsId, state.currentPlan?.planTrees ?? []);
   for (const pathGoodsId of path) {
     state.expandedTreeGoods.add(pathGoodsId);
   }
+  const shouldSelect = options.select !== false;
   setGoodAsMade(goodsId);
   state.expandedTreeGoods.add(goodsId);
   state.completedTreeGoods.delete(goodsId);
   state.selectedGoodsId = goodsId;
-  state.selectedTreeGoodsId = goodsId;
+  state.selectedTreeGoodsId = shouldSelect ? goodsId : null;
+  if (!shouldSelect) {
+    state.selectedTreeNodeKey = null;
+  }
   state.treeContextMenu = null;
   renderBoundaryPresets();
-  renderPlan();
+  renderPlan(options.preserveGraphViewport ? { preserveGraphViewport: true } : {});
   renderInspector();
+  if (options.preserveGraphViewport) return;
+
   requestAnimationFrame(() => {
     if (state.treeView.showGraph) {
       positionRecipeGraph();
@@ -517,15 +523,74 @@ function renderProductControls() {
       return `
         <div class="target-row">
           ${goodChip(repository, product.goodsId)}
-          <label>
-            <span>Target rate</span>
-            <input type="number" min="0" step="0.1" value="${product.amountPerMinute}" data-action="update-product" data-index="${index}">
-          </label>
+          ${targetRateControl(repository, product, index)}
           <button class="icon-button" data-action="remove-product" data-index="${index}" aria-label="Remove target">x</button>
         </div>
       `;
     })
     .join("");
+}
+
+function targetRateControl(repository, product, index) {
+  const good = repository.getGood(product.goodsId);
+  const shortcuts = targetRateShortcuts(good);
+  const shortcutButtons = shortcuts
+    .map((amount) => {
+      const selected = Number(product.amountPerMinute) === amount ? " active" : "";
+      return `<button class="target-rate-chip${selected}" type="button" data-action="set-product-rate" data-index="${index}" data-value="${amount}">${escapeHtml(targetRateShortcutLabel(good, amount))}</button>`;
+    })
+    .join("");
+
+  return `
+    <div class="target-rate-control">
+      <span>Target rate</span>
+      <div class="target-rate-stepper">
+        <button class="icon-button" type="button" data-action="adjust-product-rate" data-index="${index}" data-direction="-1" aria-label="Decrease target rate">-</button>
+        <input type="number" min="0" step="0.1" value="${escapeHtml(targetInputValue(product.amountPerMinute))}" data-action="update-product" data-index="${index}" aria-label="Target rate per minute">
+        <button class="icon-button" type="button" data-action="adjust-product-rate" data-index="${index}" data-direction="1" aria-label="Increase target rate">+</button>
+        <button class="target-rate-chip" type="button" data-action="scale-product-rate" data-index="${index}" data-factor="0.5">/2</button>
+        <button class="target-rate-chip" type="button" data-action="scale-product-rate" data-index="${index}" data-factor="2">x2</button>
+      </div>
+      <div class="target-rate-shortcuts" aria-label="Common target rates">
+        ${shortcutButtons}
+      </div>
+    </div>
+  `;
+}
+
+function targetRateShortcuts(good) {
+  return good?.kind === "fluid" ? [1000, 8000, 24000] : [1, 16, 64];
+}
+
+function targetRateShortcutLabel(good, amount) {
+  if (good?.kind === "fluid" && amount >= 1000) return `${formatAmount(amount / 1000)}k`;
+  return formatAmount(amount);
+}
+
+function targetInputValue(amount) {
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return "0";
+  return String(Math.round(value * 1000) / 1000);
+}
+
+function targetRateStep(repository, product) {
+  const amount = Number(product?.amountPerMinute) || 0;
+  const good = repository.getGood(product?.goodsId);
+  if (good?.kind === "fluid") return amount < 1000 ? 1000 : 1000;
+  return amount >= 64 ? 16 : 1;
+}
+
+function setProductRate(index, amount, options = {}) {
+  const product = state.products[index];
+  if (!product) return;
+  const normalized = Math.max(0, Math.round((Number(amount) || 0) * 1000) / 1000);
+  product.amountPerMinute = normalized;
+
+  if (options.renderControls) {
+    renderProductControls();
+  }
+
+  renderPlan({ preserveGraphViewport: true });
 }
 
 function renderPlan(options = {}) {
@@ -1910,11 +1975,11 @@ function collapseTreeBranch(goodsId, nodeKey = "") {
   if (!goodsId || state.products.some((product) => product.goodsId === goodsId)) return;
   setGoodAsExternal(goodsId);
   state.selectedGoodsId = goodsId;
-  state.selectedTreeGoodsId = goodsId;
-  state.selectedTreeNodeKey = nodeKey || null;
+  state.selectedTreeGoodsId = null;
+  state.selectedTreeNodeKey = null;
   state.treeContextMenu = null;
   renderBoundaryPresets();
-  renderPlan();
+  renderPlan({ preserveGraphViewport: true });
   renderInspector();
 }
 
@@ -2214,16 +2279,43 @@ function setupEvents() {
     const target = event.target;
     if (!(target instanceof HTMLInputElement) || target.dataset.action !== "update-product") return;
     const index = Number(target.dataset.index);
-    state.products[index].amountPerMinute = Number(target.value);
-    renderPlan();
+    setProductRate(index, target.value);
   });
 
   elements.productList.addEventListener("click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLElement) || target.dataset.action !== "remove-product") return;
+    if (!(target instanceof HTMLElement)) return;
     const index = Number(target.dataset.index);
-    state.products.splice(index, 1);
-    renderAll();
+
+    if (target.dataset.action === "remove-product") {
+      state.products.splice(index, 1);
+      renderAll();
+      return;
+    }
+
+    if (target.dataset.action === "adjust-product-rate") {
+      event.preventDefault();
+      const product = state.products[index];
+      const direction = Number(target.dataset.direction) || 0;
+      const step = targetRateStep(state.repository, product);
+      const current = Number(product?.amountPerMinute) || 0;
+      const next = direction > 0 && current < step ? step : current + direction * step;
+      setProductRate(index, next, { renderControls: true });
+      return;
+    }
+
+    if (target.dataset.action === "scale-product-rate") {
+      event.preventDefault();
+      const current = Number(state.products[index]?.amountPerMinute) || 0;
+      const factor = Number(target.dataset.factor) || 1;
+      setProductRate(index, current * factor, { renderControls: true });
+      return;
+    }
+
+    if (target.dataset.action === "set-product-rate") {
+      event.preventDefault();
+      setProductRate(index, target.dataset.value, { renderControls: true });
+    }
   });
 
   elements.craftingTree.addEventListener("toggle", (event) => {
@@ -2539,7 +2631,10 @@ function setupEvents() {
     if (action === "make-input" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
-      makeGoodInPlan(goodsId);
+      makeGoodInPlan(goodsId, {
+        select: !clickedInsideTreeContext,
+        preserveGraphViewport: clickedInsideTreeContext
+      });
       return;
     }
 

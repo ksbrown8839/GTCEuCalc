@@ -166,13 +166,53 @@ button:disabled {
   border-bottom: 1px solid var(--line);
 }
 
-.target-row label {
+.target-row label,
+.target-rate-control {
   display: grid;
-  grid-template-columns: 1fr 110px;
-  align-items: center;
   gap: 8px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.target-row label {
+  grid-template-columns: 1fr 110px;
+  align-items: center;
+}
+
+.target-rate-control {
+  grid-template-columns: 1fr;
+}
+
+.target-rate-control > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.target-rate-stepper {
+  display: grid;
+  grid-template-columns: 34px minmax(82px, 1fr) 34px auto auto;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.target-rate-stepper input {
+  text-align: right;
+}
+
+.target-rate-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.target-rate-chip {
+  min-height: 30px;
+  padding: 5px 8px;
+}
+
+.target-rate-chip.active {
+  border-color: var(--accent-3);
+  color: var(--accent);
 }
 
 input,

@@ -267,6 +267,52 @@ input[type="range"] {
   min-height: 100%;
 }
 
+.target-rate-control {
+  gap: 6px;
+}
+
+.target-rate-control > span {
+  color: #3f3f3f;
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #eeeeee;
+  text-transform: uppercase;
+}
+
+.target-rate-stepper {
+  grid-template-columns: 32px minmax(72px, 1fr) 32px 36px 36px;
+  gap: 4px;
+}
+
+.target-rate-stepper .icon-button,
+.target-rate-chip {
+  min-height: 28px;
+  border: 0;
+  border-radius: 0;
+  background: #8b8b8b;
+  box-shadow:
+    inset 2px 2px 0 #cfcfcf,
+    inset -2px -2px 0 #4f4f4f;
+  color: #ffffff;
+  font-family: var(--minecraft-font);
+  font-size: 10px;
+  text-shadow: 2px 2px 0 #342c34;
+}
+
+.target-rate-stepper .icon-button:hover,
+.target-rate-stepper .icon-button:focus-visible,
+.target-rate-chip:hover,
+.target-rate-chip:focus-visible,
+.target-rate-chip.active {
+  background: #315a73;
+  color: #ffffa0;
+  outline: 2px solid #ffffa0;
+  outline-offset: -2px;
+}
+
+.target-rate-shortcuts {
+  gap: 4px;
+}
+
 .needed-overview-header strong {
   color: #202020;
   font-weight: 900;

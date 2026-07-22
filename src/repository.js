@@ -270,6 +270,7 @@ function scoreRecipeForOutput(repository, goodsId, recipe, avoidGoods) {
   const outputForm = materialFormForId(goodsId);
   const inputs = recipe.inputs.filter((input) => !input.notConsumed);
   const inputForms = inputs.map((input) => materialFormForIngredient(repository, input));
+  const directMaterialMaceration = isDirectMaterialMaceration(repository, outputForm, recipe, inputs, outputIndex);
   let score = outputIndex > 0 ? 20_000 + outputIndex * 1_000 : 0;
 
   for (let index = 0; index < inputs.length; index += 1) {
@@ -284,7 +285,8 @@ function scoreRecipeForOutput(repository, goodsId, recipe, avoidGoods) {
 
   if (recipe.type === "gtceu:arc_furnace") score += 4_000;
   if (recipe.type === "gtceu:extractor") score += 3_000;
-  if (recipe.type === "gtceu:macerator" && !inputs.some(isOreProcessingIngredient)) score += 3_000;
+  if (recipe.type === "gtceu:macerator" && !inputs.some(isOreProcessingIngredient) && !directMaterialMaceration) score += 3_000;
+  if (directMaterialMaceration) score -= 1_200;
   if (/disassembl|recycl/i.test(recipe.id)) score += 3_000;
   score += processComplexityPenalty(recipe.type);
 
@@ -332,6 +334,29 @@ function forwardProductionBonus(outputForm, recipe, inputForms) {
   }
 
   return 0;
+}
+
+function isDirectMaterialMaceration(repository, outputForm, recipe, inputs, outputIndex) {
+  if (recipe.type !== "gtceu:macerator" || outputIndex !== 0 || outputForm?.form !== "dust") return false;
+  return inputs.some((input) => {
+    const resolved = repository.resolveIngredient(input);
+    return [recipe.id, input.id, resolved.id].some((id) => includesMaterialToken(id, outputForm.material));
+  });
+}
+
+function includesMaterialToken(id, material) {
+  const value = normalizeMaterialToken(id);
+  const token = normalizeMaterialToken(material);
+  if (!value || !token) return false;
+  return new RegExp(`(^|_)${escapeRegExp(token)}($|_)`).test(value);
+}
+
+function normalizeMaterialToken(value) {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function isReverseMaterialConversion(output, input) {
