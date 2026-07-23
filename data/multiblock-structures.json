@@ -1,62 +1,158 @@
 {
   "schema": "gtceu-planner-multiblock-structures-v1",
   "generatedBy": "tools/build-multiblock-structures.mjs",
-  "description": "Supplemental multiblock build metadata for recipe-tree structure branches. Controller-only entries are intentionally marked until full formed-pattern exports are available.",
+  "description": "Supplemental multiblock build metadata for recipe-tree structure branches. Entries use exact, standard, or lower-bound GTCEu structure costs instead of controller-only scaffolds.",
   "structures": [
     {
       "id": "gtceu:multiblock/active_transformer",
       "controller": "gtceu:active_transformer",
-      "name": "Active Transformer Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Active Transformer Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades.",
+        "Remaining X positions are configurable transformer hatch slots."
       ],
       "requirements": [
         {
           "id": "gtceu:active_transformer",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:high_power_casing",
+          "amount": 12,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:superconducting_coil",
+          "amount": 1,
+          "role": "coil"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/alloy_blast_smelter",
       "controller": "gtceu:alloy_blast_smelter",
-      "name": "Alloy Blast Smelter Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Alloy Blast Smelter Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the lowest displayed coil option, Cupronickel, and LV hatch/bus previews."
       ],
       "requirements": [
         {
           "id": "gtceu:alloy_blast_smelter",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:high_temperature_smelting_casing",
+          "amount": 34,
+          "role": "smelting casing"
+        },
+        {
+          "id": "gtceu:cupronickel_coil_block",
+          "amount": 24,
+          "role": "heating coil"
+        },
+        {
+          "id": "gtceu:heat_vent",
+          "amount": 12,
+          "role": "heat vent"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 2,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:lv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/assembly_line",
       "controller": "gtceu:assembly_line",
-      "name": "Assembly Line Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Assembly Line Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Minimum length is one start slice, three repeated input slices, and one end slice.",
+        "Data hatch slots can use Assembly Line Grating for the bare structure, or data access hatches for recipe data.",
+        "Fluid input hatches can replace solid casing in the F positions when recipes need fluids."
       ],
       "requirements": [
         {
           "id": "gtceu:assembly_line",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:solid_machine_casing",
+          "amount": 14,
+          "role": "minimum steel casing"
+        },
+        {
+          "id": "gtceu:laminated_glass",
+          "amount": 10,
+          "role": "laminated glass"
+        },
+        {
+          "id": "gtceu:assembly_line_casing",
+          "amount": 5,
+          "role": "assembly line casing"
+        },
+        {
+          "id": "gtceu:assembly_line_unit",
+          "amount": 5,
+          "role": "assembly control casing"
+        },
+        {
+          "id": "gtceu:assembly_line_grating",
+          "amount": 9,
+          "role": "grating/data slots"
+        },
+        {
+          "id": "gtceu:ulv_input_bus",
+          "amount": 4,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:ulv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
         }
       ]
     },
@@ -64,12 +160,11 @@
       "id": "gtceu:multiblock/bronze_multiblock_tank",
       "controller": "gtceu:bronze_multiblock_tank",
       "name": "Bronze Multiblock Tank Standard Build",
-      "description": "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
-      "source": "GTCEu GTMachineUtils.registerMultiblockTank",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
       "coverage": "standard-build",
       "notes": [
-        "The pattern uses 25 casing positions around the hollow center plus the controller.",
-        "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing casing blocks."
+        "GTCEu allows up to 2 valves by replacing casing blocks; the standard preview places 1 valve."
       ],
       "requirements": [
         {
@@ -78,7 +173,7 @@
           "role": "controller"
         },
         {
-          "id": "gtceu:bronze_brick_casing",
+          "id": "gtceu:steam_machine_casing",
           "amount": 24,
           "role": "tank casing"
         },
@@ -92,38 +187,67 @@
     {
       "id": "gtceu:multiblock/mega_vacuum_freezer",
       "controller": "gtceu:mega_vacuum_freezer",
-      "name": "Bulk Blast Chiller Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Bulk Blast Chiller Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:mega_vacuum_freezer",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:frostproof_machine_casing",
+          "amount": 140,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:clean_machine_casing",
+          "amount": 36,
+          "role": "clean casing"
+        },
+        {
+          "id": "gtceu:heat_vent",
+          "amount": 26,
+          "role": "heat vent"
+        },
+        {
+          "id": "gtceu:tungstensteel_pipe_casing",
+          "amount": 74,
+          "role": "tungstensteel pipe casing"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 9,
+          "role": "tempered glass"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/central_monitor",
       "controller": "gtceu:central_monitor",
-      "name": "Central Monitor Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Central Monitor Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The B positions accept monitor blocks; this standard build uses basic GTCEu Monitors."
       ],
       "requirements": [
         {
           "id": "gtceu:central_monitor",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:monitor",
+          "amount": 11,
+          "role": "monitor blocks"
         }
       ]
     },
@@ -131,56 +255,129 @@
       "id": "gtceu:multiblock/charcoal_pile_igniter",
       "controller": "gtceu:charcoal_pile_igniter",
       "name": "Charcoal Pile Igniter Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "description": "Fixed Charcoal Pile Igniter structure from GTCEu's multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "exact",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Logs become the charcoal pile core; the controller replaces one dirt position."
       ],
       "requirements": [
         {
           "id": "gtceu:charcoal_pile_igniter",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "minecraft:dirt",
+          "amount": 44,
+          "role": "dirt shell"
+        },
+        {
+          "id": "minecraft:bricks",
+          "amount": 9,
+          "role": "brick cap"
+        },
+        {
+          "id": "minecraft:oak_log",
+          "amount": 27,
+          "role": "log core"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/cleanroom",
       "controller": "gtceu:cleanroom",
-      "name": "Cleanroom Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Cleanroom Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the GTCEu cleanroom preview with Filter Casings; Sterilizing Filter Casings are an alternate filter option.",
+        "Door upper/lower halves are counted as two Iron Door blocks in the planner."
       ],
       "requirements": [
         {
           "id": "gtceu:cleanroom",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:plascrete",
+          "amount": 75,
+          "role": "cleanroom wall"
+        },
+        {
+          "id": "gtceu:cleanroom_glass",
+          "amount": 6,
+          "role": "cleanroom glass"
+        },
+        {
+          "id": "gtceu:filter_casing",
+          "amount": 8,
+          "role": "filter casing"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:hv_item_passthrough_hatch",
+          "amount": 1,
+          "role": "item passthrough"
+        },
+        {
+          "id": "gtceu:hv_fluid_passthrough_hatch",
+          "amount": 1,
+          "role": "fluid passthrough"
+        },
+        {
+          "id": "gtceu:hv_machine_hull",
+          "amount": 1,
+          "role": "machine hull"
+        },
+        {
+          "id": "gtceu:hv_diode",
+          "amount": 1,
+          "role": "diode"
+        },
+        {
+          "id": "minecraft:iron_door",
+          "amount": 2,
+          "role": "door"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/coke_oven",
       "controller": "gtceu:coke_oven",
-      "name": "Coke Oven Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Coke Oven Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The hollow 3x3x3 pattern allows up to 5 Coke Oven Hatches; the standard build uses 1 hatch and 24 bricks."
       ],
       "requirements": [
         {
           "id": "gtceu:coke_oven",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:coke_oven_bricks",
+          "amount": 24,
+          "role": "coke oven bricks"
+        },
+        {
+          "id": "gtceu:coke_oven_hatch",
+          "amount": 1,
+          "role": "hatch"
         }
       ]
     },
@@ -221,133 +418,365 @@
     {
       "id": "gtceu:multiblock/cracker",
       "controller": "gtceu:cracker",
-      "name": "Cracker Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Cracker Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the lowest displayed coil option, Cupronickel, and LV hatch/bus previews."
       ],
       "requirements": [
         {
           "id": "gtceu:cracker",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:clean_machine_casing",
+          "amount": 18,
+          "role": "clean casing"
+        },
+        {
+          "id": "gtceu:cupronickel_coil_block",
+          "amount": 16,
+          "role": "heating coil"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 2,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:lv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/data_bank",
       "controller": "gtceu:data_bank",
-      "name": "Data Bank Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Data Bank Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses a practical data-bank layout with three data access hatches and one optical data transmitter/receiver pair."
       ],
       "requirements": [
         {
           "id": "gtceu:data_bank",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:computer_heat_vent",
+          "amount": 18,
+          "role": "computer heat vent"
+        },
+        {
+          "id": "gtceu:computer_casing",
+          "amount": 13,
+          "role": "computer casing"
+        },
+        {
+          "id": "gtceu:high_power_casing",
+          "amount": 6,
+          "role": "high power casing"
+        },
+        {
+          "id": "gtceu:data_access_hatch",
+          "amount": 3,
+          "role": "data access"
+        },
+        {
+          "id": "gtceu:data_transmitter_hatch",
+          "amount": 1,
+          "role": "data transmitter"
+        },
+        {
+          "id": "gtceu:data_receiver_hatch",
+          "amount": 1,
+          "role": "data receiver"
+        },
+        {
+          "id": "gtceu:luv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/distillation_tower",
       "controller": "gtceu:distillation_tower",
-      "name": "Distillation Tower Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Distillation Tower Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the smallest one-layer tower preview.",
+        "Each extra tower layer adds 7 Clean Machine Casings and 1 fluid output hatch."
       ],
       "requirements": [
         {
           "id": "gtceu:distillation_tower",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:clean_machine_casing",
+          "amount": 19,
+          "role": "clean casing"
+        },
+        {
+          "id": "gtceu:hv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:hv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:hv_output_hatch",
+          "amount": 2,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:hv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/electric_blast_furnace",
       "controller": "gtceu:electric_blast_furnace",
-      "name": "Electric Blast Furnace Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Electric Blast Furnace Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the lowest displayed coil option, Cupronickel, and LV hatch/bus previews."
       ],
       "requirements": [
         {
           "id": "gtceu:electric_blast_furnace",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:heatproof_machine_casing",
+          "amount": 9,
+          "role": "heatproof casing"
+        },
+        {
+          "id": "gtceu:cupronickel_coil_block",
+          "amount": 16,
+          "role": "heating coil"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 2,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:lv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:lv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/ev_fluid_drilling_rig",
       "controller": "gtceu:ev_fluid_drilling_rig",
-      "name": "Ev Fluid Drilling Rig Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Ev Fluid Drilling Rig Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Standard utility layout with one energy input hatch and one fluid output hatch.",
+        "Extra energy hatches can replace casing positions allowed by the pattern."
       ],
       "requirements": [
         {
           "id": "gtceu:ev_fluid_drilling_rig",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:robust_machine_casing",
+          "amount": 9,
+          "role": "rig casing"
+        },
+        {
+          "id": "gtceu:tungsten_steel_frame",
+          "amount": 15,
+          "role": "support frame"
+        },
+        {
+          "id": "gtceu:ev_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:ev_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/ev_large_miner",
       "controller": "gtceu:ev_large_miner",
-      "name": "Ev Large Miner Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Ev Large Miner Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Standard utility layout with one energy input hatch, one drilling-fluid input hatch, and one item output bus.",
+        "Extra energy hatches can replace casing positions allowed by the pattern."
       ],
       "requirements": [
         {
           "id": "gtceu:ev_large_miner",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:solid_machine_casing",
+          "amount": 8,
+          "role": "miner casing"
+        },
+        {
+          "id": "gtceu:steel_frame",
+          "amount": 15,
+          "role": "support frame"
+        },
+        {
+          "id": "gtceu:ev_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:ev_input_hatch",
+          "amount": 1,
+          "role": "drilling fluid input"
+        },
+        {
+          "id": "gtceu:ev_output_bus",
+          "amount": 1,
+          "role": "item output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/extreme_combustion_engine",
       "controller": "gtceu:extreme_combustion_engine",
-      "name": "Extreme Combustion Engine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Extreme Combustion Engine Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the source standard frame with one fuel input hatch, one dynamo hatch, one muffler, and one maintenance hatch.",
+        "Actual output depends on rotor/fuel tuning and generator behavior in-game."
       ],
       "requirements": [
         {
           "id": "gtceu:extreme_combustion_engine",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:robust_machine_casing",
+          "amount": 21,
+          "role": "engine casing"
+        },
+        {
+          "id": "gtceu:tungstensteel_gearbox",
+          "amount": 2,
+          "role": "gearbox"
+        },
+        {
+          "id": "gtceu:extreme_engine_intake_casing",
+          "amount": 8,
+          "role": "intake casing"
+        },
+        {
+          "id": "gtceu:iv_energy_output_hatch",
+          "amount": 1,
+          "role": "energy output"
+        },
+        {
+          "id": "gtceu:iv_input_hatch",
+          "amount": 1,
+          "role": "fuel input"
+        },
+        {
+          "id": "gtceu:iv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
@@ -388,779 +817,1643 @@
     {
       "id": "gtceu:multiblock/high_performance_computation_array",
       "controller": "gtceu:high_performance_computation_array",
-      "name": "High Performance Computation Array Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "High Performance Computation Array Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the first GTCEu HPCA preview: six empty components, two heat sinks, and one computation component."
       ],
       "requirements": [
         {
           "id": "gtceu:high_performance_computation_array",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:advanced_computer_casing",
+          "amount": 13,
+          "role": "advanced computer casing"
+        },
+        {
+          "id": "gtceu:computer_casing",
+          "amount": 8,
+          "role": "computer casing"
+        },
+        {
+          "id": "gtceu:computer_heat_vent",
+          "amount": 15,
+          "role": "computer heat vent"
+        },
+        {
+          "id": "gtceu:hpca_empty_component",
+          "amount": 6,
+          "role": "empty HPCA component"
+        },
+        {
+          "id": "gtceu:hpca_heat_sink_component",
+          "amount": 2,
+          "role": "HPCA heat sink"
+        },
+        {
+          "id": "gtceu:hpca_computation_component",
+          "amount": 1,
+          "role": "HPCA computation"
+        },
+        {
+          "id": "gtceu:computation_transmitter_hatch",
+          "amount": 1,
+          "role": "computation transmitter"
+        },
+        {
+          "id": "gtceu:luv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:lv_input_hatch",
+          "amount": 1,
+          "role": "coolant input"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/hv_fluid_drilling_rig",
       "controller": "gtceu:hv_fluid_drilling_rig",
-      "name": "Hv Fluid Drilling Rig Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Hv Fluid Drilling Rig Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Standard utility layout with one energy input hatch and one fluid output hatch.",
+        "Extra energy hatches can replace casing positions allowed by the pattern."
       ],
       "requirements": [
         {
           "id": "gtceu:hv_fluid_drilling_rig",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stable_machine_casing",
+          "amount": 9,
+          "role": "rig casing"
+        },
+        {
+          "id": "gtceu:titanium_frame",
+          "amount": 15,
+          "role": "support frame"
+        },
+        {
+          "id": "gtceu:hv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:hv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/implosion_compressor",
       "controller": "gtceu:implosion_compressor",
-      "name": "Implosion Compressor Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Implosion Compressor Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades.",
+        "The 3x3x3 hollow shell has 24 configurable X positions; at least 14 must be Solid Machine Casing."
       ],
       "requirements": [
         {
           "id": "gtceu:implosion_compressor",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:solid_machine_casing",
+          "amount": 14,
+          "role": "minimum casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/iv_large_miner",
       "controller": "gtceu:iv_large_miner",
-      "name": "Iv Large Miner Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Iv Large Miner Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Standard utility layout with one energy input hatch, one drilling-fluid input hatch, and one item output bus.",
+        "Extra energy hatches can replace casing positions allowed by the pattern."
       ],
       "requirements": [
         {
           "id": "gtceu:iv_large_miner",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stable_machine_casing",
+          "amount": 8,
+          "role": "miner casing"
+        },
+        {
+          "id": "gtceu:titanium_frame",
+          "amount": 15,
+          "role": "support frame"
+        },
+        {
+          "id": "gtceu:iv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:iv_input_hatch",
+          "amount": 1,
+          "role": "drilling fluid input"
+        },
+        {
+          "id": "gtceu:iv_output_bus",
+          "amount": 1,
+          "role": "item output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_arc_smelter",
       "controller": "gtceu:large_arc_smelter",
-      "name": "Large Arc Smelter Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Arc Smelter Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_arc_smelter",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:high_temperature_smelting_casing",
+          "amount": 45,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:molybdenum_disilicide_coil_block",
+          "amount": 8,
+          "role": "fixed coil blocks"
+        },
+        {
+          "id": "gtceu:iv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_assembler",
       "controller": "gtceu:large_assembler",
-      "name": "Large Assembling Factory Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Assembling Factory Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades.",
+        "The pattern requires exactly one energy input hatch in a casing slot."
       ],
       "requirements": [
         {
           "id": "gtceu:large_assembler",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:large_scale_assembler_casing",
+          "amount": 40,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 9,
+          "role": "tempered glass"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_brewer",
       "controller": "gtceu:large_brewer",
-      "name": "Large Brewing Vat Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Brewing Vat Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_brewer",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:corrosion_proof_casing",
+          "amount": 50,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:steel_pipe_casing",
+          "amount": 3,
+          "role": "steel pipe casing"
+        },
+        {
+          "id": "gtceu:molybdenum_disilicide_coil_block",
+          "amount": 8,
+          "role": "fixed coil blocks"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/bronze_large_boiler",
       "controller": "gtceu:bronze_large_boiler",
-      "name": "Large Bronze Boiler Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Bronze Boiler Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses a solid-fuel starter layout: one item input bus, one steam/fluid output hatch, one muffler, and one maintenance hatch.",
+        "A fluid input hatch can replace the item bus if you build the boiler for fluid fuel."
       ],
       "requirements": [
         {
           "id": "gtceu:bronze_large_boiler",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:steam_machine_casing",
+          "amount": 23,
+          "role": "boiler casing"
+        },
+        {
+          "id": "gtceu:bronze_pipe_casing",
+          "amount": 2,
+          "role": "pipe casing"
+        },
+        {
+          "id": "gtceu:bronze_firebox_casing",
+          "amount": 6,
+          "role": "firebox"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "solid fuel input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "steam output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_centrifuge",
       "controller": "gtceu:large_centrifuge",
-      "name": "Large Centrifugal Unit Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Centrifugal Unit Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_centrifuge",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:vibration_safe_casing",
+          "amount": 40,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:steel_pipe_casing",
+          "amount": 4,
+          "role": "steel pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_chemical_bath",
       "controller": "gtceu:large_chemical_bath",
-      "name": "Large Chemical Bath Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Chemical Bath Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_chemical_bath",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:watertight_casing",
+          "amount": 55,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:titanium_pipe_casing",
+          "amount": 6,
+          "role": "titanium pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_chemical_reactor",
       "controller": "gtceu:large_chemical_reactor",
-      "name": "Large Chemical Reactor Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Chemical Reactor Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the first GTCEu shape preview with one Cupronickel coil and HV hatch/bus previews."
       ],
       "requirements": [
         {
           "id": "gtceu:large_chemical_reactor",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:inert_machine_casing",
+          "amount": 18,
+          "role": "inert casing"
+        },
+        {
+          "id": "gtceu:ptfe_pipe_casing",
+          "amount": 1,
+          "role": "PTFE pipe casing"
+        },
+        {
+          "id": "gtceu:cupronickel_coil_block",
+          "amount": 1,
+          "role": "heating coil"
+        },
+        {
+          "id": "gtceu:hv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:hv_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:hv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:hv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:hv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_circuit_assembler",
       "controller": "gtceu:large_circuit_assembler",
-      "name": "Large Circuit Assembling Facility Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Circuit Assembling Facility Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades.",
+        "The pattern requires exactly one energy input hatch in a casing slot."
       ],
       "requirements": [
         {
           "id": "gtceu:large_circuit_assembler",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:large_scale_assembler_casing",
+          "amount": 55,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 4,
+          "role": "tempered glass"
+        },
+        {
+          "id": "gtceu:assembly_line_grating",
+          "amount": 10,
+          "role": "grating"
+        },
+        {
+          "id": "gtceu:tungstensteel_pipe_casing",
+          "amount": 6,
+          "role": "tungstensteel pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_combustion_engine",
       "controller": "gtceu:large_combustion_engine",
-      "name": "Large Combustion Engine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Combustion Engine Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the source standard frame with one fuel input hatch, one dynamo hatch, one muffler, and one maintenance hatch.",
+        "Actual output depends on rotor/fuel tuning and generator behavior in-game."
       ],
       "requirements": [
         {
           "id": "gtceu:large_combustion_engine",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stable_machine_casing",
+          "amount": 21,
+          "role": "engine casing"
+        },
+        {
+          "id": "gtceu:titanium_gearbox",
+          "amount": 2,
+          "role": "gearbox"
+        },
+        {
+          "id": "gtceu:engine_intake_casing",
+          "amount": 8,
+          "role": "intake casing"
+        },
+        {
+          "id": "gtceu:ev_energy_output_hatch",
+          "amount": 1,
+          "role": "energy output"
+        },
+        {
+          "id": "gtceu:ev_input_hatch",
+          "amount": 1,
+          "role": "fuel input"
+        },
+        {
+          "id": "gtceu:ev_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_autoclave",
       "controller": "gtceu:large_autoclave",
-      "name": "Large Crystallization Chamber Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Crystallization Chamber Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_autoclave",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:watertight_casing",
+          "amount": 30,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:steel_pipe_casing",
+          "amount": 3,
+          "role": "steel pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_cutter",
       "controller": "gtceu:large_cutter",
-      "name": "Large Cutting Saw Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Cutting Saw Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_cutter",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:shock_proof_cutting_casing",
+          "amount": 65,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 6,
+          "role": "tempered glass"
+        },
+        {
+          "id": "gtceu:slicing_blades",
+          "amount": 6,
+          "role": "slicing blades"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_electrolyzer",
       "controller": "gtceu:large_electrolyzer",
-      "name": "Large Electrolysis Chamber Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Electrolysis Chamber Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_electrolyzer",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:nonconducting_casing",
+          "amount": 30,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:electrolytic_cell",
+          "amount": 12,
+          "role": "electrolytic cell"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_electromagnet",
       "controller": "gtceu:large_electromagnet",
-      "name": "Large Electromagnet Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Electromagnet Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_electromagnet",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:nonconducting_casing",
+          "amount": 35,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:electrolytic_cell",
+          "amount": 12,
+          "role": "electrolytic cell"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_engraving_laser",
       "controller": "gtceu:large_engraving_laser",
-      "name": "Large Engraving Laser Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Engraving Laser Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_engraving_laser",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:laser_safe_engraving_casing",
+          "amount": 50,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 8,
+          "role": "tempered glass"
+        },
+        {
+          "id": "gtceu:assembly_line_grating",
+          "amount": 8,
+          "role": "grating"
+        },
+        {
+          "id": "gtceu:tungstensteel_pipe_casing",
+          "amount": 1,
+          "role": "tungstensteel pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_extractor",
       "controller": "gtceu:large_extractor",
-      "name": "Large Extraction Machine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Extraction Machine Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_extractor",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:watertight_casing",
+          "amount": 25,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:steel_pipe_casing",
+          "amount": 2,
+          "role": "steel pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_extruder",
       "controller": "gtceu:large_extruder",
-      "name": "Large Extrusion Machine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Extrusion Machine Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_extruder",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stress_proof_casing",
+          "amount": 40,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:titanium_pipe_casing",
+          "amount": 4,
+          "role": "titanium pipe casing"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 4,
+          "role": "tempered glass"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_distillery",
       "controller": "gtceu:large_distillery",
-      "name": "Large Fractionating Distillery Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Fractionating Distillery Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the smallest Large Distillery preview with one distillation layer and IV hatch previews."
       ],
       "requirements": [
         {
           "id": "gtceu:large_distillery",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:watertight_casing",
+          "amount": 43,
+          "role": "watertight casing"
+        },
+        {
+          "id": "gtceu:steel_pipe_casing",
+          "amount": 1,
+          "role": "steel pipe casing"
+        },
+        {
+          "id": "gtceu:iv_parallel_hatch",
+          "amount": 1,
+          "role": "parallel hatch"
+        },
+        {
+          "id": "gtceu:iv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:iv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:iv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:iv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/gas_large_turbine",
       "controller": "gtceu:gas_large_turbine",
-      "name": "Large Gas Turbine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Gas Turbine Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Includes one rotor holder, one dynamo hatch, one fluid input hatch, and maintenance.",
+        "The gas turbine standard build also includes a muffler hatch."
       ],
       "requirements": [
         {
           "id": "gtceu:gas_large_turbine",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stainless_steel_turbine_casing",
+          "amount": 28,
+          "role": "turbine casing"
+        },
+        {
+          "id": "gtceu:stainless_steel_gearbox",
+          "amount": 2,
+          "role": "gearbox"
+        },
+        {
+          "id": "gtceu:ev_rotor_holder",
+          "amount": 1,
+          "role": "rotor holder"
+        },
+        {
+          "id": "gtceu:ev_energy_output_hatch",
+          "amount": 1,
+          "role": "energy output"
+        },
+        {
+          "id": "gtceu:ev_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:ev_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_maceration_tower",
       "controller": "gtceu:large_maceration_tower",
-      "name": "Large Maceration Tower Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Maceration Tower Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_maceration_tower",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:secure_maceration_casing",
+          "amount": 55,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:crushing_wheels",
+          "amount": 18,
+          "role": "crushing wheels"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_material_press",
       "controller": "gtceu:large_material_press",
-      "name": "Large Material Press Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Material Press Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_material_press",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stress_proof_casing",
+          "amount": 40,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:steel_gearbox",
+          "amount": 3,
+          "role": "steel gearbox"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 3,
+          "role": "tempered glass"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_mixer",
       "controller": "gtceu:large_mixer",
-      "name": "Large Mixing Vessel Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Mixing Vessel Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_mixer",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:reaction_safe_mixing_casing",
+          "amount": 50,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:hastelloy_x_frame",
+          "amount": 8,
+          "role": "Hastelloy-X frame"
+        },
+        {
+          "id": "gtceu:stainless_steel_gearbox",
+          "amount": 1,
+          "role": "gearbox"
+        },
+        {
+          "id": "gtceu:titanium_pipe_casing",
+          "amount": 11,
+          "role": "titanium pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_packer",
       "controller": "gtceu:large_packer",
-      "name": "Large Packaging Machine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Packaging Machine Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_packer",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:robust_machine_casing",
+          "amount": 30,
+          "role": "minimum casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/plasma_large_turbine",
       "controller": "gtceu:plasma_large_turbine",
-      "name": "Large Plasma Turbine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Plasma Turbine Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Includes one rotor holder, one dynamo hatch, one fluid input hatch, and maintenance.",
+        "This source pattern does not require a muffler hatch."
       ],
       "requirements": [
         {
           "id": "gtceu:plasma_large_turbine",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:tungstensteel_turbine_casing",
+          "amount": 29,
+          "role": "turbine casing"
+        },
+        {
+          "id": "gtceu:tungstensteel_gearbox",
+          "amount": 2,
+          "role": "gearbox"
+        },
+        {
+          "id": "gtceu:iv_rotor_holder",
+          "amount": 1,
+          "role": "rotor holder"
+        },
+        {
+          "id": "gtceu:iv_energy_output_hatch",
+          "amount": 1,
+          "role": "energy output"
+        },
+        {
+          "id": "gtceu:iv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_sifting_funnel",
       "controller": "gtceu:large_sifting_funnel",
-      "name": "Large Sifting Funnel Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Sifting Funnel Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_sifting_funnel",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:vibration_safe_casing",
+          "amount": 50,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:assembly_line_grating",
+          "amount": 18,
+          "role": "grating"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_solidifier",
       "controller": "gtceu:large_solidifier",
-      "name": "Large Solidification Array Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Solidification Array Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_solidifier",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:watertight_casing",
+          "amount": 45,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:steel_pipe_casing",
+          "amount": 8,
+          "role": "steel pipe casing"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/steam_large_turbine",
       "controller": "gtceu:steam_large_turbine",
-      "name": "Large Steam Turbine Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Steam Turbine Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Includes one rotor holder, one dynamo hatch, one fluid input hatch, and maintenance.",
+        "This source pattern does not require a muffler hatch."
       ],
       "requirements": [
         {
           "id": "gtceu:steam_large_turbine",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:steel_turbine_casing",
+          "amount": 29,
+          "role": "turbine casing"
+        },
+        {
+          "id": "gtceu:steel_gearbox",
+          "amount": 2,
+          "role": "gearbox"
+        },
+        {
+          "id": "gtceu:hv_rotor_holder",
+          "amount": 1,
+          "role": "rotor holder"
+        },
+        {
+          "id": "gtceu:hv_energy_output_hatch",
+          "amount": 1,
+          "role": "energy output"
+        },
+        {
+          "id": "gtceu:hv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/steel_large_boiler",
       "controller": "gtceu:steel_large_boiler",
-      "name": "Large Steel Boiler Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Steel Boiler Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses a solid-fuel starter layout: one item input bus, one steam/fluid output hatch, one muffler, and one maintenance hatch.",
+        "A fluid input hatch can replace the item bus if you build the boiler for fluid fuel."
       ],
       "requirements": [
         {
           "id": "gtceu:steel_large_boiler",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:solid_machine_casing",
+          "amount": 23,
+          "role": "boiler casing"
+        },
+        {
+          "id": "gtceu:steel_pipe_casing",
+          "amount": 2,
+          "role": "pipe casing"
+        },
+        {
+          "id": "gtceu:steel_firebox_casing",
+          "amount": 6,
+          "role": "firebox"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "solid fuel input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "steam output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/titanium_large_boiler",
       "controller": "gtceu:titanium_large_boiler",
-      "name": "Large Titanium Boiler Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Titanium Boiler Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses a solid-fuel starter layout: one item input bus, one steam/fluid output hatch, one muffler, and one maintenance hatch.",
+        "A fluid input hatch can replace the item bus if you build the boiler for fluid fuel."
       ],
       "requirements": [
         {
           "id": "gtceu:titanium_large_boiler",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stable_machine_casing",
+          "amount": 23,
+          "role": "boiler casing"
+        },
+        {
+          "id": "gtceu:titanium_pipe_casing",
+          "amount": 2,
+          "role": "pipe casing"
+        },
+        {
+          "id": "gtceu:titanium_firebox_casing",
+          "amount": 6,
+          "role": "firebox"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "solid fuel input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "steam output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/tungstensteel_large_boiler",
       "controller": "gtceu:tungstensteel_large_boiler",
-      "name": "Large Tungstensteel Boiler Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Tungstensteel Boiler Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses a solid-fuel starter layout: one item input bus, one steam/fluid output hatch, one muffler, and one maintenance hatch.",
+        "A fluid input hatch can replace the item bus if you build the boiler for fluid fuel."
       ],
       "requirements": [
         {
           "id": "gtceu:tungstensteel_large_boiler",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:robust_machine_casing",
+          "amount": 23,
+          "role": "boiler casing"
+        },
+        {
+          "id": "gtceu:tungstensteel_pipe_casing",
+          "amount": 2,
+          "role": "pipe casing"
+        },
+        {
+          "id": "gtceu:tungstensteel_firebox_casing",
+          "amount": 6,
+          "role": "firebox"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "solid fuel input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "steam output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/large_wiremill",
       "controller": "gtceu:large_wiremill",
-      "name": "Large Wire Factory Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Large Wire Factory Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades."
       ],
       "requirements": [
         {
           "id": "gtceu:large_wiremill",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:stress_proof_casing",
+          "amount": 25,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:titanium_gearbox",
+          "amount": 2,
+          "role": "titanium gearbox"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/luv_fusion_reactor",
       "controller": "gtceu:luv_fusion_reactor",
-      "name": "Luv Fusion Reactor Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Luv Fusion Reactor Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the glass preview variant from GTCEu's fusion reactor shape info.",
+        "The alternate preview can replace fusion glass with fusion casing."
       ],
       "requirements": [
         {
           "id": "gtceu:luv_fusion_reactor",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:fusion_casing",
+          "amount": 48,
+          "role": "fusion casing"
+        },
+        {
+          "id": "gtceu:fusion_glass",
+          "amount": 31,
+          "role": "fusion glass"
+        },
+        {
+          "id": "gtceu:superconducting_coil",
+          "amount": 4,
+          "role": "fusion coil"
+        },
+        {
+          "id": "gtceu:luv_energy_input_hatch",
+          "amount": 16,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:luv_input_hatch",
+          "amount": 16,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:luv_output_hatch",
+          "amount": 16,
+          "role": "fluid output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/luv_large_miner",
       "controller": "gtceu:luv_large_miner",
-      "name": "Luv Large Miner Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Luv Large Miner Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Standard utility layout with one energy input hatch, one drilling-fluid input hatch, and one item output bus.",
+        "Extra energy hatches can replace casing positions allowed by the pattern."
       ],
       "requirements": [
         {
           "id": "gtceu:luv_large_miner",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:robust_machine_casing",
+          "amount": 8,
+          "role": "miner casing"
+        },
+        {
+          "id": "gtceu:tungsten_steel_frame",
+          "amount": 15,
+          "role": "support frame"
+        },
+        {
+          "id": "gtceu:luv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:luv_input_hatch",
+          "amount": 1,
+          "role": "drilling fluid input"
+        },
+        {
+          "id": "gtceu:luv_output_bus",
+          "amount": 1,
+          "role": "item output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/multi_smelter",
       "controller": "gtceu:multi_smelter",
-      "name": "Multi Smelter Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Multi Smelter Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the lowest displayed coil option, Cupronickel, and LV hatch/bus previews."
       ],
       "requirements": [
         {
           "id": "gtceu:multi_smelter",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:heatproof_machine_casing",
+          "amount": 11,
+          "role": "heatproof casing"
+        },
+        {
+          "id": "gtceu:cupronickel_coil_block",
+          "amount": 8,
+          "role": "heating coil"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 2,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:lv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/mv_fluid_drilling_rig",
       "controller": "gtceu:mv_fluid_drilling_rig",
-      "name": "Mv Fluid Drilling Rig Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Mv Fluid Drilling Rig Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Standard utility layout with one energy input hatch and one fluid output hatch.",
+        "Extra energy hatches can replace casing positions allowed by the pattern."
       ],
       "requirements": [
         {
           "id": "gtceu:mv_fluid_drilling_rig",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:solid_machine_casing",
+          "amount": 9,
+          "role": "rig casing"
+        },
+        {
+          "id": "gtceu:steel_frame",
+          "amount": 15,
+          "role": "support frame"
+        },
+        {
+          "id": "gtceu:mv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:mv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/network_switch",
       "controller": "gtceu:network_switch",
-      "name": "Network Switch Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Network Switch Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the source preview with one computation receiver and three computation transmitters."
       ],
       "requirements": [
         {
           "id": "gtceu:network_switch",
           "amount": 1,
           "role": "controller"
-        }
-      ]
-    },
-    {
-      "id": "gtceu:multiblock/palladium_substation",
-      "controller": "gtceu:palladium_substation",
-      "name": "Palladium Substation Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
-      "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
-      ],
-      "requirements": [
+        },
         {
-          "id": "gtceu:palladium_substation",
+          "id": "gtceu:computer_casing",
+          "amount": 19,
+          "role": "computer casing"
+        },
+        {
+          "id": "gtceu:advanced_computer_casing",
           "amount": 1,
-          "role": "controller"
+          "role": "advanced computer casing"
+        },
+        {
+          "id": "gtceu:computation_receiver_hatch",
+          "amount": 1,
+          "role": "computation receiver"
+        },
+        {
+          "id": "gtceu:computation_transmitter_hatch",
+          "amount": 3,
+          "role": "computation transmitter"
+        },
+        {
+          "id": "gtceu:luv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/power_substation",
       "controller": "gtceu:power_substation",
-      "name": "Power Substation Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Power Substation Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the lowest-capacity battery preview entry available in the exported data.",
+        "Battery blocks are configurable in-game; swap this branch to higher-tier batteries if your build uses them."
       ],
       "requirements": [
         {
           "id": "gtceu:power_substation",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:palladium_substation",
+          "amount": 44,
+          "role": "substation casing"
+        },
+        {
+          "id": "gtceu:laminated_glass",
+          "amount": 57,
+          "role": "laminated glass"
+        },
+        {
+          "id": "gtceu:lv_lithium_battery",
+          "amount": 18,
+          "role": "battery blocks"
+        },
+        {
+          "id": "gtceu:hv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:ev_substation_input_hatch_64a",
+          "amount": 1,
+          "role": "substation input"
+        },
+        {
+          "id": "gtceu:hv_energy_output_hatch",
+          "amount": 1,
+          "role": "energy output"
+        },
+        {
+          "id": "gtceu:ev_substation_output_hatch_64a",
+          "amount": 1,
+          "role": "substation output"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
@@ -1168,18 +2461,22 @@
       "id": "gtceu:multiblock/primitive_blast_furnace",
       "controller": "gtceu:primitive_blast_furnace",
       "name": "Primitive Blast Furnace Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "description": "Fixed Primitive Blast Furnace structure from GTCEu's multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "exact",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The center air/snow positions are not counted as build ingredients."
       ],
       "requirements": [
         {
           "id": "gtceu:primitive_blast_furnace",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:firebricks",
+          "amount": 32,
+          "role": "primitive bricks"
         }
       ]
     },
@@ -1187,75 +2484,241 @@
       "id": "gtceu:multiblock/primitive_pump",
       "controller": "gtceu:primitive_pump",
       "name": "Primitive Pump Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "description": "Fixed Primitive Pump structure from GTCEu's multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "exact",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Counts the pump hatch variant shown by the source pattern."
       ],
       "requirements": [
         {
           "id": "gtceu:primitive_pump",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:pump_deck",
+          "amount": 10,
+          "role": "pump deck"
+        },
+        {
+          "id": "gtceu:treated_wood_frame",
+          "amount": 10,
+          "role": "treated wood frame"
+        },
+        {
+          "id": "gtceu:pump_hatch",
+          "amount": 1,
+          "role": "pump hatch"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/pyrolyse_oven",
       "controller": "gtceu:pyrolyse_oven",
-      "name": "Pyrolyse Oven Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Pyrolyse Oven Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the lowest displayed coil option, Cupronickel, and LV hatch/bus previews."
       ],
       "requirements": [
         {
           "id": "gtceu:pyrolyse_oven",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:ulv_machine_casing",
+          "amount": 9,
+          "role": "ULV casing"
+        },
+        {
+          "id": "gtceu:cupronickel_coil_block",
+          "amount": 16,
+          "role": "heating coil"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 2,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:lv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:lv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/research_station",
       "controller": "gtceu:research_station",
-      "name": "Research Station Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Research Station Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the GTCEu source preview with the computation receiver, object holder, LuV energy hatch, and maintenance hatch."
       ],
       "requirements": [
         {
           "id": "gtceu:research_station",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:computer_casing",
+          "amount": 58,
+          "role": "computer casing"
+        },
+        {
+          "id": "gtceu:advanced_computer_casing",
+          "amount": 23,
+          "role": "advanced computer casing"
+        },
+        {
+          "id": "gtceu:computer_heat_vent",
+          "amount": 14,
+          "role": "computer heat vent"
+        },
+        {
+          "id": "gtceu:object_holder",
+          "amount": 1,
+          "role": "object holder"
+        },
+        {
+          "id": "gtceu:computation_receiver_hatch",
+          "amount": 1,
+          "role": "computation receiver"
+        },
+        {
+          "id": "gtceu:luv_energy_input_hatch",
+          "amount": 1,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/mega_blast_furnace",
       "controller": "gtceu:mega_blast_furnace",
-      "name": "Rotary Hearth Furnace Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Rotary Hearth Furnace Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the lowest displayed coil option, Cupronickel, and the source standard hatch preview."
       ],
       "requirements": [
         {
           "id": "gtceu:mega_blast_furnace",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:high_temperature_smelting_casing",
+          "amount": 382,
+          "role": "smelting casing"
+        },
+        {
+          "id": "gtceu:cupronickel_coil_block",
+          "amount": 96,
+          "role": "heating coil"
+        },
+        {
+          "id": "gtceu:naquadah_alloy_frame",
+          "amount": 132,
+          "role": "Naquadah Alloy frame"
+        },
+        {
+          "id": "gtceu:heat_vent",
+          "amount": 20,
+          "role": "heat vent"
+        },
+        {
+          "id": "gtceu:robust_machine_casing",
+          "amount": 88,
+          "role": "robust casing"
+        },
+        {
+          "id": "gtceu:tungstensteel_pipe_casing",
+          "amount": 72,
+          "role": "tungstensteel pipe casing"
+        },
+        {
+          "id": "gtceu:tungstensteel_firebox_casing",
+          "amount": 28,
+          "role": "tungstensteel firebox"
+        },
+        {
+          "id": "gtceu:extreme_engine_intake_casing",
+          "amount": 40,
+          "role": "intake casing"
+        },
+        {
+          "id": "gtceu:lv_energy_input_hatch",
+          "amount": 2,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:lv_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:lv_output_bus",
+          "amount": 1,
+          "role": "item output"
+        },
+        {
+          "id": "gtceu:lv_input_hatch",
+          "amount": 1,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:lv_output_hatch",
+          "amount": 1,
+          "role": "fluid output"
+        },
+        {
+          "id": "gtceu:lv_muffler_hatch",
+          "amount": 1,
+          "role": "muffler"
+        },
+        {
+          "id": "gtceu:maintenance_hatch",
+          "amount": 1,
+          "role": "maintenance"
         }
       ]
     },
@@ -1301,19 +2764,43 @@
     {
       "id": "gtceu:multiblock/steam_oven",
       "controller": "gtceu:steam_oven",
-      "name": "Steam Oven Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Steam Oven Multiblock Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses one steam hatch, one steam input bus, and one steam output bus in the allowed positions."
       ],
       "requirements": [
         {
           "id": "gtceu:steam_oven",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:steam_machine_casing",
+          "amount": 8,
+          "role": "steam machine casing"
+        },
+        {
+          "id": "gtceu:bronze_firebox_casing",
+          "amount": 8,
+          "role": "bronze firebox"
+        },
+        {
+          "id": "gtceu:steam_input_hatch",
+          "amount": 1,
+          "role": "steam input"
+        },
+        {
+          "id": "gtceu:steam_input_bus",
+          "amount": 1,
+          "role": "item input"
+        },
+        {
+          "id": "gtceu:steam_output_bus",
+          "amount": 1,
+          "role": "item output"
         }
       ]
     },
@@ -1321,12 +2808,11 @@
       "id": "gtceu:multiblock/steel_multiblock_tank",
       "controller": "gtceu:steel_multiblock_tank",
       "name": "Steel Multiblock Tank Standard Build",
-      "description": "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
-      "source": "GTCEu GTMachineUtils.registerMultiblockTank",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
       "coverage": "standard-build",
       "notes": [
-        "The pattern uses 25 casing positions around the hollow center plus the controller.",
-        "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing casing blocks."
+        "GTCEu allows up to 2 valves by replacing casing blocks; the standard preview places 1 valve."
       ],
       "requirements": [
         {
@@ -1335,7 +2821,7 @@
           "role": "controller"
         },
         {
-          "id": "gtceu:steel_machine_casing",
+          "id": "gtceu:solid_machine_casing",
           "amount": 24,
           "role": "tank casing"
         },
@@ -1349,38 +2835,74 @@
     {
       "id": "gtceu:multiblock/uv_fusion_reactor",
       "controller": "gtceu:uv_fusion_reactor",
-      "name": "Uv Fusion Reactor Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Uv Fusion Reactor Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the glass preview variant from GTCEu's fusion reactor shape info.",
+        "The alternate preview can replace fusion glass with fusion casing."
       ],
       "requirements": [
         {
           "id": "gtceu:uv_fusion_reactor",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:fusion_casing_mk3",
+          "amount": 48,
+          "role": "fusion casing"
+        },
+        {
+          "id": "gtceu:fusion_glass",
+          "amount": 31,
+          "role": "fusion glass"
+        },
+        {
+          "id": "gtceu:fusion_coil",
+          "amount": 4,
+          "role": "fusion coil"
+        },
+        {
+          "id": "gtceu:uv_energy_input_hatch",
+          "amount": 16,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:uv_input_hatch",
+          "amount": 16,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:uv_output_hatch",
+          "amount": 16,
+          "role": "fluid output"
         }
       ]
     },
     {
       "id": "gtceu:multiblock/vacuum_freezer",
       "controller": "gtceu:vacuum_freezer",
-      "name": "Vacuum Freezer Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Vacuum Freezer Multiblock Lower-Bound Build",
+      "description": "Minimum fixed structure costs from GTCEu's multiblock pattern. Configurable hatches, buses, and ability blocks can replace some casing positions.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "pattern-lower-bound",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The fixed casing/special-block counts come from the GTCEu pattern; buses, hatches, maintenance, mufflers, and parallel hatches may replace casing slots where the pattern permits.",
+        "Use the in-game multiblock preview for final hatch placement and optional upgrades.",
+        "The 3x3x3 hollow shell has 24 configurable X positions; at least 14 must be Frost Proof Aluminium Machine Casing."
       ],
       "requirements": [
         {
           "id": "gtceu:vacuum_freezer",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:frostproof_machine_casing",
+          "amount": 14,
+          "role": "minimum casing"
         }
       ]
     },
@@ -1388,12 +2910,11 @@
       "id": "gtceu:multiblock/wooden_multiblock_tank",
       "controller": "gtceu:wooden_multiblock_tank",
       "name": "Wooden Multiblock Tank Standard Build",
-      "description": "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
-      "source": "GTCEu GTMachineUtils.registerMultiblockTank",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
       "coverage": "standard-build",
       "notes": [
-        "The pattern uses 25 wall positions around the hollow center plus the controller.",
-        "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing wall blocks."
+        "GTCEu allows up to 2 valves by replacing wall blocks; the standard preview places 1 valve."
       ],
       "requirements": [
         {
@@ -1416,19 +2937,49 @@
     {
       "id": "gtceu:multiblock/zpm_fusion_reactor",
       "controller": "gtceu:zpm_fusion_reactor",
-      "name": "Zpm Fusion Reactor Multiblock",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Zpm Fusion Reactor Standard Build",
+      "description": "Standard build requirements from GTCEu's displayed multiblock pattern.",
+      "source": "GTCEu v7.5.1-1.20.1 source multiblock patterns",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "Uses the glass preview variant from GTCEu's fusion reactor shape info.",
+        "The alternate preview can replace fusion glass with fusion casing."
       ],
       "requirements": [
         {
           "id": "gtceu:zpm_fusion_reactor",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:fusion_casing_mk2",
+          "amount": 48,
+          "role": "fusion casing"
+        },
+        {
+          "id": "gtceu:fusion_glass",
+          "amount": 31,
+          "role": "fusion glass"
+        },
+        {
+          "id": "gtceu:fusion_coil",
+          "amount": 4,
+          "role": "fusion coil"
+        },
+        {
+          "id": "gtceu:zpm_energy_input_hatch",
+          "amount": 16,
+          "role": "energy input"
+        },
+        {
+          "id": "gtceu:zpm_input_hatch",
+          "amount": 16,
+          "role": "fluid input"
+        },
+        {
+          "id": "gtceu:zpm_output_hatch",
+          "amount": 16,
+          "role": "fluid output"
         }
       ]
     }
