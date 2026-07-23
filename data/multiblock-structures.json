@@ -63,19 +63,29 @@
     {
       "id": "gtceu:multiblock/bronze_multiblock_tank",
       "controller": "gtceu:bronze_multiblock_tank",
-      "name": "Bronze Multiblock Tank Structure",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Bronze Multiblock Tank Standard Build",
+      "description": "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
+      "source": "GTCEu GTMachineUtils.registerMultiblockTank",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The pattern uses 25 casing positions around the hollow center plus the controller.",
+        "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing casing blocks."
       ],
       "requirements": [
         {
           "id": "gtceu:bronze_multiblock_tank",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:bronze_brick_casing",
+          "amount": 24,
+          "role": "tank casing"
+        },
+        {
+          "id": "gtceu:bronze_tank_valve",
+          "amount": 1,
+          "role": "tank valve"
         }
       ]
     },
@@ -1310,19 +1320,29 @@
     {
       "id": "gtceu:multiblock/steel_multiblock_tank",
       "controller": "gtceu:steel_multiblock_tank",
-      "name": "Steel Multiblock Tank Structure",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Steel Multiblock Tank Standard Build",
+      "description": "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
+      "source": "GTCEu GTMachineUtils.registerMultiblockTank",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The pattern uses 25 casing positions around the hollow center plus the controller.",
+        "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing casing blocks."
       ],
       "requirements": [
         {
           "id": "gtceu:steel_multiblock_tank",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:steel_machine_casing",
+          "amount": 24,
+          "role": "tank casing"
+        },
+        {
+          "id": "gtceu:steel_tank_valve",
+          "amount": 1,
+          "role": "tank valve"
         }
       ]
     },
@@ -1367,19 +1387,29 @@
     {
       "id": "gtceu:multiblock/wooden_multiblock_tank",
       "controller": "gtceu:wooden_multiblock_tank",
-      "name": "Wooden Multiblock Tank Structure",
-      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
-      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
-      "coverage": "controller-only",
+      "name": "Wooden Multiblock Tank Standard Build",
+      "description": "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
+      "source": "GTCEu GTMachineUtils.registerMultiblockTank",
+      "coverage": "standard-build",
       "notes": [
-        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
-        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+        "The pattern uses 25 wall positions around the hollow center plus the controller.",
+        "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing wall blocks."
       ],
       "requirements": [
         {
           "id": "gtceu:wooden_multiblock_tank",
           "amount": 1,
           "role": "controller"
+        },
+        {
+          "id": "gtceu:wood_wall",
+          "amount": 24,
+          "role": "tank wall"
+        },
+        {
+          "id": "gtceu:wooden_tank_valve",
+          "amount": 1,
+          "role": "tank valve"
         }
       ]
     },

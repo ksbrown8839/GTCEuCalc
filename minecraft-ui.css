@@ -1400,6 +1400,10 @@ input[type="range"] {
   background: #f2e4be;
 }
 
+.structure-coverage.standard-build {
+  background: #c7e8f0;
+}
+
 .structure-coverage.controller-only {
   background: #dedede;
   color: #505050;

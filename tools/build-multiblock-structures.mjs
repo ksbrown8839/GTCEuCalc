@@ -8,7 +8,6 @@ const CONTROLLER_ONLY_IDS = [
   "gtceu:alloy_blast_smelter",
   "gtceu:assembly_line",
   "gtceu:bronze_large_boiler",
-  "gtceu:bronze_multiblock_tank",
   "gtceu:central_monitor",
   "gtceu:charcoal_pile_igniter",
   "gtceu:cleanroom",
@@ -65,12 +64,10 @@ const CONTROLLER_ONLY_IDS = [
   "gtceu:steam_large_turbine",
   "gtceu:steam_oven",
   "gtceu:steel_large_boiler",
-  "gtceu:steel_multiblock_tank",
   "gtceu:titanium_large_boiler",
   "gtceu:tungstensteel_large_boiler",
   "gtceu:uv_fusion_reactor",
   "gtceu:vacuum_freezer",
-  "gtceu:wooden_multiblock_tank",
   "gtceu:zpm_fusion_reactor"
 ];
 
@@ -119,6 +116,19 @@ function lowerBoundStructure({ controller, name, description, source, notes, req
     description,
     source,
     coverage: "pattern-lower-bound",
+    notes,
+    requirements
+  };
+}
+
+function standardStructure({ controller, name, description, source, notes, requirements }) {
+  return {
+    id: `gtceu:multiblock/${controller.replace(/^gtceu:/, "")}`,
+    controller,
+    name,
+    description,
+    source,
+    coverage: "standard-build",
     notes,
     requirements
   };
@@ -190,6 +200,51 @@ const knownStructures = [
       requirement("gtceu:lv_machine_casing", 5, "minimum casing"),
       requirement("gtceu:tempered_glass", 8, "glass"),
       requirement("gtceu:steel_gearbox", 1, "gearbox")
+    ]
+  }),
+  standardStructure({
+    controller: "gtceu:wooden_multiblock_tank",
+    name: "Wooden Multiblock Tank Standard Build",
+    description: "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
+    source: "GTCEu GTMachineUtils.registerMultiblockTank",
+    notes: [
+      "The pattern uses 25 wall positions around the hollow center plus the controller.",
+      "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing wall blocks."
+    ],
+    requirements: [
+      requirement("gtceu:wooden_multiblock_tank", 1, "controller"),
+      requirement("gtceu:wood_wall", 24, "tank wall"),
+      requirement("gtceu:wooden_tank_valve", 1, "tank valve")
+    ]
+  }),
+  standardStructure({
+    controller: "gtceu:bronze_multiblock_tank",
+    name: "Bronze Multiblock Tank Standard Build",
+    description: "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
+    source: "GTCEu GTMachineUtils.registerMultiblockTank",
+    notes: [
+      "The pattern uses 25 casing positions around the hollow center plus the controller.",
+      "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing casing blocks."
+    ],
+    requirements: [
+      requirement("gtceu:bronze_multiblock_tank", 1, "controller"),
+      requirement("gtceu:bronze_brick_casing", 24, "tank casing"),
+      requirement("gtceu:bronze_tank_valve", 1, "tank valve")
+    ]
+  }),
+  standardStructure({
+    controller: "gtceu:steel_multiblock_tank",
+    name: "Steel Multiblock Tank Standard Build",
+    description: "Standard 3x3x3 hollow tank build from GTCEu's multiblock tank pattern.",
+    source: "GTCEu GTMachineUtils.registerMultiblockTank",
+    notes: [
+      "The pattern uses 25 casing positions around the hollow center plus the controller.",
+      "The in-game shape preview places 1 valve. GTCEu allows up to 2 valves by replacing casing blocks."
+    ],
+    requirements: [
+      requirement("gtceu:steel_multiblock_tank", 1, "controller"),
+      requirement("gtceu:steel_machine_casing", 24, "tank casing"),
+      requirement("gtceu:steel_tank_valve", 1, "tank valve")
     ]
   })
 ];

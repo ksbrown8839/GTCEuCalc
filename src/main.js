@@ -1162,6 +1162,8 @@ function structureCoverageLabel(structure) {
       return "exact cost";
     case "pattern-lower-bound":
       return "lower bound";
+    case "standard-build":
+      return "standard build";
     case "controller-only":
       return "controller only";
     default:

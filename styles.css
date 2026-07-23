@@ -1212,6 +1212,10 @@ select {
   color: #7a5520;
 }
 
+.structure-coverage.standard-build {
+  color: #245d70;
+}
+
 .structure-coverage.controller-only {
   color: #69615a;
 }
