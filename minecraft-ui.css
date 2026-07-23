@@ -1392,6 +1392,19 @@ input[type="range"] {
     inset -2px -2px 0 #766228;
 }
 
+.structure-coverage.exact {
+  background: #c6f0c1;
+}
+
+.structure-coverage.pattern-lower-bound {
+  background: #f2e4be;
+}
+
+.structure-coverage.controller-only {
+  background: #dedede;
+  color: #505050;
+}
+
 .tree-picker-recipe strong {
   color: #202020;
   font-size: 12px;

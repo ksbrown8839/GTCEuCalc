@@ -994,7 +994,7 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
       </div>
       <div class="tree-picker-recipes">
         ${!isTarget ? treePickerSuppliedCard(repository, goodsId, selectedRecipeId) : ""}
-        ${structure ? treePickerStructureCard(repository, structure, selectedIsStructure || selectedRecipeId === structure.id) : ""}
+        ${structure ? treePickerStructureCard(repository, structure, selectedIsStructure || selectedRecipeId === structure.id, selectedNodeKey) : ""}
         ${recipeCards}
       </div>
     </section>
@@ -1117,7 +1117,10 @@ function treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipe
   `;
 }
 
-function treePickerStructureCard(repository, structure, selected = false) {
+function treePickerStructureCard(repository, structure, selected = false, nodeKey = "") {
+  const coverage = structureCoverageLabel(structure);
+  const coverageClass = structureCoverageClass(structure);
+  const nodeKeyAttr = nodeKey ? ` data-node-key="${escapeHtml(nodeKey)}"` : "";
   const requirements = (structure.requirements ?? [])
     .map((requirement) => {
       const role = requirement.role ? `<em>${escapeHtml(requirement.role)}</em>` : "";
@@ -1146,11 +1149,29 @@ function treePickerStructureCard(repository, structure, selected = false) {
       </div>
       <div class="tree-picker-recipe-side">
         <span class="preferred-pill">${selected ? "selected" : "structure"}</span>
-        <span>supplemental</span>
-        <button class="secondary-button" type="button" data-action="use-tree-structure" data-id="${escapeHtml(structure.controller)}">Use</button>
+        <span class="preferred-pill structure-coverage ${coverageClass}">${escapeHtml(coverage)}</span>
+        <button class="secondary-button" type="button" data-action="use-tree-structure" data-id="${escapeHtml(structure.controller)}"${nodeKeyAttr}>Use</button>
       </div>
     </article>
   `;
+}
+
+function structureCoverageLabel(structure) {
+  switch (structure?.coverage) {
+    case "exact":
+      return "exact cost";
+    case "pattern-lower-bound":
+      return "lower bound";
+    case "controller-only":
+      return "controller only";
+    default:
+      return "supplemental";
+  }
+}
+
+function structureCoverageClass(structure) {
+  const coverage = structure?.coverage ?? "supplemental";
+  return coverage.replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
 }
 
 function recipeGraphView(repository, plan, externalGoods) {
@@ -2233,6 +2254,14 @@ function structureForGood(goodsId) {
   return state.multiblockStructures.get(goodsId) ?? null;
 }
 
+function applyDefaultStructureTargets() {
+  for (const product of state.products) {
+    if (structureForGood(product.goodsId)) {
+      state.structureTreeGoods.add(product.goodsId);
+    }
+  }
+}
+
 function chooseInitialProducts(repository) {
   if (repository.getGood("gtceu:greenhouse")) {
     return [{ goodsId: "gtceu:greenhouse", amountPerMinute: 1 }];
@@ -2753,7 +2782,10 @@ function setupEvents() {
     if (action === "use-tree-structure" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
-      useTreeStructure(goodsId, { closePicker: clickedInsideTreePicker });
+      useTreeStructure(goodsId, {
+        nodeKey: target.dataset.nodeKey ?? "",
+        closePicker: clickedInsideTreePicker
+      });
       return;
     }
 
@@ -2963,6 +2995,7 @@ async function main() {
     state.textureAtlas = await loadTextureAtlas(textureAtlasUrlFromLocation());
     state.multiblockStructures = await loadMultiblockStructures(multiblockStructuresUrlFromLocation());
     state.products = chooseInitialProducts(state.repository);
+    applyDefaultStructureTargets();
     state.selectedGoodsId = state.products[0]?.goodsId ?? null;
     state.selectedTreeGoodsId = null;
     state.selectedTreeNodeKey = null;

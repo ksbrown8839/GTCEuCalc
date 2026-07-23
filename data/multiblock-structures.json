@@ -1,12 +1,1261 @@
 {
   "schema": "gtceu-planner-multiblock-structures-v1",
+  "generatedBy": "tools/build-multiblock-structures.mjs",
+  "description": "Supplemental multiblock build metadata for recipe-tree structure branches. Controller-only entries are intentionally marked until full formed-pattern exports are available.",
   "structures": [
+    {
+      "id": "gtceu:multiblock/active_transformer",
+      "controller": "gtceu:active_transformer",
+      "name": "Active Transformer Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:active_transformer",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/alloy_blast_smelter",
+      "controller": "gtceu:alloy_blast_smelter",
+      "name": "Alloy Blast Smelter Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:alloy_blast_smelter",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/assembly_line",
+      "controller": "gtceu:assembly_line",
+      "name": "Assembly Line Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:assembly_line",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/bronze_multiblock_tank",
+      "controller": "gtceu:bronze_multiblock_tank",
+      "name": "Bronze Multiblock Tank Structure",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:bronze_multiblock_tank",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/mega_vacuum_freezer",
+      "controller": "gtceu:mega_vacuum_freezer",
+      "name": "Bulk Blast Chiller Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:mega_vacuum_freezer",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/central_monitor",
+      "controller": "gtceu:central_monitor",
+      "name": "Central Monitor Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:central_monitor",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/charcoal_pile_igniter",
+      "controller": "gtceu:charcoal_pile_igniter",
+      "name": "Charcoal Pile Igniter Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:charcoal_pile_igniter",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/cleanroom",
+      "controller": "gtceu:cleanroom",
+      "name": "Cleanroom Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:cleanroom",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/coke_oven",
+      "controller": "gtceu:coke_oven",
+      "name": "Coke Oven Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:coke_oven",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/construction_core",
+      "controller": "gtceu:construction_core",
+      "name": "Construction Core Multiblock",
+      "description": "Lower-bound build requirements from the pack's KubeJS Construction Core pattern.",
+      "source": "kubejs/startup_scripts/machinery/construction_core.js",
+      "coverage": "pattern-lower-bound",
+      "notes": [
+        "The pattern contains 18 B positions; at least 5 must be LV Machine Casing.",
+        "Remaining B positions may be casings or recipe ability blocks, so exact hatch/bus choices are still player-configured."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:construction_core",
+          "amount": 1,
+          "role": "controller"
+        },
+        {
+          "id": "gtceu:lv_machine_casing",
+          "amount": 5,
+          "role": "minimum casing"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 8,
+          "role": "glass"
+        },
+        {
+          "id": "gtceu:steel_gearbox",
+          "amount": 1,
+          "role": "gearbox"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/cracker",
+      "controller": "gtceu:cracker",
+      "name": "Cracker Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:cracker",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/data_bank",
+      "controller": "gtceu:data_bank",
+      "name": "Data Bank Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:data_bank",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/distillation_tower",
+      "controller": "gtceu:distillation_tower",
+      "name": "Distillation Tower Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:distillation_tower",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/electric_blast_furnace",
+      "controller": "gtceu:electric_blast_furnace",
+      "name": "Electric Blast Furnace Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:electric_blast_furnace",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/ev_fluid_drilling_rig",
+      "controller": "gtceu:ev_fluid_drilling_rig",
+      "name": "Ev Fluid Drilling Rig Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:ev_fluid_drilling_rig",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/ev_large_miner",
+      "controller": "gtceu:ev_large_miner",
+      "name": "Ev Large Miner Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:ev_large_miner",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/extreme_combustion_engine",
+      "controller": "gtceu:extreme_combustion_engine",
+      "name": "Extreme Combustion Engine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:extreme_combustion_engine",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/greenhouse",
+      "controller": "gtceu:greenhouse",
+      "name": "Greenhouse Multiblock",
+      "description": "Lower-bound build requirements from the pack's KubeJS Greenhouse pattern.",
+      "source": "kubejs/startup_scripts/machinery/greenhouse.js",
+      "coverage": "pattern-lower-bound",
+      "notes": [
+        "The pattern contains 56 B positions; at least 5 must be ULV Machine Casing.",
+        "Remaining B positions may be casings or recipe ability blocks, so exact hatch/bus choices are still player-configured."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:greenhouse",
+          "amount": 1,
+          "role": "controller"
+        },
+        {
+          "id": "gtceu:ulv_machine_casing",
+          "amount": 5,
+          "role": "minimum casing"
+        },
+        {
+          "id": "minecraft:dirt",
+          "amount": 9,
+          "role": "soil"
+        },
+        {
+          "id": "gtceu:tempered_glass",
+          "amount": 9,
+          "role": "glass"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/high_performance_computation_array",
+      "controller": "gtceu:high_performance_computation_array",
+      "name": "High Performance Computation Array Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:high_performance_computation_array",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/hv_fluid_drilling_rig",
+      "controller": "gtceu:hv_fluid_drilling_rig",
+      "name": "Hv Fluid Drilling Rig Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:hv_fluid_drilling_rig",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/implosion_compressor",
+      "controller": "gtceu:implosion_compressor",
+      "name": "Implosion Compressor Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:implosion_compressor",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/iv_large_miner",
+      "controller": "gtceu:iv_large_miner",
+      "name": "Iv Large Miner Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:iv_large_miner",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_arc_smelter",
+      "controller": "gtceu:large_arc_smelter",
+      "name": "Large Arc Smelter Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_arc_smelter",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_assembler",
+      "controller": "gtceu:large_assembler",
+      "name": "Large Assembling Factory Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_assembler",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_brewer",
+      "controller": "gtceu:large_brewer",
+      "name": "Large Brewing Vat Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_brewer",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/bronze_large_boiler",
+      "controller": "gtceu:bronze_large_boiler",
+      "name": "Large Bronze Boiler Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:bronze_large_boiler",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_centrifuge",
+      "controller": "gtceu:large_centrifuge",
+      "name": "Large Centrifugal Unit Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_centrifuge",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_chemical_bath",
+      "controller": "gtceu:large_chemical_bath",
+      "name": "Large Chemical Bath Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_chemical_bath",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_chemical_reactor",
+      "controller": "gtceu:large_chemical_reactor",
+      "name": "Large Chemical Reactor Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_chemical_reactor",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_circuit_assembler",
+      "controller": "gtceu:large_circuit_assembler",
+      "name": "Large Circuit Assembling Facility Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_circuit_assembler",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_combustion_engine",
+      "controller": "gtceu:large_combustion_engine",
+      "name": "Large Combustion Engine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_combustion_engine",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_autoclave",
+      "controller": "gtceu:large_autoclave",
+      "name": "Large Crystallization Chamber Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_autoclave",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_cutter",
+      "controller": "gtceu:large_cutter",
+      "name": "Large Cutting Saw Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_cutter",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_electrolyzer",
+      "controller": "gtceu:large_electrolyzer",
+      "name": "Large Electrolysis Chamber Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_electrolyzer",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_electromagnet",
+      "controller": "gtceu:large_electromagnet",
+      "name": "Large Electromagnet Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_electromagnet",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_engraving_laser",
+      "controller": "gtceu:large_engraving_laser",
+      "name": "Large Engraving Laser Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_engraving_laser",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_extractor",
+      "controller": "gtceu:large_extractor",
+      "name": "Large Extraction Machine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_extractor",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_extruder",
+      "controller": "gtceu:large_extruder",
+      "name": "Large Extrusion Machine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_extruder",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_distillery",
+      "controller": "gtceu:large_distillery",
+      "name": "Large Fractionating Distillery Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_distillery",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/gas_large_turbine",
+      "controller": "gtceu:gas_large_turbine",
+      "name": "Large Gas Turbine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:gas_large_turbine",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_maceration_tower",
+      "controller": "gtceu:large_maceration_tower",
+      "name": "Large Maceration Tower Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_maceration_tower",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_material_press",
+      "controller": "gtceu:large_material_press",
+      "name": "Large Material Press Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_material_press",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_mixer",
+      "controller": "gtceu:large_mixer",
+      "name": "Large Mixing Vessel Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_mixer",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_packer",
+      "controller": "gtceu:large_packer",
+      "name": "Large Packaging Machine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_packer",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/plasma_large_turbine",
+      "controller": "gtceu:plasma_large_turbine",
+      "name": "Large Plasma Turbine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:plasma_large_turbine",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_sifting_funnel",
+      "controller": "gtceu:large_sifting_funnel",
+      "name": "Large Sifting Funnel Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_sifting_funnel",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_solidifier",
+      "controller": "gtceu:large_solidifier",
+      "name": "Large Solidification Array Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_solidifier",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/steam_large_turbine",
+      "controller": "gtceu:steam_large_turbine",
+      "name": "Large Steam Turbine Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:steam_large_turbine",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/steel_large_boiler",
+      "controller": "gtceu:steel_large_boiler",
+      "name": "Large Steel Boiler Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:steel_large_boiler",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/titanium_large_boiler",
+      "controller": "gtceu:titanium_large_boiler",
+      "name": "Large Titanium Boiler Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:titanium_large_boiler",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/tungstensteel_large_boiler",
+      "controller": "gtceu:tungstensteel_large_boiler",
+      "name": "Large Tungstensteel Boiler Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:tungstensteel_large_boiler",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/large_wiremill",
+      "controller": "gtceu:large_wiremill",
+      "name": "Large Wire Factory Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:large_wiremill",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/luv_fusion_reactor",
+      "controller": "gtceu:luv_fusion_reactor",
+      "name": "Luv Fusion Reactor Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:luv_fusion_reactor",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/luv_large_miner",
+      "controller": "gtceu:luv_large_miner",
+      "name": "Luv Large Miner Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:luv_large_miner",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/multi_smelter",
+      "controller": "gtceu:multi_smelter",
+      "name": "Multi Smelter Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:multi_smelter",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/mv_fluid_drilling_rig",
+      "controller": "gtceu:mv_fluid_drilling_rig",
+      "name": "Mv Fluid Drilling Rig Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:mv_fluid_drilling_rig",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/network_switch",
+      "controller": "gtceu:network_switch",
+      "name": "Network Switch Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:network_switch",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/palladium_substation",
+      "controller": "gtceu:palladium_substation",
+      "name": "Palladium Substation Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:palladium_substation",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/power_substation",
+      "controller": "gtceu:power_substation",
+      "name": "Power Substation Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:power_substation",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/primitive_blast_furnace",
+      "controller": "gtceu:primitive_blast_furnace",
+      "name": "Primitive Blast Furnace Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:primitive_blast_furnace",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/primitive_pump",
+      "controller": "gtceu:primitive_pump",
+      "name": "Primitive Pump Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:primitive_pump",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/pyrolyse_oven",
+      "controller": "gtceu:pyrolyse_oven",
+      "name": "Pyrolyse Oven Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:pyrolyse_oven",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/research_station",
+      "controller": "gtceu:research_station",
+      "name": "Research Station Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:research_station",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/mega_blast_furnace",
+      "controller": "gtceu:mega_blast_furnace",
+      "name": "Rotary Hearth Furnace Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:mega_blast_furnace",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
     {
       "id": "gtceu:multiblock/steam_grinder",
       "controller": "gtceu:steam_grinder",
       "name": "Steam Grinder Multiblock",
       "description": "Build requirements for the formed Steam Grinder structure. This is supplemental planner metadata because the exporter only exposes the controller block recipes.",
       "source": "GTCEu Modern Pack 1.14.5 in-game multiblock preview",
+      "coverage": "exact",
       "notes": [
         "Uses Steam Grinder macerating and ore-grinding recipes.",
         "Counts the controller and structure parts so the recipe tree can include the full build cost."
@@ -36,6 +1285,120 @@
           "id": "gtceu:steam_output_bus",
           "amount": 1,
           "role": "item output"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/steam_oven",
+      "controller": "gtceu:steam_oven",
+      "name": "Steam Oven Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:steam_oven",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/steel_multiblock_tank",
+      "controller": "gtceu:steel_multiblock_tank",
+      "name": "Steel Multiblock Tank Structure",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:steel_multiblock_tank",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/uv_fusion_reactor",
+      "controller": "gtceu:uv_fusion_reactor",
+      "name": "Uv Fusion Reactor Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:uv_fusion_reactor",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/vacuum_freezer",
+      "controller": "gtceu:vacuum_freezer",
+      "name": "Vacuum Freezer Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:vacuum_freezer",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/wooden_multiblock_tank",
+      "controller": "gtceu:wooden_multiblock_tank",
+      "name": "Wooden Multiblock Tank Structure",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:wooden_multiblock_tank",
+          "amount": 1,
+          "role": "controller"
+        }
+      ]
+    },
+    {
+      "id": "gtceu:multiblock/zpm_fusion_reactor",
+      "controller": "gtceu:zpm_fusion_reactor",
+      "name": "Zpm Fusion Reactor Multiblock",
+      "description": "Formed multiblock scaffold. The exported recipe data includes the controller recipe, but not the full EMI structure pattern yet.",
+      "source": "GTCEu Modern Pack 1.14.5 exported controller goods",
+      "coverage": "controller-only",
+      "notes": [
+        "Counts and expands the controller block recipe so the structure can participate in the recipe tree.",
+        "Full casing, hatch, coil, frame, and special part counts still need an EMI or GTCEu pattern export before this can be exact."
+      ],
+      "requirements": [
+        {
+          "id": "gtceu:zpm_fusion_reactor",
+          "amount": 1,
+          "role": "controller"
         }
       ]
     }

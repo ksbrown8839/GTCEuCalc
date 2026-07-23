@@ -1200,6 +1200,22 @@ select {
   background: #fff0bd;
 }
 
+.structure-coverage {
+  white-space: nowrap;
+}
+
+.structure-coverage.exact {
+  color: #22623a;
+}
+
+.structure-coverage.pattern-lower-bound {
+  color: #7a5520;
+}
+
+.structure-coverage.controller-only {
+  color: #69615a;
+}
+
 .tree-picker-recipe strong,
 .tree-picker-recipe p {
   display: block;
