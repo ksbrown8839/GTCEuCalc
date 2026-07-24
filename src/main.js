@@ -838,9 +838,10 @@ function recipeTrackerPanel(repository, plan, externalGoods) {
   const treeNodes = flattenPlanTrees(plan.planTrees);
   const trackableNodes = treeNodes.filter((entry) => entry.node.goodsId);
   const completedCount = trackableNodes.filter((entry) => state.completedTreeGoods.has(entry.node.goodsId)).length;
-  const nextAction = nextTreeAction(repository, plan, externalGoods, treeNodes);
+  const readyRows = readyIntermediateRows(repository, plan, treeNodes);
+  const nextAction = nextTreeAction(repository, plan, externalGoods, treeNodes, readyRows);
   const targetChips = plan.products.length
-    ? plan.products.map((product) => goodChip(repository, product.goodsId, formatRate(product.amountPerMinute))).join("")
+    ? plan.products.map((product) => goodChip(repository, product.goodsId, demandAmountText(product.amountPerMinute))).join("")
     : `<span class="needed-empty">Choose a target to start a tree</span>`;
 
   return `
@@ -862,6 +863,7 @@ function recipeTrackerPanel(repository, plan, externalGoods) {
         <span><strong>${formatAmount(plan.recipeRows.length)}</strong> recipe steps</span>
         <span><strong>${formatAmount(plan.byproductRows.length)}</strong> leftovers</span>
       </section>
+      ${intermediateQueuePanel(repository, readyRows)}
     </div>
   `;
 }
@@ -902,13 +904,29 @@ function selectedTreeEntry(plan) {
   return null;
 }
 
-function nextTreeAction(repository, plan, externalGoods, treeNodes) {
+function nextTreeAction(repository, plan, externalGoods, treeNodes, readyRows = []) {
   if (!plan.planTrees.length) {
     return {
       kind: "empty",
       title: "Pick an output",
       detail: "Search the target list, choose an item or fluid, then expand only the branches you want to craft.",
       actions: ""
+    };
+  }
+
+  const ready = readyRows[0];
+  if (ready) {
+    const name = repository.getGoodName(ready.goodsId);
+    const recipeName = ready.recipeName;
+    return {
+      kind: ready.isTarget ? "complete" : "recipe",
+      title: ready.isTarget ? `Finish ${name}` : `Craft ${name}`,
+      detail: `${recipeName} is the lowest open recipe layer. Its child recipes are already handled or are base inputs you can gather now.`,
+      actions: trackerActionButtons(ready.goodsId, [
+        { action: "work-tree-step", label: "Work here", nodeKey: ready.nodeKey },
+        { action: "toggle-done-step", label: "Mark done" },
+        { action: "focus-tree-good", label: "Locate" }
+      ])
     };
   }
 
@@ -974,8 +992,130 @@ function nextTreeAction(repository, plan, externalGoods, treeNodes) {
 function trackerActionButtons(goodsId, actions) {
   return `
     <div class="tracker-actions">
-      ${actions.map((entry) => `<button class="secondary-button" type="button" data-action="${escapeHtml(entry.action)}" data-id="${escapeHtml(goodsId)}">${escapeHtml(entry.label)}</button>`).join("")}
+      ${actions.map((entry) => `<button class="secondary-button" type="button" data-action="${escapeHtml(entry.action)}" data-id="${escapeHtml(goodsId)}"${entry.nodeKey ? ` data-node-key="${escapeHtml(entry.nodeKey)}"` : ""}>${escapeHtml(entry.label)}</button>`).join("")}
     </div>
+  `;
+}
+
+function readyIntermediateRows(repository, plan, treeNodes) {
+  const targetGoods = new Set(plan.products.map((product) => product.goodsId));
+  const rows = new Map();
+
+  for (const entry of treeNodes) {
+    const node = entry.node;
+    if (!isReadyIntermediateNode(node)) continue;
+
+    const key = node.goodsId;
+    const current = rows.get(key);
+    if (current) {
+      current.amountPerMinute += node.amountPerMinute;
+      current.depth = Math.max(current.depth, entry.depth);
+      current.nodeCount += 1;
+      mergeDirectNeeds(current.needs, node.children);
+      continue;
+    }
+
+    rows.set(key, {
+      goodsId: node.goodsId,
+      amountPerMinute: node.amountPerMinute,
+      depth: entry.depth,
+      nodeKey: entry.key,
+      nodeCount: 1,
+      recipe: node.recipe,
+      recipeName: readyRecipeLabel(repository, node),
+      isTarget: targetGoods.has(node.goodsId),
+      needs: directNeedsFromChildren(node.children)
+    });
+  }
+
+  return [...rows.values()].sort((a, b) => {
+    const targetSort = Number(a.isTarget) - Number(b.isTarget);
+    return targetSort
+      || b.depth - a.depth
+      || b.amountPerMinute - a.amountPerMinute
+      || repository.getGoodName(a.goodsId).localeCompare(repository.getGoodName(b.goodsId));
+  });
+}
+
+function isReadyIntermediateNode(node) {
+  if (!node?.recipe || state.completedTreeGoods.has(node.goodsId)) return false;
+  if (!node.children?.length) return false;
+
+  return node.children.every((child) => !child.recipe || state.completedTreeGoods.has(child.goodsId));
+}
+
+function readyRecipeLabel(repository, node) {
+  if (isStructureRecipe(node.recipe)) return "Multiblock structure";
+  if (isCraftingRecipe(node.recipe)) return "Crafting grid";
+  return repository.getRecipeType(node.recipe.type).name;
+}
+
+function directNeedsFromChildren(children) {
+  const needs = new Map();
+  mergeDirectNeeds(needs, children);
+  return needs;
+}
+
+function mergeDirectNeeds(needs, children) {
+  for (const child of children ?? []) {
+    needs.set(child.goodsId, (needs.get(child.goodsId) ?? 0) + child.amountPerMinute);
+  }
+}
+
+function intermediateQueuePanel(repository, readyRows) {
+  const visibleRows = readyRows.slice(0, 8);
+  const hiddenCount = Math.max(0, readyRows.length - visibleRows.length);
+  const shownIds = visibleRows.map((row) => row.goodsId).join(",");
+
+  return `
+    <section class="tracker-card tracker-queue">
+      <header class="tracker-queue-header">
+        <div>
+          <span class="tracker-label">Next intermediate builds</span>
+          <strong>Work bottom-up</strong>
+        </div>
+        ${visibleRows.length ? `<button class="secondary-button" type="button" data-action="mark-ready-intermediates-done" data-ids="${escapeHtml(shownIds)}">Mark shown done</button>` : ""}
+      </header>
+      <p>${visibleRows.length
+        ? "Craft these lowest open recipe layers first. As you mark them done, this queue advances toward the final build."
+        : "Expand an item in the graph to create the next craftable intermediate layer."}</p>
+      <div class="tracker-step-list">
+        ${visibleRows.length ? visibleRows.map((row) => intermediateStepCard(repository, row)).join("") : `<span class="needed-empty">No intermediate steps ready yet</span>`}
+      </div>
+      ${hiddenCount ? `<p class="tracker-more">${formatAmount(hiddenCount)} more ready steps are hidden until these are handled.</p>` : ""}
+    </section>
+  `;
+}
+
+function intermediateStepCard(repository, row) {
+  const name = repository.getGoodName(row.goodsId);
+  const needs = [...row.needs.entries()]
+    .slice(0, 4)
+    .map(([goodsId, amountPerMinute]) => goodChip(repository, goodsId, demandAmountText(amountPerMinute)))
+    .join("");
+  const hiddenNeeds = Math.max(0, row.needs.size - 4);
+  const duplicateText = row.nodeCount > 1 ? ` · ${formatAmount(row.nodeCount)} places` : "";
+  const nodeKeyAttr = row.nodeKey ? ` data-node-key="${escapeHtml(row.nodeKey)}"` : "";
+
+  return `
+    <article class="tracker-step-row${row.isTarget ? " final" : ""}">
+      <button class="tracker-step-main" type="button" data-action="work-tree-step" data-id="${escapeHtml(row.goodsId)}"${nodeKeyAttr}>
+        ${graphGoodIcon(repository, row.goodsId, demandAmountText(row.amountPerMinute))}
+        <span>
+          <strong>${escapeHtml(name)}</strong>
+          <em>${escapeHtml(row.isTarget ? "Final build" : row.recipeName)}${escapeHtml(duplicateText)}</em>
+        </span>
+      </button>
+      <div class="tracker-step-needs">
+        <span>Needs</span>
+        ${needs || `<span class="needed-empty">No direct inputs</span>`}
+        ${hiddenNeeds ? `<span class="tree-cost-more">+${formatAmount(hiddenNeeds)} more</span>` : ""}
+      </div>
+      <div class="tracker-actions">
+        <button class="secondary-button done-button" type="button" data-action="toggle-done-step" data-id="${escapeHtml(row.goodsId)}">Done</button>
+        <button class="secondary-button" type="button" data-action="focus-tree-good" data-id="${escapeHtml(row.goodsId)}">Locate</button>
+      </div>
+    </article>
   `;
 }
 
@@ -2149,6 +2289,22 @@ function clearDoneSteps() {
   renderPlan({ preserveGraphViewport: true });
 }
 
+function setTreeGoodsDone(goodsIds, done = true) {
+  const ids = [...new Set(goodsIds.filter(Boolean))];
+  if (!ids.length) return;
+
+  for (const goodsId of ids) {
+    if (done) {
+      state.completedTreeGoods.add(goodsId);
+    } else {
+      state.completedTreeGoods.delete(goodsId);
+    }
+  }
+
+  state.treeContextMenu = null;
+  renderPlan({ preserveGraphViewport: true });
+}
+
 function setTreeBranchDone(goodsId, nodeKey = "", done = true) {
   const entry = treeEntryForContext(goodsId, nodeKey);
   const ids = entry?.node ? collectVisibleBranchGoods(entry.node) : new Set([goodsId]);
@@ -2215,6 +2371,34 @@ function focusTreeGood(goodsId) {
     }
 
     const node = elements.craftingTree.querySelector(`[data-goods-id="${cssEscape(goodsId)}"]`);
+    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
+}
+
+function workOnTreeStep(goodsId, nodeKey = "") {
+  if (!goodsId) return;
+  const entry = treeEntryForContext(goodsId, nodeKey);
+  const selectedKey = entry?.key ?? nodeKey;
+  const path = findTreePath(goodsId, state.currentPlan?.planTrees ?? []);
+
+  for (const pathGoodsId of path.slice(0, -1)) {
+    state.expandedTreeGoods.add(pathGoodsId);
+  }
+
+  state.selectedGoodsId = goodsId;
+  state.selectedTreeGoodsId = goodsId;
+  state.selectedTreeNodeKey = selectedKey || null;
+  state.treeContextMenu = null;
+  renderPlan();
+  renderInspector();
+
+  if (state.treeView.showGraph) return;
+
+  requestAnimationFrame(() => {
+    const selector = selectedKey
+      ? `[data-node-key="${cssEscape(selectedKey)}"]`
+      : `[data-goods-id="${cssEscape(goodsId)}"]`;
+    const node = elements.craftingTree.querySelector(selector);
     node?.scrollIntoView({ block: "center", behavior: "smooth" });
   });
 }
@@ -2729,6 +2913,13 @@ function setupEvents() {
       return;
     }
 
+    if (action === "mark-ready-intermediates-done") {
+      event.preventDefault();
+      event.stopPropagation();
+      setTreeGoodsDone((target.dataset.ids ?? "").split(",").filter(Boolean), true);
+      return;
+    }
+
     if (action === "mark-tree-branch-done" && goodsId) {
       event.preventDefault();
       event.stopPropagation();
@@ -2783,6 +2974,13 @@ function setupEvents() {
       event.preventDefault();
       event.stopPropagation();
       focusTreeGood(goodsId);
+      return;
+    }
+
+    if (action === "work-tree-step" && goodsId) {
+      event.preventDefault();
+      event.stopPropagation();
+      workOnTreeStep(goodsId, target.dataset.nodeKey ?? "");
       return;
     }
 

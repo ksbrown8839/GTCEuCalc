@@ -914,6 +914,87 @@ select {
   font-size: 16px;
 }
 
+.tracker-queue {
+  grid-column: 1 / -1;
+}
+
+.tracker-queue-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tracker-queue-header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.tracker-step-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 8px;
+}
+
+.tracker-step-row {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fafbf8;
+}
+
+.tracker-step-main {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.tracker-step-main > span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tracker-step-main strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracker-step-main em,
+.tracker-more {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.tracker-step-needs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.tracker-step-needs > span:first-child {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .tree-view-controls {
   display: flex;
   flex-wrap: wrap;
