@@ -607,6 +607,37 @@ select {
   padding: 18px;
 }
 
+.recipe-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.recipe-titlebar h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.recipe-title-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .status-band h2 {
   margin: 0 0 6px;
   font-size: 20px;
@@ -699,6 +730,15 @@ select {
   text-align: right;
 }
 
+.recipe-titlebar .power-readout {
+  min-width: 160px;
+  padding: 8px 10px;
+}
+
+.recipe-titlebar .power-readout strong {
+  font-size: 16px;
+}
+
 .power-readout span {
   display: block;
   color: var(--muted);
@@ -751,7 +791,7 @@ select {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 18px;
-  margin-top: 18px;
+  margin-top: 10px;
   min-width: 0;
 }
 
@@ -965,21 +1005,25 @@ select {
 
 .build-guide-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-areas:
+    "queue costs"
+    "leftovers costs";
   gap: 12px;
   align-items: start;
   min-width: 0;
 }
 
 .build-guide-workbench {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.72fr) minmax(360px, 1.28fr);
-  gap: 12px;
-  align-items: start;
-  min-width: 0;
+  display: contents;
+}
+
+.build-guide-queue {
+  grid-area: queue;
 }
 
 .guide-cost-section {
+  grid-area: costs;
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -990,6 +1034,7 @@ select {
 }
 
 .build-guide-leftovers {
+  grid-area: leftovers;
   display: grid;
   align-content: start;
   gap: 10px;
@@ -1019,6 +1064,23 @@ select {
 .guide-cost-header strong {
   color: var(--ink);
   font-size: 14px;
+}
+
+.external-group-grid {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.guide-cost-section .external-group + .external-group {
+  margin-top: 0;
+}
+
+.guide-cost-section.dense-costs .external-group .stacked-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  align-items: start;
+  gap: 8px;
 }
 
 .tracker-step-list {
@@ -2247,6 +2309,10 @@ button.recipe-slot:hover {
 
   .build-guide-layout {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "queue"
+      "costs"
+      "leftovers";
   }
 }
 
@@ -2264,6 +2330,16 @@ button.recipe-slot:hover {
 
   .build-guide-workbench {
     grid-template-columns: 1fr;
+  }
+
+  .recipe-titlebar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recipe-titlebar .power-readout {
+    width: 100%;
+    text-align: left;
   }
 
   .tree-recipe > summary::before {

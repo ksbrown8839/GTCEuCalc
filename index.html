@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GTCEu Modern Planner</title>
-    <link rel="stylesheet" href="styles.css?v=bottom-build-guide-2026-07-23">
-    <link rel="stylesheet" href="minecraft-ui.css?v=bottom-build-guide-2026-07-23">
+    <link rel="stylesheet" href="styles.css?v=tree-title-cost-columns-2026-07-24">
+    <link rel="stylesheet" href="minecraft-ui.css?v=tree-title-cost-columns-2026-07-24">
     <link rel="stylesheet" href="inspector.css?v=drawer-2026-05-23">
   </head>
   <body>
@@ -78,18 +78,16 @@
       </aside>
 
       <section class="workspace">
-        <div class="status-band">
+        <header class="recipe-titlebar">
           <div>
-            <h2>Recipe Tree</h2>
-            <div data-role="status">Loading...</div>
+            <h1>Recipe Tree</h1>
+            <p class="recipe-title-status" data-role="status">Loading...</p>
           </div>
           <div class="power-readout">
             <span>Power</span>
             <strong data-role="total-power">0 EU/t average</strong>
           </div>
-        </div>
-
-        <section class="section-band recipe-tracker" data-role="recipe-tracker"></section>
+        </header>
 
         <div class="content-grid">
           <div class="main-panels">
@@ -177,6 +175,6 @@
       </aside>
     </main>
 
-    <script type="module" src="src/main.js?v=bottom-build-guide-2026-07-23"></script>
+    <script type="module" src="src/main.js?v=tree-title-cost-columns-2026-07-24"></script>
   </body>
 </html>

@@ -746,25 +746,11 @@ function renderPlan(options = {}) {
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
 
   const assumptionCount = plan.warnings.length + plan.suppressedWarningCount;
-  const assumptionHtml = assumptionCount
-    ? `<details class="assumption-panel">
-        <summary>
-          <span>Planner assumptions</span>
-          <strong>${formatAmount(assumptionCount)}</strong>
-        </summary>
-        <div class="warning-list">
-          ${plan.warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}
-          ${plan.suppressedWarningCount ? `<p>${escapeHtml(`${plan.suppressedWarningCount} more distinct assumptions hidden.`)}</p>` : ""}
-        </div>
-      </details>`
-    : "";
+  elements.status.innerHTML = recipeTitleSummary(repository, plan, assumptionCount);
 
-  elements.status.innerHTML = `
-    ${neededInputsOverview(repository, plan, assumptionCount)}
-    ${assumptionHtml}
-  `;
-
-  elements.recipeTracker.innerHTML = recipeTrackerPanel(repository, plan, externalGoods, treeNodes, readyRows);
+  if (elements.recipeTracker) {
+    elements.recipeTracker.innerHTML = recipeTrackerPanel(repository, plan, externalGoods, treeNodes, readyRows);
+  }
 
   elements.machinePlan.innerHTML = machinePlanRows(repository, plan.machineRows);
   elements.treeGoodPicker.innerHTML = treeGoodPickerPanel(repository, plan, externalGoods);
@@ -831,6 +817,28 @@ function neededInputsOverview(repository, plan, assumptionCount) {
         ${chips}
       </div>
     </div>
+  `;
+}
+
+function recipeTitleSummary(repository, plan, assumptionCount) {
+  const targets = plan.products.length
+    ? plan.products
+        .map((product) => `${repository.getGoodName(product.goodsId)} ${demandAmountText(product.amountPerMinute)}`)
+        .join(", ")
+    : "Choose a target";
+  const summary = [
+    planCountText(plan.externalRows.length, "base cost"),
+    planCountText(plan.recipeRows.length, "recipe step"),
+    planCountText(plan.machineRows.length, "machine group")
+  ];
+
+  if (assumptionCount) {
+    summary.push(planCountText(assumptionCount, "assumption"));
+  }
+
+  return `
+    <span>${escapeHtml(targets)}</span>
+    <span>${escapeHtml(summary.join(" / "))}</span>
   `;
 }
 
@@ -1990,6 +1998,7 @@ function treeReasonLabel(reason) {
 }
 
 function buildGuidePanel(repository, plan, externalGoods, readyRows = []) {
+  const denseCostClass = plan.externalRows.length >= 5 ? " dense-costs" : "";
   const queue = intermediateQueuePanel(repository, readyRows, {
     limit: 6,
     className: "build-guide-queue",
@@ -2006,7 +2015,7 @@ function buildGuidePanel(repository, plan, externalGoods, readyRows = []) {
 
   return `
     ${queue}
-    <section class="guide-cost-section">
+    <section class="guide-cost-section${denseCostClass}">
       <header class="guide-cost-header">
         <div>
           <span class="tracker-label">Remaining base cost</span>
@@ -2014,7 +2023,9 @@ function buildGuidePanel(repository, plan, externalGoods, readyRows = []) {
         </div>
         <button class="secondary-button" type="button" data-action="clear-done-steps">Clear done</button>
       </header>
-      ${baseCosts}
+      <div class="external-group-grid">
+        ${baseCosts}
+      </div>
     </section>
   `;
 }

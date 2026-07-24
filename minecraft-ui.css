@@ -79,6 +79,7 @@ textarea {
 }
 
 .brand-block h1,
+.recipe-titlebar h1,
 .status-band h2,
 .section-band h2,
 .panel h2,
@@ -1213,6 +1214,29 @@ input[type="range"] {
   text-shadow: 1px 1px 0 #eeeeee;
 }
 
+.recipe-titlebar {
+  border: 0;
+  border-radius: 0;
+  padding: 8px 10px;
+  background: #a0a0a0;
+  box-shadow:
+    0 0 0 2px #1f1f1f,
+    inset 2px 2px 0 #d9d9d9,
+    inset -2px -2px 0 #555555;
+}
+
+.recipe-titlebar h1 {
+  font-size: 22px;
+  text-transform: none;
+}
+
+.recipe-title-status {
+  color: #373737;
+  font-family: var(--minecraft-font);
+  font-size: 10px;
+  text-shadow: 1px 1px 0 #e9e9e9;
+}
+
 .recipe-tracker {
   padding: 10px;
   background: #a0a0a0;
@@ -1345,6 +1369,10 @@ input[type="range"] {
   box-shadow:
     inset 2px 2px 0 #f3f3f3,
     inset -2px -2px 0 #6a6a6a;
+}
+
+.external-group-grid {
+  gap: 10px;
 }
 
 .build-guide-leftovers {
