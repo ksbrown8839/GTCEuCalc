@@ -749,14 +749,20 @@ select {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 270px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   margin-top: 18px;
   min-width: 0;
 }
 
 .main-panels {
+  display: grid;
+  gap: 18px;
   min-width: 0;
+}
+
+.main-panels > .section-band + .section-band {
+  margin-top: 0;
 }
 
 .section-band {
@@ -945,13 +951,57 @@ select {
 }
 
 .build-guide-queue {
-  margin-bottom: 12px;
+  margin-bottom: 0;
+}
+
+.build-guide-band {
+  display: grid;
+  gap: 12px;
+}
+
+.build-guide-band .section-header {
+  margin-bottom: 0;
+}
+
+.build-guide-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.build-guide-workbench {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(360px, 1.28fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
 }
 
 .guide-cost-section {
   display: grid;
   gap: 10px;
   min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.build-guide-leftovers {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.build-guide-leftovers .section-note {
+  margin: -4px 0 0;
 }
 
 .guide-cost-header {
@@ -2194,6 +2244,10 @@ button.recipe-slot:hover {
   .tracker-counts {
     grid-column: 1 / -1;
   }
+
+  .build-guide-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2205,6 +2259,10 @@ button.recipe-slot:hover {
   .recipe-choice,
   .tree-recipe > summary,
   .machine-visual {
+    grid-template-columns: 1fr;
+  }
+
+  .build-guide-workbench {
     grid-template-columns: 1fr;
   }
 

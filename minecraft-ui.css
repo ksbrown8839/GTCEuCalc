@@ -1328,7 +1328,28 @@ input[type="range"] {
   background: #bfc5c7;
 }
 
+.build-guide-band {
+  background: #a0a0a0;
+}
+
+.build-guide-layout,
+.build-guide-workbench {
+  gap: 10px;
+}
+
 .guide-cost-section {
+  border: 0;
+  border-radius: 0;
+  padding: 10px;
+  background: #c6c6c6;
+  box-shadow:
+    inset 2px 2px 0 #f3f3f3,
+    inset -2px -2px 0 #6a6a6a;
+}
+
+.build-guide-leftovers {
+  border: 0;
+  border-radius: 0;
   padding: 10px;
   background: #c6c6c6;
   box-shadow:

@@ -782,7 +782,7 @@ function renderPlan(options = {}) {
       : plan.planTrees.map((tree, index) => craftingTreeNode(repository, tree, 0, externalGoods, String(index))).join(""))
     : `<div class="empty-state">Choose a product to build a tree.</div>`;
 
-  elements.externalInputs.innerHTML = costSidebarPanel(repository, plan, externalGoods, readyRows);
+  elements.externalInputs.innerHTML = buildGuidePanel(repository, plan, externalGoods, readyRows);
 
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, demandAmountText(row.amountPerMinute))).join("")
@@ -1989,9 +1989,9 @@ function treeReasonLabel(reason) {
   }
 }
 
-function costSidebarPanel(repository, plan, externalGoods, readyRows = []) {
+function buildGuidePanel(repository, plan, externalGoods, readyRows = []) {
   const queue = intermediateQueuePanel(repository, readyRows, {
-    limit: 4,
+    limit: 6,
     className: "build-guide-queue",
     title: "Next up",
     subtitle: "Craft these first",
