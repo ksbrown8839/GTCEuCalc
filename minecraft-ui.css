@@ -1324,13 +1324,28 @@ input[type="range"] {
   text-shadow: 1px 1px 0 #e9e9e9;
 }
 
-.cost-sidebar-queue {
+.build-guide-queue {
   background: #bfc5c7;
 }
 
-.graph-cost-queue {
-  max-width: 920px;
-  background: rgba(198, 198, 198, 0.92);
+.guide-cost-section {
+  padding: 10px;
+  background: #c6c6c6;
+  box-shadow:
+    inset 2px 2px 0 #f3f3f3,
+    inset -2px -2px 0 #6a6a6a;
+}
+
+.guide-cost-header strong {
+  color: #202020;
+  font-size: 12px;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.guide-cost-header .secondary-button {
+  min-height: 27px;
+  padding: 5px 8px;
+  font-size: 10px;
 }
 
 .tracker-step-list {
@@ -1387,6 +1402,14 @@ input[type="range"] {
 .tracker-step-needs .good-chip span:not(.good-swatch):not(.slot-image) {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.external-stack-note {
+  padding: 2px 4px;
+  background: #8b8b8b;
+  color: #ffffa0;
+  font-size: 9px;
+  text-shadow: 1px 1px 0 #202020;
 }
 
 .tracker-actions .secondary-button,
@@ -1651,27 +1674,9 @@ input[type="range"] {
   filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.72));
 }
 
-.emi-node,
-.emi-cost-entry {
+.emi-node {
   font-family: var(--minecraft-font);
   min-width: 68px;
-}
-
-.emi-cost-entry {
-  gap: 5px;
-}
-
-.emi-stack-breakdown {
-  display: block;
-  min-width: 82px;
-  padding: 2px 4px;
-  background: rgba(0, 0, 0, 0.32);
-  color: #ffffa0;
-  font-family: var(--minecraft-font);
-  font-size: 10px;
-  line-height: 1.1;
-  text-align: center;
-  text-shadow: 2px 2px 0 #342c34;
 }
 
 .emi-node-wrap {
@@ -1697,8 +1702,7 @@ input[type="range"] {
 }
 
 .emi-node.selected .emi-node-frame,
-.emi-node:hover .emi-node-frame,
-.emi-cost-entry:hover .emi-good-icon {
+.emi-node:hover .emi-node-frame {
   outline: 3px solid #ffffa0;
   outline-offset: 3px;
 }
@@ -1827,21 +1831,6 @@ input[type="range"] {
     inset -2px -2px 0 #1d3443;
   color: #ffffa0;
   text-shadow: 1px 1px 0 #000000;
-}
-
-.emi-graph-totals {
-  padding: 6px 0 0;
-}
-
-.emi-graph-totals h3 {
-  color: #ffffff;
-  font-size: 20px;
-  font-weight: 400;
-  text-shadow: 2px 2px 0 #342c34;
-}
-
-.emi-cost-row {
-  gap: 24px;
 }
 
 .tree-recipe,

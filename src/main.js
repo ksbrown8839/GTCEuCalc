@@ -778,7 +778,7 @@ function renderPlan(options = {}) {
 
   elements.craftingTree.innerHTML = plan.planTrees.length
     ? (state.treeView.showGraph
-      ? recipeGraphView(repository, plan, externalGoods, readyRows)
+      ? recipeGraphView(repository, plan, externalGoods)
       : plan.planTrees.map((tree, index) => craftingTreeNode(repository, tree, 0, externalGoods, String(index))).join(""))
     : `<div class="empty-state">Choose a product to build a tree.</div>`;
 
@@ -1379,7 +1379,7 @@ function structureCoverageClass(structure) {
   return coverage.replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
 }
 
-function recipeGraphView(repository, plan, externalGoods, readyRows = []) {
+function recipeGraphView(repository, plan, externalGoods) {
   return `
     <div class="emi-tree-workbench">
       <div class="emi-tree-toolbar" aria-label="Recipe graph view controls">
@@ -1396,7 +1396,6 @@ function recipeGraphView(repository, plan, externalGoods, readyRows = []) {
           ${plan.planTrees.map((tree, index) => recipeGraphSubtree(repository, tree, externalGoods, 0, String(index))).join("")}
         </div>
       </div>
-      ${recipeGraphTotals(repository, plan, readyRows)}
     </div>
   `;
 }
@@ -1467,45 +1466,6 @@ function graphDoneButton(repository, goodsId, isDone) {
   return `
     <button class="emi-node-done-button${isDone ? " active" : ""}" type="button" data-action="toggle-done-step" data-id="${escapeHtml(goodsId)}" aria-label="${isDone ? "Clear done" : "Mark done"} for ${escapeHtml(name)}">
       ${isDone ? "&#10003;" : ""}
-    </button>
-  `;
-}
-
-function recipeGraphTotals(repository, plan, readyRows = []) {
-  const costRows = plan.externalRows.slice(0, 18).map((row) => graphCostEntry(repository, row)).join("");
-  const leftoverRows = plan.byproductRows.slice(0, 18).map((row) => graphCostEntry(repository, row)).join("");
-  return `
-    <div class="emi-graph-totals">
-      ${intermediateQueuePanel(repository, readyRows, {
-        limit: 4,
-        className: "graph-cost-queue",
-        title: "Next",
-        subtitle: "Craft before raw shopping",
-        description: readyRows.length
-          ? "Mark items done on the graph and this advances to the next useful intermediate."
-          : "Expand branches to see the next intermediate craft here.",
-        emptyText: "No next craft ready"
-      })}
-      <section>
-        <h3>Total Cost</h3>
-        <div class="emi-cost-row">${costRows || `<span class="needed-empty">None</span>`}</div>
-      </section>
-      <section>
-        <h3>Leftovers</h3>
-        <div class="emi-cost-row">${leftoverRows || `<span class="needed-empty">None</span>`}</div>
-      </section>
-    </div>
-  `;
-}
-
-function graphCostEntry(repository, row) {
-  const stackText = row.reusable
-    ? "reusable tool"
-    : stackBreakdownText(repository, row.goodsId, row.amountPerMinute);
-  return `
-    <button class="emi-cost-entry" type="button" data-action="select-tree-good" data-id="${escapeHtml(row.goodsId)}">
-      ${graphGoodIcon(repository, row.goodsId, row.reusable ? "x1" : graphAmountText(row.amountPerMinute))}
-      ${stackText ? `<span class="emi-stack-breakdown">${escapeHtml(stackText)}</span>` : ""}
     </button>
   `;
 }
@@ -2031,20 +1991,32 @@ function treeReasonLabel(reason) {
 
 function costSidebarPanel(repository, plan, externalGoods, readyRows = []) {
   const queue = intermediateQueuePanel(repository, readyRows, {
-    limit: 5,
-    className: "cost-sidebar-queue",
-    title: "Next from tree",
-    subtitle: "Check off to advance",
+    limit: 4,
+    className: "build-guide-queue",
+    title: "Next up",
+    subtitle: "Craft these first",
     description: readyRows.length
-      ? "After you mark graph items done, this updates to the next intermediate parts and then the remaining base costs."
-      : "Expand a branch or clear completed items to see the next craftable intermediate.",
+      ? "Mark items done on the graph or here; this advances toward the final build."
+      : "Expand a branch or clear completed items to reveal the next craftable intermediate.",
     emptyText: "No next intermediate ready"
   });
   const baseCosts = plan.externalRows.length
     ? externalInputGroups(repository, plan.externalRows, externalGoods)
     : `<div class="empty-state">No unresolved inputs.</div>`;
 
-  return `${queue}${baseCosts}`;
+  return `
+    ${queue}
+    <section class="guide-cost-section">
+      <header class="guide-cost-header">
+        <div>
+          <span class="tracker-label">Remaining base cost</span>
+          <strong>${escapeHtml(planCountText(plan.externalRows.length, "input"))}</strong>
+        </div>
+        <button class="secondary-button" type="button" data-action="clear-done-steps">Clear done</button>
+      </header>
+      ${baseCosts}
+    </section>
+  `;
 }
 
 function externalInputGroups(repository, rows, externalGoods) {
@@ -2086,14 +2058,24 @@ function externalInputRow(repository, row, externalGoods) {
   const canMake = externalGoods.has(row.goodsId) && repository.findRecipesProducing(row.goodsId).length > 0;
   const actions = goodActionButtons(repository, row.goodsId, { canMake });
   const amountText = externalInputAmountText(row);
+  const stackText = row.reusable
+    ? "reusable tool"
+    : stackBreakdownText(repository, row.goodsId, row.amountPerMinute);
+  const stackNote = stackText ? `<span class="external-stack-note">${escapeHtml(stackText)}</span>` : "";
 
   if (!actions) {
-    return goodChip(repository, row.goodsId, amountText);
+    return `
+      <div class="external-input-row">
+        ${goodChip(repository, row.goodsId, amountText)}
+        ${stackNote}
+      </div>
+    `;
   }
 
   return `
     <div class="external-input-row">
       ${goodChip(repository, row.goodsId, amountText)}
+      ${stackNote}
       ${actions}
     </div>
   `;
@@ -2771,7 +2753,7 @@ function setupEvents() {
 
   elements.craftingTree.addEventListener("contextmenu", (event) => {
     if (!(event.target instanceof Element)) return;
-    const target = event.target.closest(".emi-node, .emi-cost-entry, .tree-node");
+    const target = event.target.closest(".emi-node, .tree-node");
     if (!(target instanceof HTMLElement)) return;
     const goodsId = target.dataset.id ?? target.dataset.goodsId;
     if (!goodsId) return;
@@ -3186,7 +3168,7 @@ function setupRecipeGraphViewport() {
     if (!(event.target instanceof Element)) return null;
     const scroll = event.target.closest(".emi-tree-scroll");
     if (!(scroll instanceof HTMLElement)) return null;
-    if (event.target.closest(".emi-node, .emi-cost-entry, button, input, select, textarea, a")) return null;
+    if (event.target.closest(".emi-node, button, input, select, textarea, a")) return null;
     return scroll;
   }
 

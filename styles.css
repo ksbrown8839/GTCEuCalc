@@ -944,13 +944,31 @@ select {
   line-height: 1.35;
 }
 
-.cost-sidebar-queue {
+.build-guide-queue {
   margin-bottom: 12px;
 }
 
-.graph-cost-queue {
-  width: min(100%, 900px);
-  justify-self: center;
+.guide-cost-section {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.guide-cost-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.guide-cost-header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.guide-cost-header strong {
+  color: var(--ink);
+  font-size: 14px;
 }
 
 .tracker-step-list {
@@ -1570,8 +1588,7 @@ select {
   display: none;
 }
 
-.emi-node,
-.emi-cost-entry {
+.emi-node {
   position: relative;
   display: inline-grid;
   place-items: center;
@@ -1581,21 +1598,6 @@ select {
   border: 0;
   background: transparent;
   color: #fff;
-}
-
-.emi-cost-entry {
-  gap: 4px;
-}
-
-.emi-stack-breakdown {
-  min-width: 78px;
-  color: #f2f2f2;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.1;
-  text-align: center;
-  text-shadow: 1px 1px 0 #000000;
-  white-space: nowrap;
 }
 
 .emi-node-frame {
@@ -1612,8 +1614,7 @@ select {
 }
 
 .emi-node.selected .emi-node-frame,
-.emi-node:hover .emi-node-frame,
-.emi-cost-entry:hover .emi-good-icon {
+.emi-node:hover .emi-node-frame {
   outline: 2px solid var(--accent-3);
   outline-offset: 3px;
 }
@@ -1673,32 +1674,6 @@ select {
   color: #fff;
   font-size: 12px;
   font-weight: 900;
-}
-
-.emi-graph-totals {
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-}
-
-.emi-graph-totals section {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  max-width: 100%;
-}
-
-.emi-graph-totals h3 {
-  margin: 0;
-}
-
-.emi-cost-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 18px;
-  max-width: 100%;
 }
 
 .recipe-visual {
@@ -2135,6 +2110,13 @@ button.recipe-slot:hover {
   gap: 6px;
   max-width: 100%;
   flex-wrap: wrap;
+}
+
+.external-stack-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .secondary-button {
