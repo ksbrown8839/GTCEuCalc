@@ -1,4 +1,4 @@
-import { createPlan, requiredMachineCount } from "./planner.js?v=process-machine-tiers-2026-06-05";
+import { createPlan, requiredMachineCount } from "./planner.js?v=discrete-tree-tools-2026-07-23";
 
 const GRAPH_LIMIT = 96;
 const MAX_VISUAL_MACHINE_NODES = 48;
@@ -214,6 +214,7 @@ function buildMachineRows(plan, machineCounts) {
 
 function buildSupplyRows(plan, supplyRates, unlimitedSupplyGoods, coproductSourceGoods) {
   return plan.externalRows
+    .filter((row) => !row.reusable)
     .map((row) => {
       const requiredAmountPerMinute = row.amountPerMinute;
       const configured = Number(supplyRates[row.goodsId]);

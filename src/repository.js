@@ -113,13 +113,14 @@ export class Repository {
   }
 
   getGoodName(id) {
-    return this.getGood(id)?.name ?? id;
+    return this.getGood(id)?.name ?? virtualGoodName(id) ?? id;
   }
 
   getIngredientName(ingredient) {
     if (ingredient.kind === "tag") {
       const tag = this.getTag(ingredient.id);
-      return tag ? `#${tag.name}` : `#${ingredient.id}`;
+      const fallback = virtualGoodName(ingredient.id);
+      return tag ? `#${tag.name}` : (fallback ?? `#${ingredient.id}`);
     }
     return this.getGoodName(ingredient.id);
   }
@@ -247,6 +248,33 @@ function normalizeGood(good) {
 
 function stripMinecraftFormatting(value) {
   return String(value).replace(/§[0-9a-fk-or]/gi, "");
+}
+
+function virtualGoodName(id) {
+  const tool = /^gtceu:tools\/crafting_(.+)$/.exec(id);
+  if (!tool) return null;
+
+  const toolNames = {
+    hammers: "Crafting Hammer",
+    wrenches: "Crafting Wrench",
+    files: "Crafting File",
+    screwdrivers: "Crafting Screwdriver",
+    mallets: "Crafting Mallet",
+    saws: "Crafting Saw",
+    wire_cutters: "Wire Cutter",
+    knives: "Crafting Knife",
+    crowbars: "Crowbar"
+  };
+
+  return toolNames[tool[1]] ?? titleFromVirtualId(tool[1]);
+}
+
+function titleFromVirtualId(value) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
+    .join(" ");
 }
 
 function scoreGoodSearchMatch(good, query) {

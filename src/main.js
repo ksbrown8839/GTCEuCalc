@@ -1,6 +1,6 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=target-rate-clay-2026-07-21";
-import { createPlan } from "./planner.js?v=structure-recipe-tree-2026-07-20";
+import { loadRepository } from "./repository.js?v=reusable-tools-2026-07-23";
+import { createPlan } from "./planner.js?v=discrete-tree-tools-2026-07-23";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
 const DEFAULT_DATA_URL = "data/gtceu-modern-pack-1.14.5.json";
@@ -49,6 +49,7 @@ const EXTERNAL_INPUT_GROUPS = [
   { id: "circuits", label: "Circuits" },
   { id: "stock-parts", label: "Stock parts" },
   { id: "base-materials", label: "Base materials" },
+  { id: "tools", label: "Reusable tools" },
   { id: "other", label: "Other inputs" },
   { id: "unresolved", label: "Unresolved" }
 ];
@@ -698,7 +699,9 @@ function renderPlan(options = {}) {
     externalGoods,
     expandedGoods: state.expandedTreeGoods,
     structureTargets: state.structureTreeGoods,
-    structuresByController: state.multiblockStructures
+    structuresByController: state.multiblockStructures,
+    discreteItems: !state.treeView.showRates,
+    reusableTools: true
   });
   state.currentPlan = plan;
 
@@ -746,7 +749,7 @@ function renderPlan(options = {}) {
     : `<div class="empty-state">No unresolved inputs.</div>`;
 
   elements.byproducts.innerHTML = plan.byproductRows.length
-    ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))).join("")
+    ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, demandAmountText(row.amountPerMinute))).join("")
     : `<div class="empty-state">No byproducts in this chain.</div>`;
 
   if (state.treeView.showGraph) {
@@ -778,7 +781,7 @@ function neededInputsOverview(repository, plan, assumptionCount) {
 
   const chips = plan.externalRows.length
     ? plan.externalRows
-        .map((row) => goodChip(repository, row.goodsId, visibleRate(row.amountPerMinute)))
+        .map((row) => goodChip(repository, row.goodsId, externalInputAmountText(row)))
         .join("")
     : `<span class="needed-empty">No supplied inputs needed</span>`;
 
@@ -1286,10 +1289,12 @@ function recipeGraphTotals(repository, plan) {
 }
 
 function graphCostEntry(repository, row) {
-  const stackText = stackBreakdownText(repository, row.goodsId, row.amountPerMinute);
+  const stackText = row.reusable
+    ? "reusable tool"
+    : stackBreakdownText(repository, row.goodsId, row.amountPerMinute);
   return `
     <button class="emi-cost-entry" type="button" data-action="select-tree-good" data-id="${escapeHtml(row.goodsId)}">
-      ${graphGoodIcon(repository, row.goodsId, graphAmountText(row.amountPerMinute))}
+      ${graphGoodIcon(repository, row.goodsId, row.reusable ? "x1" : graphAmountText(row.amountPerMinute))}
       ${stackText ? `<span class="emi-stack-breakdown">${escapeHtml(stackText)}</span>` : ""}
     </button>
   `;
@@ -1525,7 +1530,17 @@ function roundGraphCoord(value) {
 
 function graphAmountText(amountPerMinute) {
   if (!Number.isFinite(amountPerMinute) || amountPerMinute <= 0) return "";
+  return demandAmountText(amountPerMinute);
+}
+
+function demandAmountText(amountPerMinute) {
+  if (!Number.isFinite(amountPerMinute) || amountPerMinute <= 0) return "";
   return state.treeView.showRates ? formatRate(amountPerMinute) : `x${formatAmount(amountPerMinute)}`;
+}
+
+function externalInputAmountText(row) {
+  if (row?.reusable) return "x1 reusable";
+  return demandAmountText(row?.amountPerMinute ?? 0);
 }
 
 function machinePlanRows(repository, machineRows) {
@@ -1808,7 +1823,7 @@ function externalInputGroups(repository, rows, externalGoods) {
   const groupedRows = new Map(EXTERNAL_INPUT_GROUPS.map((group) => [group.id, []]));
 
   for (const row of rows) {
-    groupedRows.get(getExternalInputGroupId(repository, row.goodsId)).push(row);
+    groupedRows.get(getExternalInputGroupId(repository, row)).push(row);
   }
 
   return EXTERNAL_INPUT_GROUPS
@@ -1831,7 +1846,9 @@ function externalInputGroups(repository, rows, externalGoods) {
     .join("");
 }
 
-function getExternalInputGroupId(repository, goodsId) {
+function getExternalInputGroupId(repository, row) {
+  if (row.reusable) return "tools";
+  const goodsId = row.goodsId;
   const good = repository.getGood(goodsId);
   if (!good) return "unresolved";
   return getBoundaryPresetForGood(good)?.id ?? "other";
@@ -1840,14 +1857,15 @@ function getExternalInputGroupId(repository, goodsId) {
 function externalInputRow(repository, row, externalGoods) {
   const canMake = externalGoods.has(row.goodsId) && repository.findRecipesProducing(row.goodsId).length > 0;
   const actions = goodActionButtons(repository, row.goodsId, { canMake });
+  const amountText = externalInputAmountText(row);
 
   if (!actions) {
-    return goodChip(repository, row.goodsId, formatRate(row.amountPerMinute));
+    return goodChip(repository, row.goodsId, amountText);
   }
 
   return `
     <div class="external-input-row">
-      ${goodChip(repository, row.goodsId, formatRate(row.amountPerMinute))}
+      ${goodChip(repository, row.goodsId, amountText)}
       ${actions}
     </div>
   `;
@@ -2978,7 +2996,9 @@ function setTreeExpansion(open) {
       preferredRecipeByOutput: state.preferredRecipeByOutput,
       externalGoods: getEffectiveExternalGoods(repository),
       structureTargets: state.structureTreeGoods,
-      structuresByController: state.multiblockStructures
+      structuresByController: state.multiblockStructures,
+      discreteItems: !state.treeView.showRates,
+      reusableTools: true
     });
     flattenPlanTrees(fullPlan.planTrees).forEach((entry) => {
       if (entry.node.goodsId) state.expandedTreeGoods.add(entry.node.goodsId);

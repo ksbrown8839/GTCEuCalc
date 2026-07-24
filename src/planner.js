@@ -3,6 +3,7 @@ const MAX_DEPTH = 32;
 export function createPlan(repository, products, options = {}) {
   const recipeRates = new Map();
   const externalInputs = new Map();
+  const reusableInputs = new Map();
   const tagChoices = new Map();
   const warnings = [];
   const warningKeys = new Set();
@@ -14,9 +15,37 @@ export function createPlan(repository, products, options = {}) {
   const expandedGoods = options.expandedGoods ? new Set(options.expandedGoods) : null;
   const structureTargets = new Set(options.structureTargets ?? []);
   const structuresByController = options.structuresByController ?? new Map();
+  const discreteItems = Boolean(options.discreteItems);
+  const reusableTools = options.reusableTools ?? true;
+  const epsilon = 0.000001;
 
   function add(map, id, amount) {
     map.set(id, (map.get(id) ?? 0) + amount);
+  }
+
+  function addReusable(id, amount = 1) {
+    reusableInputs.set(id, Math.max(reusableInputs.get(id) ?? 0, amount));
+  }
+
+  function isDiscreteItem(goodsId) {
+    return discreteItems && repository.getGood(goodsId)?.kind === "item";
+  }
+
+  function normalizeDemand(goodsId, amount) {
+    if (!isDiscreteItem(goodsId)) return amount;
+    return Math.ceil(Math.max(0, amount) - epsilon);
+  }
+
+  function rowAmount(goodsId, amount) {
+    const good = repository.getGood(goodsId);
+    if (discreteItems && good?.kind === "item") return Math.ceil(Math.max(0, amount) - epsilon);
+    return amount;
+  }
+
+  function isReusableToolInput(input) {
+    return reusableTools
+      && input.kind === "tag"
+      && /^gtceu:tools\/crafting_/.test(input.id);
   }
 
   function addWarning(message) {
@@ -73,6 +102,7 @@ export function createPlan(repository, products, options = {}) {
   }
 
   function planGood(goodsId, amountPerMinute, stack, context = {}) {
+    amountPerMinute = normalizeDemand(goodsId, amountPerMinute);
     const node = {
       goodsId,
       amountPerMinute,
@@ -162,7 +192,10 @@ export function createPlan(repository, products, options = {}) {
       return node;
     }
 
-    const runsPerMinute = amountPerMinute / matchingOutputAmount;
+    const exactRunsPerMinute = amountPerMinute / matchingOutputAmount;
+    const runsPerMinute = isDiscreteItem(goodsId)
+      ? Math.ceil(exactRunsPerMinute - epsilon)
+      : exactRunsPerMinute;
     node.recipe = recipe;
     node.runsPerMinute = runsPerMinute;
     const assignment = repository.chooseMachineForRecipe(recipe, options);
@@ -177,10 +210,18 @@ export function createPlan(repository, products, options = {}) {
     node.machineCount = requiredMachineCount(node.machineLoad);
     recordRecipe(recipe, runsPerMinute, goodsId, amountPerMinute);
 
+    let producedTargetAmount = 0;
     for (const output of recipe.outputs) {
+      const producedAmount = output.amount * (output.chance ?? 1) * runsPerMinute;
       if (output.id !== goodsId) {
-        add(byproducts, output.id, output.amount * (output.chance ?? 1) * runsPerMinute);
+        add(byproducts, output.id, producedAmount);
+      } else {
+        producedTargetAmount += producedAmount;
       }
+    }
+    if (isDiscreteItem(goodsId)) {
+      const leftoverAmount = producedTargetAmount - amountPerMinute;
+      if (leftoverAmount > epsilon) add(byproducts, goodsId, leftoverAmount);
     }
 
     const childDemands = new Map();
@@ -200,6 +241,20 @@ export function createPlan(repository, products, options = {}) {
 
     for (const input of recipe.inputs) {
       if (input.notConsumed) continue;
+
+      if (isReusableToolInput(input)) {
+        addReusable(input.id, 1);
+        node.children.push({
+          goodsId: input.id,
+          amountPerMinute: 1,
+          recipe: null,
+          runsPerMinute: 0,
+          children: [],
+          reason: "tool",
+          reusable: true
+        });
+        continue;
+      }
 
       const resolved = repository.resolveIngredient(input);
       if (resolved.warning && !tagChoices.has(input.id)) {
@@ -273,8 +328,12 @@ export function createPlan(repository, products, options = {}) {
     }
   }
 
-  const externalRows = [...externalInputs.entries()]
-    .map(([goodsId, amountPerMinute]) => ({ goodsId, amountPerMinute }))
+  const externalRows = [
+    ...[...externalInputs.entries()]
+      .map(([goodsId, amountPerMinute]) => ({ goodsId, amountPerMinute: rowAmount(goodsId, amountPerMinute), reusable: false })),
+    ...[...reusableInputs.entries()]
+      .map(([goodsId, amountPerMinute]) => ({ goodsId, amountPerMinute, reusable: true }))
+  ]
     .sort((a, b) => b.amountPerMinute - a.amountPerMinute);
   const byproductRows = [...byproducts.entries()]
     .map(([goodsId, amountPerMinute]) => ({ goodsId, amountPerMinute }))
