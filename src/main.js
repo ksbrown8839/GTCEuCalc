@@ -740,6 +740,8 @@ function renderPlan(options = {}) {
     reusableTools: true
   });
   state.currentPlan = plan;
+  const treeNodes = flattenPlanTrees(plan.planTrees);
+  const readyRows = readyIntermediateRows(repository, plan, treeNodes);
 
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
 
@@ -762,7 +764,7 @@ function renderPlan(options = {}) {
     ${assumptionHtml}
   `;
 
-  elements.recipeTracker.innerHTML = recipeTrackerPanel(repository, plan, externalGoods);
+  elements.recipeTracker.innerHTML = recipeTrackerPanel(repository, plan, externalGoods, treeNodes, readyRows);
 
   elements.machinePlan.innerHTML = machinePlanRows(repository, plan.machineRows);
   elements.treeGoodPicker.innerHTML = treeGoodPickerPanel(repository, plan, externalGoods);
@@ -776,13 +778,11 @@ function renderPlan(options = {}) {
 
   elements.craftingTree.innerHTML = plan.planTrees.length
     ? (state.treeView.showGraph
-      ? recipeGraphView(repository, plan, externalGoods)
+      ? recipeGraphView(repository, plan, externalGoods, readyRows)
       : plan.planTrees.map((tree, index) => craftingTreeNode(repository, tree, 0, externalGoods, String(index))).join(""))
     : `<div class="empty-state">Choose a product to build a tree.</div>`;
 
-  elements.externalInputs.innerHTML = plan.externalRows.length
-    ? externalInputGroups(repository, plan.externalRows, externalGoods)
-    : `<div class="empty-state">No unresolved inputs.</div>`;
+  elements.externalInputs.innerHTML = costSidebarPanel(repository, plan, externalGoods, readyRows);
 
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, demandAmountText(row.amountPerMinute))).join("")
@@ -834,11 +834,15 @@ function neededInputsOverview(repository, plan, assumptionCount) {
   `;
 }
 
-function recipeTrackerPanel(repository, plan, externalGoods) {
-  const treeNodes = flattenPlanTrees(plan.planTrees);
+function recipeTrackerPanel(
+  repository,
+  plan,
+  externalGoods,
+  treeNodes = flattenPlanTrees(plan.planTrees),
+  readyRows = readyIntermediateRows(repository, plan, treeNodes)
+) {
   const trackableNodes = treeNodes.filter((entry) => entry.node.goodsId);
   const completedCount = trackableNodes.filter((entry) => state.completedTreeGoods.has(entry.node.goodsId)).length;
-  const readyRows = readyIntermediateRows(repository, plan, treeNodes);
   const nextAction = nextTreeAction(repository, plan, externalGoods, treeNodes, readyRows);
   const targetChips = plan.products.length
     ? plan.products.map((product) => goodChip(repository, product.goodsId, demandAmountText(product.amountPerMinute))).join("")
@@ -863,7 +867,6 @@ function recipeTrackerPanel(repository, plan, externalGoods) {
         <span><strong>${formatAmount(plan.recipeRows.length)}</strong> recipe steps</span>
         <span><strong>${formatAmount(plan.byproductRows.length)}</strong> leftovers</span>
       </section>
-      ${intermediateQueuePanel(repository, readyRows)}
     </div>
   `;
 }
@@ -1058,29 +1061,50 @@ function directNeedsFromChildren(children) {
 
 function mergeDirectNeeds(needs, children) {
   for (const child of children ?? []) {
-    needs.set(child.goodsId, (needs.get(child.goodsId) ?? 0) + child.amountPerMinute);
+    const current = needs.get(child.goodsId);
+    const reusable = Boolean(child.reusable);
+    const amountPerMinute = reusable ? 1 : child.amountPerMinute;
+
+    if (current) {
+      current.reusable = current.reusable || reusable;
+      current.amountPerMinute = current.reusable
+        ? 1
+        : current.amountPerMinute + amountPerMinute;
+    } else {
+      needs.set(child.goodsId, {
+        goodsId: child.goodsId,
+        amountPerMinute,
+        reusable
+      });
+    }
   }
 }
 
-function intermediateQueuePanel(repository, readyRows) {
-  const visibleRows = readyRows.slice(0, 8);
+function intermediateQueuePanel(repository, readyRows, options = {}) {
+  const limit = options.limit ?? 8;
+  const visibleRows = readyRows.slice(0, limit);
   const hiddenCount = Math.max(0, readyRows.length - visibleRows.length);
   const shownIds = visibleRows.map((row) => row.goodsId).join(",");
+  const title = options.title ?? "Next intermediate builds";
+  const subtitle = options.subtitle ?? "Work bottom-up";
+  const className = options.className ?? "";
+  const description = options.description ?? (visibleRows.length
+    ? "Craft these lowest open recipe layers first. As you mark them done, this queue advances toward the final build."
+    : "Expand an item in the graph to create the next craftable intermediate layer.");
+  const emptyText = options.emptyText ?? "No intermediate steps ready yet";
 
   return `
-    <section class="tracker-card tracker-queue">
+    <section class="intermediate-queue ${escapeHtml(className)}">
       <header class="tracker-queue-header">
         <div>
-          <span class="tracker-label">Next intermediate builds</span>
-          <strong>Work bottom-up</strong>
+          <span class="tracker-label">${escapeHtml(title)}</span>
+          <strong>${escapeHtml(subtitle)}</strong>
         </div>
         ${visibleRows.length ? `<button class="secondary-button" type="button" data-action="mark-ready-intermediates-done" data-ids="${escapeHtml(shownIds)}">Mark shown done</button>` : ""}
       </header>
-      <p>${visibleRows.length
-        ? "Craft these lowest open recipe layers first. As you mark them done, this queue advances toward the final build."
-        : "Expand an item in the graph to create the next craftable intermediate layer."}</p>
+      <p>${escapeHtml(description)}</p>
       <div class="tracker-step-list">
-        ${visibleRows.length ? visibleRows.map((row) => intermediateStepCard(repository, row)).join("") : `<span class="needed-empty">No intermediate steps ready yet</span>`}
+        ${visibleRows.length ? visibleRows.map((row) => intermediateStepCard(repository, row)).join("") : `<span class="needed-empty">${escapeHtml(emptyText)}</span>`}
       </div>
       ${hiddenCount ? `<p class="tracker-more">${formatAmount(hiddenCount)} more ready steps are hidden until these are handled.</p>` : ""}
     </section>
@@ -1089,9 +1113,9 @@ function intermediateQueuePanel(repository, readyRows) {
 
 function intermediateStepCard(repository, row) {
   const name = repository.getGoodName(row.goodsId);
-  const needs = [...row.needs.entries()]
+  const needs = [...row.needs.values()]
     .slice(0, 4)
-    .map(([goodsId, amountPerMinute]) => goodChip(repository, goodsId, demandAmountText(amountPerMinute)))
+    .map((need) => goodChip(repository, need.goodsId, externalInputAmountText(need)))
     .join("");
   const hiddenNeeds = Math.max(0, row.needs.size - 4);
   const duplicateText = row.nodeCount > 1 ? ` · ${formatAmount(row.nodeCount)} places` : "";
@@ -1355,7 +1379,7 @@ function structureCoverageClass(structure) {
   return coverage.replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
 }
 
-function recipeGraphView(repository, plan, externalGoods) {
+function recipeGraphView(repository, plan, externalGoods, readyRows = []) {
   return `
     <div class="emi-tree-workbench">
       <div class="emi-tree-toolbar" aria-label="Recipe graph view controls">
@@ -1372,7 +1396,7 @@ function recipeGraphView(repository, plan, externalGoods) {
           ${plan.planTrees.map((tree, index) => recipeGraphSubtree(repository, tree, externalGoods, 0, String(index))).join("")}
         </div>
       </div>
-      ${recipeGraphTotals(repository, plan)}
+      ${recipeGraphTotals(repository, plan, readyRows)}
     </div>
   `;
 }
@@ -1447,11 +1471,21 @@ function graphDoneButton(repository, goodsId, isDone) {
   `;
 }
 
-function recipeGraphTotals(repository, plan) {
+function recipeGraphTotals(repository, plan, readyRows = []) {
   const costRows = plan.externalRows.slice(0, 18).map((row) => graphCostEntry(repository, row)).join("");
   const leftoverRows = plan.byproductRows.slice(0, 18).map((row) => graphCostEntry(repository, row)).join("");
   return `
     <div class="emi-graph-totals">
+      ${intermediateQueuePanel(repository, readyRows, {
+        limit: 4,
+        className: "graph-cost-queue",
+        title: "Next",
+        subtitle: "Craft before raw shopping",
+        description: readyRows.length
+          ? "Mark items done on the graph and this advances to the next useful intermediate."
+          : "Expand branches to see the next intermediate craft here.",
+        emptyText: "No next craft ready"
+      })}
       <section>
         <h3>Total Cost</h3>
         <div class="emi-cost-row">${costRows || `<span class="needed-empty">None</span>`}</div>
@@ -1993,6 +2027,24 @@ function treeReasonLabel(reason) {
     default:
       return "leaf";
   }
+}
+
+function costSidebarPanel(repository, plan, externalGoods, readyRows = []) {
+  const queue = intermediateQueuePanel(repository, readyRows, {
+    limit: 5,
+    className: "cost-sidebar-queue",
+    title: "Next from tree",
+    subtitle: "Check off to advance",
+    description: readyRows.length
+      ? "After you mark graph items done, this updates to the next intermediate parts and then the remaining base costs."
+      : "Expand a branch or clear completed items to see the next craftable intermediate.",
+    emptyText: "No next intermediate ready"
+  });
+  const baseCosts = plan.externalRows.length
+    ? externalInputGroups(repository, plan.externalRows, externalGoods)
+    : `<div class="empty-state">No unresolved inputs.</div>`;
+
+  return `${queue}${baseCosts}`;
 }
 
 function externalInputGroups(repository, rows, externalGoods) {
