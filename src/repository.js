@@ -263,7 +263,8 @@ function virtualGoodName(id) {
     saws: "Crafting Saw",
     wire_cutters: "Wire Cutter",
     knives: "Crafting Knife",
-    crowbars: "Crowbar"
+    crowbars: "Crowbar",
+    mortars: "Crafting Mortar"
   };
 
   return toolNames[tool[1]] ?? titleFromVirtualId(tool[1]);

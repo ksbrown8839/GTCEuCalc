@@ -1,5 +1,5 @@
 import { formatAmount, formatAverageEut, formatDuration, formatRate, escapeHtml } from "./format.js?v=machine-build-counts-2026-05-31";
-import { loadRepository } from "./repository.js?v=reusable-tools-2026-07-23";
+import { loadRepository } from "./repository.js?v=tool-tag-icons-2026-07-23";
 import { createPlan } from "./planner.js?v=discrete-tree-tools-2026-07-23";
 import { BOUNDARY_PRESETS, countBoundaryPresetGoods, getBoundaryPresetForGood, getBoundaryPresetGoods } from "./boundaries.js?v=inspector-2026-05-21";
 
@@ -43,6 +43,19 @@ const state = {
 
 const EXTERNAL_RECIPE_VALUE = "__external__";
 const STRUCTURE_RECIPE_VALUE = "__structure__";
+
+const VIRTUAL_TOOL_ICON_BY_ID = {
+  "gtceu:tools/crafting_hammers": "gtceu:bronze_hammer",
+  "gtceu:tools/crafting_files": "gtceu:bronze_file",
+  "gtceu:tools/crafting_wrenches": "gtceu:bronze_wrench",
+  "gtceu:tools/crafting_screwdrivers": "gtceu:bronze_screwdriver",
+  "gtceu:tools/crafting_mallets": "gtceu:wood_mallet",
+  "gtceu:tools/crafting_saws": "gtceu:bronze_saw",
+  "gtceu:tools/crafting_wire_cutters": "gtceu:bronze_wire_cutter",
+  "gtceu:tools/crafting_knives": "gtceu:bronze_knife",
+  "gtceu:tools/crafting_crowbars": "gtceu:bronze_crowbar",
+  "gtceu:tools/crafting_mortars": "gtceu:bronze_mortar"
+};
 
 const EXTERNAL_INPUT_GROUPS = [
   { id: "fluids", label: "Fluids" },
@@ -102,7 +115,7 @@ function goodIconMarkup(repository, id) {
 
 function atlasIconMarkup(goodsId, kind, className, displaySize) {
   const atlas = state.textureAtlas;
-  const iconId = atlas?.icons?.[goodsId];
+  const iconId = atlas?.icons?.[atlasIconGoodsId(goodsId)];
   if (!atlas || iconId === undefined) return "";
 
   const column = iconId % atlas.columns;
@@ -115,6 +128,10 @@ function atlasIconMarkup(goodsId, kind, className, displaySize) {
   ].join(";");
 
   return `<span class="${className} ${kind}" style="${style}" aria-hidden="true"></span>`;
+}
+
+function atlasIconGoodsId(goodsId) {
+  return VIRTUAL_TOOL_ICON_BY_ID[goodsId] ?? goodsId;
 }
 
 function slotIconMarkup({ goodsId, kind, color, label, fallback }) {
@@ -156,11 +173,23 @@ function goodTooltipAttrs(good, fallbackId, amountText = "", detail = "") {
   });
 }
 
+function displayGoodTooltipAttrs(repository, id, amountText = "", detail = "") {
+  const good = repository.getGood(id);
+  return tooltipAttrs({
+    name: repository.getGoodName(id),
+    id: good?.id ?? id,
+    amountText,
+    kind: good?.kind ?? (isVirtualToolGood(id) ? "tool" : ""),
+    mod: good?.mod ?? "",
+    detail
+  });
+}
+
 function goodChip(repository, id, amountText = "") {
   const good = repository.getGood(id);
-  const name = good?.name ?? id;
+  const name = repository.getGoodName(id);
   return `
-    <span class="good-chip" ${goodTooltipAttrs(good, id, amountText)}>
+    <span class="good-chip" ${displayGoodTooltipAttrs(repository, id, amountText)}>
       ${goodIconMarkup(repository, id)}
       <span>${escapeHtml(name)}</span>
       ${amountText ? `<strong>${escapeHtml(amountText)}</strong>` : ""}
@@ -195,17 +224,20 @@ function ingredientChip(repository, ingredient) {
 function goodSlot(repository, id, amountText = "", options = {}) {
   const good = repository.getGood(id);
   const color = good?.color ?? "#7d8790";
-  const name = good?.name ?? id;
+  const name = repository.getGoodName(id);
   const kind = good?.kind ?? "item";
   const className = options.className ? ` ${options.className}` : "";
+  const virtualTool = isVirtualToolGood(id);
   const content = `
     ${slotIconMarkup({ goodsId: id, kind, color, label: name, fallback: id })}
     <span class="slot-name">${escapeHtml(name)}</span>
     ${amountText ? `<strong class="slot-amount">${escapeHtml(amountText)}</strong>` : ""}
   `;
 
-  if (!good) {
-    return `<span class="recipe-slot unresolved${className}" ${goodTooltipAttrs(good, id, amountText, "Unresolved good")}>${content}</span>`;
+  if (!good || virtualTool) {
+    const detail = virtualTool ? "Reusable crafting tool tag" : "Unresolved good";
+    const unresolvedClass = virtualTool ? "" : " unresolved";
+    return `<span class="recipe-slot${unresolvedClass}${className}" ${displayGoodTooltipAttrs(repository, id, amountText, detail)}>${content}</span>`;
   }
 
   return `
@@ -218,14 +250,18 @@ function goodSlot(repository, id, amountText = "", options = {}) {
 function graphGoodIcon(repository, id, amountText = "") {
   const good = repository.getGood(id);
   const color = good?.color ?? "#7d8790";
-  const name = good?.name ?? id;
+  const name = repository.getGoodName(id);
   const kind = good?.kind ?? "item";
   return `
-    <span class="emi-good-icon ${kind}" ${goodTooltipAttrs(good, id, amountText)}>
+    <span class="emi-good-icon ${kind}" ${displayGoodTooltipAttrs(repository, id, amountText)}>
       ${slotIconMarkup({ goodsId: id, kind, color, label: name, fallback: id })}
       ${amountText ? `<strong class="slot-amount">${escapeHtml(amountText)}</strong>` : ""}
     </span>
   `;
+}
+
+function isVirtualToolGood(id) {
+  return Boolean(VIRTUAL_TOOL_ICON_BY_ID[id]);
 }
 
 function ingredientSlot(repository, ingredient) {
