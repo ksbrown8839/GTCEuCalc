@@ -68,6 +68,8 @@ const EXTERNAL_INPUT_GROUPS = [
 ];
 
 const TARGET_BROWSER_LIMIT = 180;
+const SMART_EXPAND_MAX_GOODS = 450;
+const SMART_EXPAND_TERMINAL_BOUNDARIES = new Set(["base-materials", "fluids", "circuits"]);
 
 const elements = {
   status: document.querySelector("[data-role='status']"),
@@ -401,6 +403,105 @@ function setGoodAsExternal(goodsId) {
   state.expandedTreeGoods.delete(goodsId);
   state.structureTreeGoods.delete(goodsId);
   delete state.preferredRecipeByOutput[goodsId];
+}
+
+function expandTreeToBaseMaterials() {
+  const repository = state.repository;
+  if (!repository) return;
+
+  const goodsToExpand = collectSmartExpandedGoods(repository, state.products.map((product) => product.goodsId));
+  for (const goodsId of goodsToExpand) {
+    setGoodAsMade(goodsId);
+    state.expandedTreeGoods.add(goodsId);
+    state.completedTreeGoods.delete(goodsId);
+  }
+
+  renderBoundaryPresets();
+  renderPlan({ preserveGraphViewport: state.treeView.showGraph });
+  renderInspector();
+}
+
+function collectSmartExpandedGoods(repository, rootGoodsIds) {
+  const goodsToExpand = new Set();
+  const visiting = new Set();
+
+  function walk(goodsId, stack = [], options = {}) {
+    if (!goodsId || goodsToExpand.size >= SMART_EXPAND_MAX_GOODS) return;
+    if (shouldStopSmartExpand(repository, goodsId)) return;
+    const visitKey = `${goodsId}:${options.skipStructure ? "recipe" : "auto"}`;
+    if (visiting.has(visitKey) || stack.includes(goodsId)) return;
+
+    visiting.add(visitKey);
+
+    const structure = !options.skipStructure && state.structureTreeGoods.has(goodsId) ? structureForGood(goodsId) : null;
+    if (structure?.requirements?.length) {
+      goodsToExpand.add(goodsId);
+      const nextStack = [...stack, structure.id ?? `${goodsId}:structure`];
+      for (const requirement of structure.requirements) {
+        walk(requirement.id, nextStack, {
+          skipStructure: requirement.id === goodsId
+        });
+      }
+      visiting.delete(visitKey);
+      return;
+    }
+
+    const recipe = repository.chooseRecipeForOutput(goodsId, state.preferredRecipeByOutput, {
+      avoidGoods: stack
+    });
+    if (!recipe) {
+      visiting.delete(visitKey);
+      return;
+    }
+
+    goodsToExpand.add(goodsId);
+    const nextStack = [...stack, goodsId];
+    for (const input of recipe.inputs ?? []) {
+      if (input.notConsumed || isReusableToolIngredient(input)) continue;
+      const childGoodsId = smartExpandIngredientGoodsId(repository, input);
+      walk(childGoodsId, nextStack);
+    }
+
+    visiting.delete(visitKey);
+  }
+
+  for (const goodsId of rootGoodsIds) {
+    walk(goodsId);
+  }
+
+  return goodsToExpand;
+}
+
+function smartExpandIngredientGoodsId(repository, ingredient) {
+  if (!ingredient) return null;
+  if (ingredient.kind !== "tag") return ingredient.id;
+  if (isReusableToolIngredient(ingredient)) return null;
+  return repository.resolveIngredient(ingredient).id;
+}
+
+function shouldStopSmartExpand(repository, goodsId) {
+  if (state.manualExternalGoods.has(goodsId) || isAutoExpandToolGood(repository, goodsId)) return true;
+
+  const good = repository.getGood(goodsId);
+  if (!good) return true;
+  if (good.kind !== "item") return true;
+  if (good.mod === "minecraft" || goodsId.startsWith("minecraft:")) return true;
+
+  const boundary = getBoundaryPresetForGood(good);
+  return SMART_EXPAND_TERMINAL_BOUNDARIES.has(boundary?.id);
+}
+
+function isReusableToolIngredient(ingredient) {
+  return ingredient?.kind === "tag" && /^gtceu:tools\/crafting_/.test(ingredient.id);
+}
+
+function isAutoExpandToolGood(repository, goodsId) {
+  if (isVirtualToolGood(goodsId)) return true;
+  const good = repository.getGood(goodsId);
+  return Boolean(
+    good?.tags?.some((tag) => /^gtceu:tools\/crafting_/.test(tag))
+    || /_(hammer|file|wrench|screwdriver|saw|knife|crowbar|mortar|wire_cutter|mallet)$/.test(goodsId)
+  );
 }
 
 function setSingleTarget(goodsId) {
@@ -2795,7 +2896,7 @@ function setupEvents() {
     }
 
     if (target.dataset.action === "expand-tree") {
-      setTreeExpansion(true);
+      expandTreeToBaseMaterials();
     }
 
     if (target.dataset.action === "clear-done-steps") {
@@ -3270,18 +3371,8 @@ function setupRecipeGraphViewport() {
 
 function setTreeExpansion(open) {
   if (open) {
-    const repository = state.repository;
-    const fullPlan = createPlan(repository, state.products, {
-      preferredRecipeByOutput: state.preferredRecipeByOutput,
-      externalGoods: getEffectiveExternalGoods(repository),
-      structureTargets: state.structureTreeGoods,
-      structuresByController: state.multiblockStructures,
-      discreteItems: !state.treeView.showRates,
-      reusableTools: true
-    });
-    flattenPlanTrees(fullPlan.planTrees).forEach((entry) => {
-      if (entry.node.goodsId) state.expandedTreeGoods.add(entry.node.goodsId);
-    });
+    expandTreeToBaseMaterials();
+    return;
   } else {
     state.expandedTreeGoods.clear();
   }
