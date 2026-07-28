@@ -68,6 +68,7 @@ const EXTERNAL_INPUT_GROUPS = [
 ];
 
 const TARGET_BROWSER_LIMIT = 180;
+const TREE_PICKER_RECIPE_LIMIT = 24;
 const SMART_EXPAND_MAX_GOODS = 450;
 const SMART_EXPAND_TERMINAL_BOUNDARIES = new Set(["base-materials", "fluids", "circuits"]);
 
@@ -843,11 +844,12 @@ function renderPlan(options = {}) {
   state.currentPlan = plan;
   const treeNodes = flattenPlanTrees(plan.planTrees);
   const readyRows = readyIntermediateRows(repository, plan, treeNodes);
+  const remainingExternalRows = remainingExternalInputRows(repository, plan);
 
   elements.totalPower.textContent = `${formatAmount(plan.totalAverageEut)} EU/t average`;
 
   const assumptionCount = plan.warnings.length + plan.suppressedWarningCount;
-  elements.status.innerHTML = recipeTitleSummary(repository, plan, assumptionCount);
+  elements.status.innerHTML = recipeTitleSummary(repository, plan, assumptionCount, remainingExternalRows);
 
   if (elements.recipeTracker) {
     elements.recipeTracker.innerHTML = recipeTrackerPanel(repository, plan, externalGoods, treeNodes, readyRows);
@@ -869,7 +871,7 @@ function renderPlan(options = {}) {
       : plan.planTrees.map((tree, index) => craftingTreeNode(repository, tree, 0, externalGoods, String(index))).join(""))
     : `<div class="empty-state">Choose a product to build a tree.</div>`;
 
-  elements.externalInputs.innerHTML = buildGuidePanel(repository, plan, externalGoods, readyRows);
+  elements.externalInputs.innerHTML = buildGuidePanel(repository, plan, externalGoods, readyRows, remainingExternalRows);
 
   elements.byproducts.innerHTML = plan.byproductRows.length
     ? plan.byproductRows.map((row) => goodChip(repository, row.goodsId, demandAmountText(row.amountPerMinute))).join("")
@@ -921,14 +923,14 @@ function neededInputsOverview(repository, plan, assumptionCount) {
   `;
 }
 
-function recipeTitleSummary(repository, plan, assumptionCount) {
+function recipeTitleSummary(repository, plan, assumptionCount, remainingExternalRows = plan.externalRows) {
   const targets = plan.products.length
     ? plan.products
         .map((product) => `${repository.getGoodName(product.goodsId)} ${demandAmountText(product.amountPerMinute)}`)
         .join(", ")
     : "Choose a target";
   const summary = [
-    planCountText(plan.externalRows.length, "base cost"),
+    planCountText(remainingExternalRows.length, "base cost"),
     planCountText(plan.recipeRows.length, "recipe step"),
     planCountText(plan.machineRows.length, "machine group")
   ];
@@ -1149,6 +1151,67 @@ function readyIntermediateRows(repository, plan, treeNodes) {
   });
 }
 
+function remainingExternalInputRows(repository, plan) {
+  const remaining = new Map();
+
+  function addRemaining(node) {
+    if (!node?.goodsId) return;
+    const reusable = Boolean(node.reusable);
+    const amountPerMinute = reusable ? 1 : node.amountPerMinute;
+    const current = remaining.get(node.goodsId);
+
+    if (current) {
+      current.amountPerMinute = reusable
+        ? Math.max(current.amountPerMinute, amountPerMinute)
+        : current.amountPerMinute + amountPerMinute;
+      current.reusable = current.reusable || reusable;
+      return;
+    }
+
+    remaining.set(node.goodsId, {
+      goodsId: node.goodsId,
+      amountPerMinute,
+      reusable
+    });
+  }
+
+  function visit(node) {
+    if (!node?.goodsId) return;
+    if (state.completedTreeGoods.has(node.goodsId)) return;
+
+    if (node.children?.length) {
+      for (const child of node.children) {
+        visit(child);
+      }
+      return;
+    }
+
+    if (!node.recipe) {
+      addRemaining(node);
+    }
+  }
+
+  for (const tree of plan.planTrees ?? []) {
+    visit(tree);
+  }
+
+  return [...remaining.values()]
+    .map((row) => ({
+      ...row,
+      amountPerMinute: row.reusable ? row.amountPerMinute : roundedRemainingAmount(repository, row.goodsId, row.amountPerMinute)
+    }))
+    .sort((a, b) => b.amountPerMinute - a.amountPerMinute);
+}
+
+function roundedRemainingAmount(repository, goodsId, amountPerMinute) {
+  const good = repository.getGood(goodsId);
+  if (good?.kind === "item" && !state.treeView.showRates) {
+    return Math.ceil(Math.max(0, amountPerMinute) - 0.000001);
+  }
+
+  return amountPerMinute;
+}
+
 function isReadyIntermediateNode(node) {
   if (!node?.recipe || state.completedTreeGoods.has(node.goodsId)) return false;
   if (!node.children?.length) return false;
@@ -1273,11 +1336,15 @@ function treeGoodPickerPanel(repository, plan, externalGoods) {
     : selectedIsStructure
       ? selectedNode.recipe.id
       : state.preferredRecipeByOutput[goodsId] ?? selectedNode?.recipe?.id ?? recipes[0]?.id ?? "";
+  const visibleRecipes = recipes.slice(0, TREE_PICKER_RECIPE_LIMIT);
+  const hiddenRecipeCount = Math.max(0, recipes.length - visibleRecipes.length);
   const recipeCards = recipes.length
-    ? recipes.slice(0, 6).map((recipe, index) => treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId, {
+    ? `${visibleRecipes.map((recipe, index) => treePickerRecipeCard(repository, goodsId, recipe, index, selectedRecipeId, {
         nodeKey: selectedNodeKey,
         clearStructure: selectedIsStructure
-      })).join("")
+      })).join("")}${hiddenRecipeCount
+        ? `<div class="empty-state">Showing ${formatAmount(visibleRecipes.length)} of ${formatAmount(recipes.length)} recipe variants. Inspect this item to browse the full recipe list.</div>`
+        : ""}`
     : `<div class="empty-state">No exported recipe. This remains a base cost.</div>`;
   const selectedAmount = selectedNode ? graphAmountText(selectedNode.amountPerMinute) : "";
 
@@ -2098,8 +2165,8 @@ function treeReasonLabel(reason) {
   }
 }
 
-function buildGuidePanel(repository, plan, externalGoods, readyRows = []) {
-  const denseCostClass = plan.externalRows.length >= 5 ? " dense-costs" : "";
+function buildGuidePanel(repository, plan, externalGoods, readyRows = [], remainingRows = plan.externalRows) {
+  const denseCostClass = remainingRows.length >= 5 ? " dense-costs" : "";
   const queue = intermediateQueuePanel(repository, readyRows, {
     limit: 6,
     className: "build-guide-queue",
@@ -2110,8 +2177,8 @@ function buildGuidePanel(repository, plan, externalGoods, readyRows = []) {
       : "Expand a branch or clear completed items to reveal the next craftable intermediate.",
     emptyText: "No next intermediate ready"
   });
-  const baseCosts = plan.externalRows.length
-    ? externalInputGroups(repository, plan.externalRows, externalGoods)
+  const baseCosts = remainingRows.length
+    ? externalInputGroups(repository, remainingRows, externalGoods)
     : `<div class="empty-state">No unresolved inputs.</div>`;
 
   return `
@@ -2120,7 +2187,7 @@ function buildGuidePanel(repository, plan, externalGoods, readyRows = []) {
       <header class="guide-cost-header">
         <div>
           <span class="tracker-label">Remaining base cost</span>
-          <strong>${escapeHtml(planCountText(plan.externalRows.length, "input"))}</strong>
+          <strong>${escapeHtml(planCountText(remainingRows.length, "input"))}</strong>
         </div>
         <button class="secondary-button" type="button" data-action="clear-done-steps">Clear done</button>
       </header>
